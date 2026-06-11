@@ -14,13 +14,15 @@ version_stdout="$(mktemp)"
 version_stderr="$(mktemp)"
 run_stdout="$(mktemp)"
 run_stderr="$(mktemp)"
+run_json_stdout="$(mktemp)"
+run_json_stderr="$(mktemp)"
 fail_stdout="$(mktemp)"
 fail_stderr="$(mktemp)"
 inject_stdout="$(mktemp)"
 inject_stderr="$(mktemp)"
 
 cleanup_files() {
-	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr"
+	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$run_json_stdout" "$run_json_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr"
 	rm -rf "$tmpdir"
 }
 trap cleanup_files EXIT
@@ -53,6 +55,22 @@ if [[ -s "$run_stderr" ]]; then
 fi
 if ! grep -q "Status:[[:space:]]*success" "$run_stdout"; then
 	echo "Expected muzzle run hello to succeed." >&2
+	exit 1
+fi
+
+"$MUZZLE_BIN" run hello --json >"$run_json_stdout" 2>"$run_json_stderr"
+if [[ -s "$run_json_stderr" ]]; then
+	echo "Expected muzzle run hello --json to be quiet on stderr." >&2
+	exit 1
+fi
+if ! grep -Eq '"status"[[:space:]]*:[[:space:]]*"success"' "$run_json_stdout"; then
+	echo "Expected muzzle run hello --json to emit a success JSON summary." >&2
+	exit 1
+fi
+log_count="$(find .muzzle/logs -maxdepth 1 -type f -name 'hello-*.log' | wc -l | tr -d ' ')"
+report_count="$(find .muzzle/reports -maxdepth 1 -type f -name 'hello-*.md' | wc -l | tr -d ' ')"
+if [[ "$log_count" -lt 2 || "$report_count" -lt 2 ]]; then
+	echo "Expected consecutive runs to create distinct log/report files." >&2
 	exit 1
 fi
 

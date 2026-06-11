@@ -384,7 +384,7 @@ func cmd_run(argv) {
 
 	# Build and execute command
 	started_at := timestamp_iso()
-	start_ms := now_unix()
+	start_ms := current_timestamp()
 
 	cmd := build_command(runner, script_path, workflow_args)
 
@@ -413,7 +413,7 @@ func cmd_run(argv) {
 		}
 	}
 
-	end_ms := now_unix()
+	end_ms := current_timestamp()
 	finished_at := timestamp_iso()
 	duration_ms := end_ms - start_ms
 	if duration_ms < 0 {
