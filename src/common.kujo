@@ -1,0 +1,147 @@
+# Muzzle shared utilities.
+# Provides CLI arg parsing, truthy helpers, timestamp formatting,
+# and filesystem path helpers.
+
+# --- truthy / falsy helpers (Kujo predicates return 1/0 or true/false) ---
+
+export func is_trueish(value) {
+	return value == true || value == 1
+}
+
+export func is_falseish(value) {
+	return value == false || value == 0
+}
+
+# --- CLI arg parsing ---
+
+# Parse subcommand from CLI args (first non-flag token).
+export func parse_subcommand(argv) {
+	if len(argv) < 1 {
+		return ""
+	}
+	arg := to_string(argv[0])
+	if is_trueish(starts_with(arg, "--")) || is_trueish(starts_with(arg, "-")) {
+		return ""
+	}
+	return arg
+}
+
+# Check if a flag is present in CLI args.
+export func has_flag(argv, flag_name) {
+	mut idx := 0
+	while idx < len(argv) {
+		if to_string(argv[idx]) == flag_name {
+			return true
+		}
+		idx = idx + 1
+	}
+	return false
+}
+
+# Get the value of a flag from CLI args (next token after flag, if not another flag).
+export func flag_value(argv, flag_name, default_value) {
+	mut idx := 0
+	while idx < len(argv) {
+		if to_string(argv[idx]) == flag_name {
+			if idx + 1 < len(argv) {
+				next := to_string(argv[idx + 1])
+				if is_falseish(starts_with(next, "--")) {
+					return next
+				}
+			}
+			return default_value
+		}
+		idx = idx + 1
+	}
+	return default_value
+}
+
+# Extract positional args (non-flag tokens) after subcommand.
+export func positional_args(argv) {
+	mut result := array()
+	mut idx := 1
+	while idx < len(argv) {
+		arg := to_string(argv[idx])
+		if is_falseish(starts_with(arg, "--")) && is_falseish(starts_with(arg, "-")) {
+			result = push(result, arg)
+		} else {
+			# Skip flag and its value
+			if idx + 1 < len(argv) {
+				next := to_string(argv[idx + 1])
+				if is_falseish(starts_with(next, "--")) && is_falseish(starts_with(next, "-")) {
+					idx = idx + 1
+				}
+			}
+		}
+		idx = idx + 1
+	}
+	return result
+}
+
+# --- string helpers ---
+
+export func str_starts_with(s, prefix) {
+	return is_trueish(starts_with(s, prefix))
+}
+
+export func str_contains(s, substr) {
+	return is_trueish(contains(s, substr))
+}
+
+export func str_ends_with(s, suffix) {
+	return is_trueish(ends_with(s, suffix))
+}
+
+export func dict_has_key(map_obj, key_name) {
+	return is_trueish(has_key(map_obj, key_name))
+}
+
+# --- timestamp formatting ---
+
+# Returns compact timestamp for filenames (epoch seconds, unique and filesystem-safe).
+export func timestamp_compact() {
+	return to_string(now_unix())
+}
+
+# Returns ISO 8601 timestamp (e.g., "2026-05-28T22:30:00Z").
+export func timestamp_iso() {
+	return now_utc()
+}
+
+# Format duration in milliseconds to a human-readable string.
+export func format_duration_ms(ms) {
+	if ms < 1000 {
+		return to_string(ms) + "ms"
+	}
+	if ms < 60000 {
+		secs := ms / 1000
+		remain := ms % 1000
+		secs_str := to_string(secs)
+		remain_str := to_string(remain / 100)
+		return secs_str + "." + remain_str + "s"
+	}
+	mins := ms / 60000
+	remain_secs := (ms % 60000) / 1000
+	return to_string(mins) + "m" + to_string(remain_secs) + "s"
+}
+
+# --- path helpers ---
+
+export func ensure_dir(path) {
+	if is_falseish(file_exists(path)) {
+		create_dir(path)
+	}
+}
+
+# Join path components with directory separator.
+export func path_join(base, child) {
+	if is_trueish(ends_with(base, "/")) {
+		return base + child
+	}
+	return base + "/" + child
+}
+
+# Check if the current directory has a .muzzle/ directory.
+export func has_muzzle_dir() {
+	return is_trueish(file_exists(".muzzle"))
+}

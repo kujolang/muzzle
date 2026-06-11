@@ -1,0 +1,167 @@
+# Muzzle runner dispatch.
+# Supports multiple workflow runners: kujo (default), bash, python, node.
+# Runner is determined by:
+#   1. Manifest `runner` field (if manifest exists)
+#   2. File extension (.kujo -> kujo, .sh -> bash, .py -> python, .js -> node)
+#   3. --runner flag override
+
+from src.common import str_ends_with, is_trueish, dict_has_key
+
+# Default runner when nothing else is specified.
+DEFAULT_RUNNER := "kujo"
+
+# Resolve the runner for a workflow.
+# manifest: parsed manifest dict (or null)
+# script_path: path to the workflow script
+# flag_override: --runner flag value (or "")
+export func resolve_runner(manifest, script_path, flag_override) {
+	# 1. CLI flag override takes highest priority
+	if flag_override != "" {
+		lower := to_lower(flag_override)
+		if lower == "kujo" || lower == "bash" || lower == "python" || lower == "node" {
+			return lower
+		}
+	}
+
+	# 2. Manifest runner field
+	if manifest != null && dict_has_key(manifest, "runner") {
+		runner := to_string(manifest["runner"])
+		lower := to_lower(runner)
+		if lower == "kujo" || lower == "bash" || lower == "python" || lower == "node" {
+			return lower
+		}
+	}
+
+	# 3. File extension detection
+	if is_trueish(str_ends_with(script_path, ".kujo")) {
+		return "kujo"
+	}
+	if is_trueish(str_ends_with(script_path, ".sh")) {
+		return "bash"
+	}
+	if is_trueish(str_ends_with(script_path, ".py")) {
+		return "python"
+	}
+	if is_trueish(str_ends_with(script_path, ".js")) {
+		return "node"
+	}
+
+	# 4. Default
+	return DEFAULT_RUNNER
+}
+
+# Shell-quote a value so it is passed as a literal argument.
+export func shell_quote(value) {
+	text := to_string(value)
+	return "'" + replace(text, "'", "'\"'\"'") + "'"
+}
+
+# Build the command string for a given runner.
+export func build_command(runner, script_path, args_arr) {
+	mut cmd := ""
+
+	if runner == "bash" {
+		cmd = "bash " + shell_quote(script_path)
+	} else if runner == "python" {
+		cmd = "python3 " + shell_quote(script_path)
+	} else if runner == "node" {
+		cmd = "node " + shell_quote(script_path)
+	} else {
+		# kujo: default — use KUJO_BIN or fall back to "kujo"
+		kujo_bin := env_or("KUJO_BIN", "kujo")
+		cmd = shell_quote(kujo_bin) + " run " + shell_quote(script_path)
+	}
+
+	# Append arguments as literal shell words.
+	mut idx := 0
+	while idx < len(args_arr) {
+		cmd = cmd + " " + shell_quote(args_arr[idx])
+		idx = idx + 1
+	}
+
+	# Append stderr redirection and exit code capture
+	cmd = cmd + " 2>&1; printf 'MUZZLE_EXIT:%d' $?"
+
+	return cmd
+}
+
+# Parse the exit code from captured output.
+# Returns a dict with "output" (cleaned text) and "exit_code" (int).
+export func parse_captured_output(raw_output) {
+	raw_str := to_string(raw_output)
+	mut exit_code := 0
+	mut clean_output := raw_str
+
+	# Find MUZZLE_EXIT: marker
+	if is_trueish(contains(raw_str, "MUZZLE_EXIT:")) {
+		lines_arr := lines(raw_str)
+		mut last_idx := len(lines_arr) - 1
+
+		# Check last few lines for the marker
+		mut check_idx := last_idx
+		while check_idx >= 0 && check_idx > last_idx - 5 {
+			line := lines_arr[check_idx]
+			if is_trueish(contains(line, "MUZZLE_EXIT:")) {
+				# Extract the exit code
+				parts := split(line, "MUZZLE_EXIT:")
+				if len(parts) > 1 {
+					code_str := trim(parts[1])
+					parsed := parse_int(code_str)
+					if type(parsed) != "Error" {
+						exit_code = to_int(parsed)
+					}
+				}
+				# Remove this line and any trailing newline
+				mut clean_lines := array()
+				mut i := 0
+				while i < len(lines_arr) {
+					if i != check_idx {
+						clean_lines = push(clean_lines, lines_arr[i])
+					}
+					i = i + 1
+				}
+				clean_output = join(clean_lines, "\n")
+				# Trim trailing whitespace
+				clean_output = trim_end(clean_output)
+				break
+			}
+			check_idx = check_idx - 1
+		}
+	}
+
+	return {"output": clean_output, "exit_code": exit_code}
+}
+
+# Get the file extension for a runner (for script discovery).
+export func runner_extension(runner) {
+	if runner == "kujo" {
+		return ".kujo"
+	}
+	if runner == "bash" {
+		return ".sh"
+	}
+	if runner == "python" {
+		return ".py"
+	}
+	if runner == "node" {
+		return ".js"
+	}
+	return ""
+}
+
+# Get a human-readable label for a runner.
+export func runner_label(runner) {
+	if runner == "kujo" {
+		return "kujo"
+	}
+	if runner == "bash" {
+		return "bash"
+	}
+	if runner == "python" {
+		return "python"
+	}
+	if runner == "node" {
+		return "node"
+	}
+	return runner
+}

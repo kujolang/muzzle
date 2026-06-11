@@ -1,0 +1,9 @@
+# Muzzle — local workflow artifacts
+.muzzle/logs/
+.muzzle/reports/
+.muzzle/state/session.json
+.kujo_cache/
+.muzzle/state/
+
+# Internal development documentation (dogfood notes, handoffs, pain points)
+.dogfood/

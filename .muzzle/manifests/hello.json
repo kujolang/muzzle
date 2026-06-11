@@ -1,0 +1,14 @@
+{
+  "name": "hello",
+  "summary": "Simple hello-world workflow (Kujo runner). Safe and read-only.",
+  "runner": "kujo",
+  "script": "workflows/hello.kujo",
+  "args": [],
+  "quiet_by_default": true,
+  "safety": {
+    "require_git_repo": false,
+    "allow_dirty_tree": true,
+    "requires_network": false,
+    "human_approval_recommended": false
+  }
+}

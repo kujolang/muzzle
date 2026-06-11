@@ -1,0 +1,5 @@
+// Hello workflow — a safe, read-only example for Muzzle.
+// Runs in Kujo (default runner).
+print("Hello from Muzzle!")
+print("Runner: Kujo (default)")
+print("This is a sample workflow. Replace with your own.")

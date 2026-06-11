@@ -1,0 +1,27 @@
+[package]
+name = "muzzle"
+version = "0.2.0"
+description = "Quiet workflow runner for AI-assisted development. Kujo-native CLI with modular runner support (Kujo default, Bash, Python, Node). Captures noisy logs to files, prints compact agent-friendly summaries."
+license = "MIT"
+authors = ["Kujolang <contact@kujolang.ai>"]
+repository = "https://github.com/kujolang/muzzle"
+keywords = ["kujo", "workflow", "cli", "agent-tools", "token-efficiency", "runner"]
+categories = ["developer-tools"]
+readme = "README.md"
+
+[package.status]
+stage = "alpha"
+stability = "moderate"
+public_api = false
+notes = "Kujo-native CLI with 14 commands. Functionally complete for daily use. Public API (CLI surface, JSON schema, manifest format) is stabilizing."
+
+[kujo]
+minimum_version = "0.1.0"
+entry = "muzzle.kujo"
+sources = ["src", "."]
+includes = ["README.md", "docs", "muzzle", "LICENSE"]
+excludes = [".git", ".muzzle/logs", ".muzzle/reports", ".muzzle/state", ".dogfood", "dist", "build", ".kujo_cache"]
+
+[scripts]
+test = "muzzle run hello"
+smoke = "muzzle run hello --json"

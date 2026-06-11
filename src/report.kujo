@@ -1,0 +1,68 @@
+# Muzzle report generation.
+# Produces Markdown and JSON workflow reports.
+
+from src.common import format_duration_ms, timestamp_iso, path_join, ensure_dir
+from src.redact import redact_text, error_excerpt
+
+REPORTS_DIR := ".muzzle/reports"
+LOGS_DIR := ".muzzle/logs"
+
+# Generate a Markdown report for a workflow run.
+export func write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text) {
+	ensure_dir(REPORTS_DIR)
+
+	mut notes_section := "No failures detected."
+	if status == "failed" {
+		notes_section = "Failure detected. See log for full details."
+	}
+
+	report := "# Muzzle Workflow Report\n\n"
+	report = report + "Workflow: " + workflow_name + "\n"
+	report = report + "Status: " + status + "\n"
+	report = report + "Exit code: " + to_string(exit_code) + "\n"
+	report = report + "Started: " + started_at + "\n"
+	report = report + "Finished: " + finished_at + "\n"
+	report = report + "Duration: " + format_duration_ms(duration_ms) + "\n\n"
+	report = report + "## Summary\n\n"
+	report = report + summary_line + "\n\n"
+	report = report + "## Outputs\n\n"
+	report = report + "- Log: " + log_path + "\n"
+	report = report + "- JSON summary: " + replace(report_path, ".md", ".json") + "\n\n"
+	report = report + "## Notes\n\n"
+	report = report + notes_section + "\n"
+
+	write_file(report_path, report, true)
+}
+
+# Generate a JSON report for a workflow run.
+export func write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text) {
+	ensure_dir(REPORTS_DIR)
+
+	mut report := dict()
+	report["workflow"] = workflow_name
+	report["status"] = status
+	report["exit_code"] = exit_code
+	report["started_at"] = started_at
+	report["finished_at"] = finished_at
+	report["duration_ms"] = duration_ms
+	report["log_path"] = log_path
+	report["report_path"] = report_path
+	report["summary"] = summary_line
+
+	if error_text != "" {
+		redacted_error := redact_text(error_text)
+		report["error_excerpt"] = redacted_error
+	} else {
+		report["error_excerpt"] = null
+	}
+
+	json_str := to_json(report)
+	write_file(replace(report_path, ".md", ".json"), json_str, true)
+}
+
+# Generate file paths for a workflow run.
+export func make_paths(workflow_name, ts_compact) {
+	log_path := LOGS_DIR + "/" + workflow_name + "-" + ts_compact + ".log"
+	report_path := REPORTS_DIR + "/" + workflow_name + "-" + ts_compact + ".md"
+	return {"log": log_path, "report": report_path}
+}

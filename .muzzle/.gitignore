@@ -1,0 +1,4 @@
+# Muzzle logs and reports — local workflow artifacts
+logs/
+reports/
+state/session.json

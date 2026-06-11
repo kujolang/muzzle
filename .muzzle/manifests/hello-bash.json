@@ -1,0 +1,14 @@
+{
+  "name": "hello-bash",
+  "summary": "Simple hello-world workflow (Bash runner). Safe and read-only.",
+  "runner": "bash",
+  "script": "workflows/hello-bash.sh",
+  "args": [],
+  "quiet_by_default": true,
+  "safety": {
+    "require_git_repo": false,
+    "allow_dirty_tree": true,
+    "requires_network": false,
+    "human_approval_recommended": false
+  }
+}

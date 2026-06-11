@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Muzzle — Quiet Workflow Runner for AI-Assisted Development
+# =============================================================================
+# Version: 0.2.0
+# This is a thin Bash wrapper that delegates to the Kujo-native muzzle.kujo.
+# =============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MUZZLE_KUJO="${SCRIPT_DIR}/muzzle.kujo"
+
+# Resolve Kujo runtime binary
+KUJO_BIN="${KUJO_BIN:-}"
+if [[ -z "$KUJO_BIN" ]]; then
+	# Try common paths for the Kujo language runtime
+	if [[ -x "${SCRIPT_DIR}/../kujo/target/debug/kujo" ]]; then
+		KUJO_BIN="${SCRIPT_DIR}/../kujo/target/debug/kujo"
+	elif [[ -x "${SCRIPT_DIR}/../kujo/target/release/kujo" ]]; then
+		KUJO_BIN="${SCRIPT_DIR}/../kujo/target/release/kujo"
+	elif command -v kujo &>/dev/null; then
+		# Warn: 'kujo' on PATH may be the Python linter, not the Kujo language runtime.
+		# If muzzle fails with parse errors, set KUJO_BIN explicitly.
+		KUJO_BIN="$(command -v kujo)"
+	else
+		echo "Error: Kujo language runtime not found." >&2
+		echo "" >&2
+		echo "The Kujo LANGUAGE runtime is required — this is NOT the Python linter 'kujo'." >&2
+		echo "Build it from source:  cd /path/to/kujo && cargo build" >&2
+		echo "Or set KUJO_BIN to the binary path:" >&2
+		echo "  export KUJO_BIN=/path/to/kujo/target/debug/kujo" >&2
+		exit 1
+	fi
+fi
+
+export KUJO_BIN
+
+if [[ ! -f "$MUZZLE_KUJO" ]]; then
+	echo "Error: muzzle.kujo not found at ${MUZZLE_KUJO}" >&2
+	exit 1
+fi
+
+# Run muzzle.kujo via Kujo runtime
+exec "$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@"

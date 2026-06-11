@@ -1,0 +1,224 @@
+# Muzzle workflow discovery and manifest loading.
+# Discovers workflow scripts and their associated manifests.
+
+from src.common import str_ends_with, str_starts_with, is_trueish, is_falseish, dict_has_key, has_muzzle_dir, path_join
+
+WORKFLOWS_DIR := ".muzzle/workflows"
+MANIFESTS_DIR := ".muzzle/manifests"
+
+# Load a workflow manifest from .muzzle/manifests/<name>.json.
+# Returns a dict or null if not found.
+export func load_manifest(name) {
+	manifest_path := MANIFESTS_DIR + "/" + name + ".json"
+	if is_trueish(file_exists(manifest_path)) {
+		raw := read_file(manifest_path)
+		parsed := parse_json(raw)
+		if type(parsed) != "Error" {
+			return parsed
+		}
+	}
+	return null
+}
+
+# Find the script path for a workflow by name.
+# Checks multiple runners and extensions.
+# Returns the script path (relative to project root) or "" if not found.
+export func find_script(name) {
+	extensions := array(".kujo", ".sh", ".py", ".js")
+	mut idx := 0
+	while idx < len(extensions) {
+		ext := extensions[idx]
+		script_path := WORKFLOWS_DIR + "/" + name + ext
+		if is_trueish(file_exists(script_path)) {
+			return script_path
+		}
+		idx = idx + 1
+	}
+	return ""
+}
+
+# Validate that a script is inside the expected workflows directory.
+export func validate_script_path(script_path) {
+	# Simple check: must start with .muzzle/workflows/
+	if is_falseish(str_starts_with(script_path, WORKFLOWS_DIR + "/")) {
+		return false
+	}
+	# Must not contain path traversal
+	if is_trueish(contains(script_path, "..")) {
+		return false
+	}
+	return true
+}
+
+# Validate a workflow name for safety (no path traversal, reasonable length).
+export func validate_workflow_name(name) {
+	if name == "" {
+		return false
+	}
+	if len(name) > 128 {
+		return false
+	}
+	if is_trueish(contains(name, "..")) {
+		return false
+	}
+	if is_trueish(contains(name, "/")) {
+		return false
+	}
+	if is_trueish(contains(name, "\\")) {
+		return false
+	}
+	return true
+}
+
+# List all discovered workflows.
+# Returns an array of dicts with keys: name, runner, summary, script_path.
+export func discover_workflows() {
+	mut workflows := array()
+
+	# First, check manifests directory
+	if is_trueish(file_exists(MANIFESTS_DIR)) {
+		entries := list_dir(MANIFESTS_DIR)
+		mut idx := 0
+		while idx < len(entries) {
+			entry := entries[idx]
+			entry_str := to_string(entry)
+			if is_trueish(str_ends_with(entry_str, ".json")) {
+				name := replace(entry_str, ".json", "")
+				manifest := load_manifest(name)
+				if manifest != null {
+					script := ""
+					runner := "kujo"
+					summary := ""
+					if dict_has_key(manifest, "script") {
+						script = to_string(manifest["script"])
+					}
+					if script == "" {
+						script = find_script(name)
+					}
+					if dict_has_key(manifest, "runner") {
+						runner = to_string(manifest["runner"])
+					} else if script != "" {
+						# Infer from extension
+						if is_trueish(str_ends_with(script, ".sh")) {
+							runner = "bash"
+						} else if is_trueish(str_ends_with(script, ".py")) {
+							runner = "python"
+						} else if is_trueish(str_ends_with(script, ".js")) {
+							runner = "node"
+						}
+					}
+					if dict_has_key(manifest, "summary") {
+						summary = to_string(manifest["summary"])
+					}
+
+					workflows = push(workflows, {
+						"name": name,
+						"runner": runner,
+						"summary": summary,
+						"script_path": script,
+						"has_manifest": true
+					})
+				}
+			}
+			idx = idx + 1
+		}
+	}
+
+	# Then, check for scripts without manifests
+	if is_trueish(file_exists(WORKFLOWS_DIR)) {
+		entries := list_dir(WORKFLOWS_DIR)
+		mut idx := 0
+		while idx < len(entries) {
+			entry := entries[idx]
+			entry_str := to_string(entry)
+			# Skip directories and non-script files
+			ext := ""
+			if is_trueish(str_ends_with(entry_str, ".kujo")) {
+				ext = ".kujo"
+			} else if is_trueish(str_ends_with(entry_str, ".sh")) {
+				ext = ".sh"
+			} else if is_trueish(str_ends_with(entry_str, ".py")) {
+				ext = ".py"
+			} else if is_trueish(str_ends_with(entry_str, ".js")) {
+				ext = ".js"
+			}
+
+			if ext != "" {
+				name := replace(entry_str, ext, "")
+				# Check if already discovered via manifest
+				manifest_path := MANIFESTS_DIR + "/" + name + ".json"
+				if is_falseish(file_exists(manifest_path)) {
+					runner := "kujo"
+					if ext == ".sh" {
+						runner = "bash"
+					} else if ext == ".py" {
+						runner = "python"
+					} else if ext == ".js" {
+						runner = "node"
+					}
+
+					workflows = push(workflows, {
+						"name": name,
+						"runner": runner,
+						"summary": "",
+						"script_path": WORKFLOWS_DIR + "/" + entry_str,
+						"has_manifest": false
+					})
+				}
+			}
+			idx = idx + 1
+		}
+	}
+
+	return workflows
+}
+
+# Get workflow info by name.
+# Returns a dict with full details or null if not found.
+export func get_workflow_info(name) {
+	script_path := find_script(name)
+	if script_path == "" {
+		return null
+	}
+
+	manifest := load_manifest(name)
+
+	mut info := {
+		"name": name,
+		"script_path": script_path,
+		"has_manifest": manifest != null
+	}
+
+	if manifest != null {
+		if dict_has_key(manifest, "runner") {
+			info["runner"] = to_string(manifest["runner"])
+		}
+		if dict_has_key(manifest, "summary") {
+			info["summary"] = to_string(manifest["summary"])
+		}
+		if dict_has_key(manifest, "args") {
+			info["args"] = manifest["args"]
+		}
+		if dict_has_key(manifest, "safety") {
+			info["safety"] = manifest["safety"]
+		}
+		if dict_has_key(manifest, "quiet_by_default") {
+			info["quiet_by_default"] = manifest["quiet_by_default"]
+		}
+	}
+
+	# Infer runner from extension if not in manifest
+	if is_falseish(dict_has_key(info, "runner")) {
+		if is_trueish(str_ends_with(script_path, ".sh")) {
+			info["runner"] = "bash"
+		} else if is_trueish(str_ends_with(script_path, ".py")) {
+			info["runner"] = "python"
+		} else if is_trueish(str_ends_with(script_path, ".js")) {
+			info["runner"] = "node"
+		} else {
+			info["runner"] = "kujo"
+		}
+	}
+
+	return info
+}

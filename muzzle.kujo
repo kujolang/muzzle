@@ -1,0 +1,958 @@
+# Muzzle — Quiet Workflow Runner for AI-Assisted Development
+#
+# A Kujo-native CLI that runs known local workflows quietly.
+# Captures noisy logs to files, prints compact agent-friendly summaries.
+#
+# Usage:
+#   kujo run muzzle.kujo -- <command> [options]
+#   muzzle <command> [options]           (via Bash wrapper)
+
+from src.common import parse_subcommand, has_flag, flag_value, positional_args
+from src.common import is_trueish, is_falseish, str_starts_with, str_contains, str_ends_with
+from src.common import dict_has_key, has_muzzle_dir, format_duration_ms
+from src.common import timestamp_compact, timestamp_iso, ensure_dir, path_join
+from src.runner import resolve_runner, build_command, parse_captured_output, runner_label, runner_extension
+from src.workflow import load_manifest, find_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
+from src.report import write_markdown_report, write_json_report, make_paths
+from src.redact import redact_text, error_excerpt
+from src.loops import find_active_loop, load_loop, create_loop, advance_loop, record_loop_done, list_all_loops
+
+MUZZLE_VERSION := "0.2.0"
+
+WORKFLOWS_DIR := ".muzzle/workflows"
+MANIFESTS_DIR := ".muzzle/manifests"
+SESSION_FILE := ".muzzle/state/session.json"
+
+# =============================================================================
+# HELP
+# =============================================================================
+func print_help() {
+	print("Muzzle v" + MUZZLE_VERSION + " — Quiet Workflow Runner for AI-Assisted Development")
+	print("")
+	print("Usage:")
+	print("  kujo run muzzle.kujo -- <command> [options]")
+	print("  muzzle <command> [options]")
+	print("")
+	print("Commands:")
+	print("  init                          Initialize .muzzle/ in current directory")
+	print("  list                          List available workflows")
+	print("  info <workflow>               Show workflow details")
+	print("  run <workflow> [args...]      Run a workflow quietly")
+	print("  logs [workflow]               Show log file paths")
+	print("  report [workflow]             Show report file paths")
+	print("  loop start <wf> --limit <n>   Start a stateful agent loop")
+	print("  loop next                     Advance to next loop iteration")
+	print("  loop done --note \"...\"        Record completed iteration")
+	print("  loop status                   Show loop progress")
+	print("  loop summary                  Show all loop entries")
+	print("  clean                         Remove all logs and reports")
+	print("  help                          Show this help")
+	print("  version                       Print version")
+	print("")
+	print("Run options:")
+	print("  --verbose, -v    Stream full output to terminal")
+	print("  --dry-run, -n    Print what would happen without executing")
+	print("  --json           Output machine-readable JSON summary")
+	print("  --runner <name>  Force runner: kujo (default), bash, python, node")
+	print("  --timeout <ms>   Max execution time in ms (default: 300000, min: 1000, max: 3600000)")
+	print("")
+	print("Runners:")
+	print("  kujo             Execute .kujo scripts via KUJO_BIN (default)")
+	print("  bash             Execute .sh scripts via bash")
+	print("  python           Execute .py scripts via python3")
+	print("  node             Execute .js scripts via node")
+	print("")
+	print("Examples:")
+	print("  muzzle init")
+	print("  muzzle run hello")
+	print("  muzzle run deploy production --verbose")
+	print("  muzzle run build --json")
+	print("  muzzle run analyze --runner python")
+	print("  muzzle loop start release-pass --limit 10")
+	print("")
+	print("Muzzle keeps noisy workflow output out of AI agent context.")
+	print("Full logs: .muzzle/logs/   Reports: .muzzle/reports/")
+	print("Docs: https://github.com/kujolang/muzzle")
+}
+
+func print_version() {
+	print("Muzzle v" + MUZZLE_VERSION)
+	print("Quiet workflow runner for AI-assisted development.")
+	print("Part of the Kujo/Kujo ecosystem.")
+}
+
+# =============================================================================
+# INIT
+# =============================================================================
+func cmd_init() {
+	if has_muzzle_dir() {
+		print("Muzzle: .muzzle/ already exists. Nothing to do.")
+		exit(0)
+	}
+
+	ensure_dir(WORKFLOWS_DIR)
+	ensure_dir(MANIFESTS_DIR)
+	ensure_dir(".muzzle/logs")
+	ensure_dir(".muzzle/reports")
+	ensure_dir(".muzzle/state/loops")
+
+	# Create example hello workflow (Kujo — default runner)
+	hello_script := "// Hello workflow — a safe, read-only example for Muzzle.\n"
+	hello_script = hello_script + "// Runs in Kujo (default runner).\n"
+	hello_script = hello_script + "print(\"Hello from Muzzle!\")\n"
+	hello_script = hello_script + "print(\"Runner: Kujo (default)\")\n"
+	hello_script = hello_script + "print(\"This is a sample workflow. Replace with your own.\")\n"
+	write_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
+
+	# Create example Bash workflow as well
+	bash_script := "#!/usr/bin/env bash\n"
+	bash_script = bash_script + "# Hello workflow (Bash runner) — a safe, read-only example.\n"
+	bash_script = bash_script + "echo \"Hello from Muzzle (Bash)!\"\n"
+	bash_script = bash_script + "echo \"Current directory: $(pwd)\"\n"
+	bash_script = bash_script + "echo \"Date: $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"\n"
+	bash_script = bash_script + "exit 0\n"
+	write_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
+
+	# Create manifests
+	hello_manifest := "{\n"
+	hello_manifest = hello_manifest + "  \"name\": \"hello\",\n"
+	hello_manifest = hello_manifest + "  \"summary\": \"Simple hello-world workflow (Kujo runner). Safe and read-only.\",\n"
+	hello_manifest = hello_manifest + "  \"runner\": \"kujo\",\n"
+	hello_manifest = hello_manifest + "  \"script\": \"workflows/hello.kujo\",\n"
+	hello_manifest = hello_manifest + "  \"args\": [],\n"
+	hello_manifest = hello_manifest + "  \"quiet_by_default\": true,\n"
+	hello_manifest = hello_manifest + "  \"safety\": {\n"
+	hello_manifest = hello_manifest + "    \"require_git_repo\": false,\n"
+	hello_manifest = hello_manifest + "    \"allow_dirty_tree\": true,\n"
+	hello_manifest = hello_manifest + "    \"requires_network\": false,\n"
+	hello_manifest = hello_manifest + "    \"human_approval_recommended\": false\n"
+	hello_manifest = hello_manifest + "  }\n"
+	hello_manifest = hello_manifest + "}\n"
+	write_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
+
+	bash_manifest := "{\n"
+	bash_manifest = bash_manifest + "  \"name\": \"hello-bash\",\n"
+	bash_manifest = bash_manifest + "  \"summary\": \"Simple hello-world workflow (Bash runner). Safe and read-only.\",\n"
+	bash_manifest = bash_manifest + "  \"runner\": \"bash\",\n"
+	bash_manifest = bash_manifest + "  \"script\": \"workflows/hello-bash.sh\",\n"
+	bash_manifest = bash_manifest + "  \"args\": [],\n"
+	bash_manifest = bash_manifest + "  \"quiet_by_default\": true,\n"
+	bash_manifest = bash_manifest + "  \"safety\": {\n"
+	bash_manifest = bash_manifest + "    \"require_git_repo\": false,\n"
+	bash_manifest = bash_manifest + "    \"allow_dirty_tree\": true,\n"
+	bash_manifest = bash_manifest + "    \"requires_network\": false,\n"
+	bash_manifest = bash_manifest + "    \"human_approval_recommended\": false\n"
+	bash_manifest = bash_manifest + "  }\n"
+	bash_manifest = bash_manifest + "}\n"
+	write_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
+
+	# Create session state
+	session_json := "{\n  \"project\": \"\",\n  \"last_workflow\": null,\n  \"last_run_at\": null,\n  \"total_runs\": 0\n}\n"
+	write_file(SESSION_FILE, session_json, true)
+
+	# Create .gitignore
+	gitignore := "# Muzzle logs and reports — local workflow artifacts\nlogs/\nreports/\nstate/session.json\n"
+	write_file(".muzzle/.gitignore", gitignore)
+
+	print("OK Muzzle initialized in .muzzle/")
+	print("")
+	print("  Created:")
+	print("    .muzzle/workflows/hello.kujo      (Kujo example — default)")
+	print("    .muzzle/workflows/hello-bash.sh   (Bash example)")
+	print("    .muzzle/manifests/hello.json")
+	print("    .muzzle/manifests/hello-bash.json")
+	print("    .muzzle/logs/")
+	print("    .muzzle/reports/")
+	print("    .muzzle/state/")
+	print("")
+	print("  Next steps:")
+	print("    muzzle list              — see available workflows")
+	print("    muzzle run hello         — run the Kujo example (default)")
+	print("    muzzle run hello-bash    — run the Bash example")
+	print("    muzzle info hello        — see workflow details")
+}
+
+# =============================================================================
+# LIST
+# =============================================================================
+func cmd_list() {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	workflows := discover_workflows()
+
+	if len(workflows) == 0 {
+		print("No workflows found in .muzzle/")
+		print("Add scripts to .muzzle/workflows/ or manifests to .muzzle/manifests/")
+		exit(0)
+	}
+
+	# Print header
+	print("WORKFLOW             RUNNER   SUMMARY")
+	print("--------             ------   -------")
+
+	mut workflow_idx := 0
+	while workflow_idx < len(workflows) {
+		wf := workflows[workflow_idx]
+		name := to_string(wf["name"])
+		runner := to_string(wf["runner"])
+		summary := ""
+		if dict_has_key(wf, "summary") {
+			summary = to_string(wf["summary"])
+		}
+		if summary == "" {
+			summary = "-"
+		}
+
+		# Pad name to 20 chars
+		name_padded := name
+		while len(name_padded) < 20 {
+			name_padded = name_padded + " "
+		}
+
+		print(name_padded + " " + runner + "      " + summary)
+		workflow_idx = workflow_idx + 1
+	}
+}
+
+# =============================================================================
+# INFO
+# =============================================================================
+func cmd_info(name) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	info := get_workflow_info(name)
+	if info == null {
+		print("Error: Workflow '" + name + "' not found. Check available workflows with 'muzzle list'.")
+		exit(1)
+	}
+
+	print("Workflow:   " + to_string(info["name"]))
+	if dict_has_key(info, "summary") {
+		print("Summary:    " + to_string(info["summary"]))
+	} else {
+		print("Summary:    (no manifest)")
+	}
+	print("Runner:     " + to_string(info["runner"]))
+	print("Script:     " + to_string(info["script_path"]))
+
+	if dict_has_key(info, "args") {
+		args_arr := info["args"]
+		if len(args_arr) > 0 {
+			print("Arguments:")
+			mut ai := 0
+			while ai < len(args_arr) {
+				arg := args_arr[ai]
+				req := "(optional)"
+				if dict_has_key(arg, "required") && is_trueish(arg["required"]) {
+					req = "(required)"
+				}
+				desc := ""
+				if dict_has_key(arg, "description") {
+					desc = to_string(arg["description"])
+				}
+				print("  " + to_string(arg["name"]) + " " + req + ": " + desc)
+				ai = ai + 1
+			}
+		} else {
+			print("Arguments:  (none)")
+		}
+	} else {
+		print("Arguments:  (unknown — no manifest)")
+	}
+
+	if dict_has_key(info, "safety") {
+		safety := info["safety"]
+		print("Safety:")
+		mut require_git := "false"
+		mut allow_dirty := "true"
+		mut requires_net := "false"
+		mut human_approval := "false"
+		if dict_has_key(safety, "require_git_repo") {
+			require_git = to_string(safety["require_git_repo"])
+		}
+		if dict_has_key(safety, "allow_dirty_tree") {
+			allow_dirty = to_string(safety["allow_dirty_tree"])
+		}
+		if dict_has_key(safety, "requires_network") {
+			requires_net = to_string(safety["requires_network"])
+		}
+		if dict_has_key(safety, "human_approval_recommended") {
+			human_approval = to_string(safety["human_approval_recommended"])
+		}
+		print("  require_git_repo:           " + require_git)
+		print("  allow_dirty_tree:           " + allow_dirty)
+		print("  requires_network:           " + requires_net)
+		print("  human_approval_recommended:  " + human_approval)
+	} else {
+		print("Safety:     (unknown — no manifest)")
+	}
+}
+
+# =============================================================================
+# RUN
+# =============================================================================
+func cmd_run(argv) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	# Parse flags
+	verbose := has_flag(argv, "--verbose") || has_flag(argv, "-v")
+	dry_run := has_flag(argv, "--dry-run") || has_flag(argv, "-n")
+	json_out := has_flag(argv, "--json")
+	runner_override := flag_value(argv, "--runner", "")
+	timeout_str := flag_value(argv, "--timeout", "300000")
+	timeout_ms := 300000
+	timeout_parsed := parse_int(timeout_str)
+	if type(timeout_parsed) != "Error" {
+		timeout_ms = to_int(timeout_parsed)
+		if timeout_ms < 1000 {
+			timeout_ms = 1000
+		}
+		if timeout_ms > 3600000 {
+			timeout_ms = 3600000
+		}
+	}
+
+	# Get positional args: first is workflow name, rest are workflow args
+	pos_args := positional_args(argv)
+	if len(pos_args) < 1 {
+		print("Error: Usage: muzzle run <workflow> [args...]")
+		exit(2)
+	}
+
+	workflow_name := to_string(pos_args[0])
+
+	# Validate workflow name for safety
+	if is_falseish(validate_workflow_name(workflow_name)) {
+		print("Error: Invalid workflow name '" + workflow_name + "'.")
+		print("Workflow names must not contain /, \\, or .. and must be 1-128 characters.")
+		exit(1)
+	}
+
+	mut workflow_args := array()
+	mut pi := 1
+	while pi < len(pos_args) {
+		workflow_args = push(workflow_args, pos_args[pi])
+		pi = pi + 1
+	}
+
+	# Resolve script
+	script_path := find_script(workflow_name)
+	if script_path == "" {
+		print("Error: Workflow '" + workflow_name + "' not found. Check available workflows with 'muzzle list'.")
+		exit(1)
+	}
+
+	if is_falseish(validate_script_path(script_path)) {
+		print("Error: Workflow script '" + script_path + "' is outside expected directory. Refusing to run.")
+		exit(1)
+	}
+
+	# Load manifest for metadata
+	manifest := load_manifest(workflow_name)
+
+	# Resolve runner
+	runner := resolve_runner(manifest, script_path, runner_override)
+
+	# Dry run
+	if dry_run {
+		print("Muzzle: " + workflow_name + "  [DRY RUN]")
+		print("Runner:    " + runner_label(runner))
+		print("Script:    " + script_path)
+		print("Would execute with runner: " + runner)
+		if len(workflow_args) > 0 {
+			print("Args:      " + join(workflow_args, " "))
+		}
+		exit(0)
+	}
+
+	# Prepare paths
+	ts := timestamp_compact()
+	paths := make_paths(workflow_name, ts)
+	log_path := to_string(paths["log"])
+	report_path := to_string(paths["report"])
+	ensure_dir(".muzzle/logs")
+	ensure_dir(".muzzle/reports")
+
+	# Build and execute command
+	started_at := timestamp_iso()
+	start_ms := now_unix()
+
+	cmd := build_command(runner, script_path, workflow_args)
+
+	# Execute and capture output
+	mut exit_code := 0
+	mut raw_output := ""
+
+	try {
+		raw_output = execute(cmd, {"timeout_ms": timeout_ms})
+	} except err {
+		# Execution failed — capture the error
+		raw_output = to_string(err)
+		exit_code = 1
+	}
+
+	# Parse captured output for exit code
+	parsed := parse_captured_output(raw_output)
+	if type(parsed) == "Error" {
+		# Could not parse — use raw output
+	} else {
+		if dict_has_key(parsed, "exit_code") {
+			exit_code = parsed["exit_code"]
+		}
+		if dict_has_key(parsed, "output") {
+			raw_output = to_string(parsed["output"])
+		}
+	}
+
+	end_ms := now_unix()
+	finished_at := timestamp_iso()
+	duration_ms := end_ms - start_ms
+	if duration_ms < 0 {
+		duration_ms = 0
+	}
+
+	# Determine status
+	status := "success"
+	summary_line := "The workflow completed successfully."
+	mut err_text := ""
+	if exit_code != 0 {
+		status = "failed"
+		summary_line = "The workflow failed with exit code " + to_string(exit_code) + "."
+		err_text = error_excerpt(raw_output, 5)
+	}
+
+	# Write log file (full output, not redacted)
+	write_file(log_path, raw_output)
+
+	# Write reports (with redaction)
+	write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
+	write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
+
+	# Update session state
+	if is_trueish(file_exists(SESSION_FILE)) {
+		session_raw := read_file(SESSION_FILE)
+		session := parse_json(session_raw)
+		if type(session) != "Error" {
+			total_runs := 0
+			if dict_has_key(session, "total_runs") {
+				total_runs = to_int(session["total_runs"]) + 1
+			} else {
+				total_runs = 1
+			}
+			session["last_workflow"] = workflow_name
+			session["last_run_at"] = finished_at
+			session["total_runs"] = total_runs
+			write_file(SESSION_FILE, to_json(session), true)
+		}
+	}
+
+	# Output
+	if json_out {
+		# Print JSON report to stdout
+		json_report_path := replace(report_path, ".md", ".json")
+		if is_trueish(file_exists(json_report_path)) {
+			print(read_file(json_report_path))
+		}
+	} else if verbose {
+		# Verbose: print full output
+		print("Muzzle: " + workflow_name + "  [verbose]")
+		print("Runner: " + runner_label(runner))
+		print("---")
+		print(raw_output)
+		print("---")
+		print("")
+		print("Status:     " + status)
+		print("Exit code:  " + to_string(exit_code))
+		print("Duration:   " + format_duration_ms(duration_ms))
+		print("Report:     " + report_path)
+		print("Log:        " + log_path)
+	} else {
+		# Quiet default output
+		print("")
+		print("Muzzle: " + workflow_name)
+		if runner != "kujo" {
+			print("Runner:    " + runner_label(runner))
+		}
+		print("")
+		if status == "success" {
+			print("Status:     success")
+		} else {
+			print("Status:     failed")
+		}
+		print("Exit code:  " + to_string(exit_code))
+		print("Duration:   " + format_duration_ms(duration_ms))
+		print("")
+
+		if status == "failed" && err_text != "" {
+			print("Error excerpt:")
+			print(err_text)
+			print("")
+		}
+
+		print("Report:     " + report_path)
+		print("Log:        " + log_path)
+		print("")
+		if is_falseish(verbose) && status == "success" {
+			print("Use --verbose for full output or --json for machine-readable format.")
+			print("")
+		}
+	}
+
+	exit(exit_code)
+}
+
+# =============================================================================
+# LOGS
+# =============================================================================
+func cmd_logs(filter) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	if is_falseish(file_exists(".muzzle/logs")) {
+		print("No logs directory found.")
+		exit(0)
+	}
+
+	if filter != "" {
+		# Show logs for specific workflow
+		entries := list_dir(".muzzle/logs")
+		mut log_found := 0
+		mut log_filter_idx := 0
+		while log_filter_idx < len(entries) {
+			entry_name := to_string(entries[log_filter_idx])
+			if is_trueish(str_starts_with(entry_name, filter + "-")) && is_trueish(str_ends_with(entry_name, ".log")) {
+				print("Log: .muzzle/logs/" + entry_name)
+				log_found = log_found + 1
+			}
+			log_filter_idx = log_filter_idx + 1
+		}
+		if log_found == 0 {
+			print("No logs found for workflow '" + filter + "'.")
+		}
+	} else {
+		print("Recent logs:")
+		print("")
+		entries := list_dir(".muzzle/logs")
+		mut log_count := 0
+		mut log_list_idx := 0
+		while log_list_idx < len(entries) {
+			entry_name := to_string(entries[log_list_idx])
+			if is_trueish(str_ends_with(entry_name, ".log")) {
+				log_full := ".muzzle/logs/" + entry_name
+				fsize := file_size(log_full)
+				print("  " + entry_name + "    " + to_string(fsize) + " bytes")
+				log_count = log_count + 1
+			}
+			log_list_idx = log_list_idx + 1
+		}
+		if log_count == 0 {
+			print("  (no logs yet)")
+		} else {
+			print("")
+			print("Use 'muzzle logs <workflow>' to filter by workflow name.")
+		}
+	}
+}
+
+# =============================================================================
+# REPORT
+# =============================================================================
+func cmd_report(filter) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	if is_falseish(file_exists(".muzzle/reports")) {
+		print("No reports directory found.")
+		exit(0)
+	}
+
+	if filter != "" {
+		entries := list_dir(".muzzle/reports")
+		mut report_found := 0
+		mut report_filter_idx := 0
+		while report_filter_idx < len(entries) {
+			entry_name := to_string(entries[report_filter_idx])
+			if is_trueish(str_starts_with(entry_name, filter + "-")) && is_trueish(str_ends_with(entry_name, ".md")) {
+				print("Report: .muzzle/reports/" + entry_name)
+				report_found = report_found + 1
+			}
+			report_filter_idx = report_filter_idx + 1
+		}
+		if report_found == 0 {
+			print("No reports found for workflow '" + filter + "'.")
+		}
+	} else {
+		print("Recent reports:")
+		print("")
+		entries := list_dir(".muzzle/reports")
+		mut report_count := 0
+		mut report_list_idx := 0
+		while report_list_idx < len(entries) {
+			entry_name := to_string(entries[report_list_idx])
+			if is_trueish(str_ends_with(entry_name, ".md")) {
+				print("  " + entry_name)
+				report_count = report_count + 1
+			}
+			report_list_idx = report_list_idx + 1
+		}
+		if report_count == 0 {
+			print("  (no reports yet)")
+		} else {
+			print("")
+			print("Use 'muzzle report <workflow>' to filter by workflow name.")
+			print("Use 'cat .muzzle/reports/<file>' to read a full report.")
+		}
+	}
+}
+
+# =============================================================================
+# CLEAN
+# =============================================================================
+func cmd_clean(argv) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	mut removed_logs := 0
+	mut removed_reports := 0
+
+	# Clean logs
+	if is_trueish(file_exists(".muzzle/logs")) {
+		entries := list_dir(".muzzle/logs")
+		mut clean_log_idx := 0
+		while clean_log_idx < len(entries) {
+			entry_name := to_string(entries[clean_log_idx])
+			log_path := ".muzzle/logs/" + entry_name
+			if is_trueish(file_exists(log_path)) {
+				try {
+					delete_file(log_path)
+					removed_logs = removed_logs + 1
+				} except _err {}
+			}
+			clean_log_idx = clean_log_idx + 1
+		}
+	}
+
+	# Clean reports
+	if is_trueish(file_exists(".muzzle/reports")) {
+		entries := list_dir(".muzzle/reports")
+		mut clean_report_idx := 0
+		while clean_report_idx < len(entries) {
+			entry_name := to_string(entries[clean_report_idx])
+			report_path := ".muzzle/reports/" + entry_name
+			if is_trueish(file_exists(report_path)) {
+				try {
+					delete_file(report_path)
+					removed_reports = removed_reports + 1
+				} except _err {}
+			}
+			clean_report_idx = clean_report_idx + 1
+		}
+	}
+
+	print("Muzzle: Cleaned up workflow artifacts.")
+	print("  Removed: " + to_string(removed_logs) + " logs, " + to_string(removed_reports) + " reports")
+}
+
+# =============================================================================
+# LOOP
+# =============================================================================
+func cmd_loop(argv) {
+	if is_falseish(has_muzzle_dir()) {
+		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
+		exit(1)
+	}
+
+	ensure_dir(".muzzle/state/loops")
+
+	pos_args := positional_args(argv)
+	if len(pos_args) < 1 {
+		print("Error: Usage: muzzle loop <start|next|done|status|summary> [options]")
+		exit(2)
+	}
+
+	subcmd := to_string(pos_args[0])
+
+	if subcmd == "start" {
+		# muzzle loop start <workflow> --limit <n>
+		mut wf_name := ""
+		mut limit := 10
+		# Parse from raw argv for flags
+		limit_str := flag_value(argv, "--limit", "10")
+		limit_parsed := parse_int(limit_str)
+		if type(limit_parsed) != "Error" {
+			limit = to_int(limit_parsed)
+		}
+		# Workflow name is the first positional after 'start'
+		if len(pos_args) > 1 {
+			wf_name = to_string(pos_args[1])
+		}
+		if wf_name == "" {
+			print("Error: Usage: muzzle loop start <workflow> --limit <n>")
+			exit(2)
+		}
+		# Validate workflow exists
+		script_path := find_script(wf_name)
+		if script_path == "" {
+			print("Error: Workflow '" + wf_name + "' not found.")
+			exit(1)
+		}
+		# Check if loop already exists
+		existing := find_active_loop()
+		if existing != "" {
+			existing_data := load_loop(existing)
+			if existing_data != null && to_string(existing_data["workflow"]) == wf_name {
+				print("Muzzle: Loop '" + wf_name + "' already exists. Use 'muzzle loop status' to check progress.")
+				exit(0)
+			}
+		}
+		ts := timestamp_iso()
+		create_loop(wf_name, limit, ts)
+		print("Muzzle: Loop started: " + wf_name + " (0/" + to_string(limit) + ")")
+		print("")
+		print("  Run 'muzzle loop next' to begin the first iteration.")
+		print("  After each iteration, record with 'muzzle loop done --note \"...\"'")
+
+	} else if subcmd == "next" {
+		loop_file := find_active_loop()
+		if loop_file == "" {
+			print("Error: No active loop found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
+			exit(1)
+		}
+		loop_data := advance_loop(loop_file)
+		if loop_data == null {
+			# Loop completed
+			existing := load_loop(loop_file)
+			if existing != null {
+				current := to_int(existing["current"])
+				limit := to_int(existing["limit"])
+				print("Loop '" + to_string(existing["workflow"]) + "' is complete (" + to_string(current) + "/" + to_string(limit) + ").")
+				print("Run 'muzzle loop summary' to see all entries.")
+			}
+			exit(0)
+		}
+		current := to_int(loop_data["current"])
+		limit := to_int(loop_data["limit"])
+		print("")
+		print("Loop " + to_string(current) + "/" + to_string(limit) + ": " + to_string(loop_data["workflow"]))
+		print("")
+		print("  Run your workflow iteration, then record it with:")
+		print("  muzzle loop done --note \"what you accomplished\"")
+		print("")
+
+	} else if subcmd == "done" {
+		note := flag_value(argv, "--note", "")
+		loop_file := find_active_loop()
+		if loop_file == "" {
+			print("Error: No active loop found.")
+			exit(1)
+		}
+		ts := timestamp_iso()
+		ok := record_loop_done(loop_file, note, ts)
+		if is_falseish(ok) {
+			print("Error: Failed to record loop entry.")
+			exit(1)
+		}
+		loop_data := load_loop(loop_file)
+		current := 0
+		if loop_data != null {
+			current = to_int(loop_data["current"])
+		}
+		print("OK Loop " + to_string(current) + ": " + to_string(loop_data["workflow"]) + " — recorded.")
+		if note != "" {
+			print("  Note: " + note)
+		}
+		print("")
+		print("  Run 'muzzle loop next' for the next iteration.")
+
+	} else if subcmd == "status" {
+		loop_file := find_active_loop()
+		if loop_file == "" {
+			# Show all loops
+			all_loops := list_all_loops()
+			if len(all_loops) == 0 {
+				print("No loops found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
+			} else {
+				mut status_loop_idx := 0
+				while status_loop_idx < len(all_loops) {
+					lp := all_loops[status_loop_idx]
+					print(to_string(lp["workflow"]) + "    " + to_string(lp["status"]))
+					status_loop_idx = status_loop_idx + 1
+				}
+			}
+			exit(0)
+		}
+		loop_data := load_loop(loop_file)
+		if loop_data == null {
+			exit(0)
+		}
+		print("Loop:       " + to_string(loop_data["workflow"]))
+		print("Progress:   " + to_string(loop_data["current"]) + "/" + to_string(loop_data["limit"]))
+		print("Status:     " + to_string(loop_data["status"]))
+		print("Started:    " + to_string(loop_data["started_at"]))
+		entries := loop_data["entries"]
+		print("Completed:  " + to_string(len(entries)) + " iterations")
+		if len(entries) > 0 {
+			print("")
+			mut status_entry_idx := 0
+			while status_entry_idx < len(entries) {
+				entry := entries[status_entry_idx]
+				note_str := ""
+				if dict_has_key(entry, "note") {
+					note_str = to_string(entry["note"])
+				}
+				print("  [" + to_string(entry["loop"]) + "] " + to_string(entry["status"]) + " — " + note_str)
+				status_entry_idx = status_entry_idx + 1
+			}
+		}
+
+	} else if subcmd == "summary" {
+		all_loops := list_all_loops()
+		if len(all_loops) == 0 {
+			print("No loops found.")
+			exit(0)
+		}
+		mut summary_loop_idx := 0
+		while summary_loop_idx < len(all_loops) {
+			lp := all_loops[summary_loop_idx]
+			print("# Loop: " + to_string(lp["workflow"]))
+			print("Status: " + to_string(lp["status"]) + "  |  Progress: " + to_string(lp["current"]) + "/" + to_string(lp["limit"]))
+			print("Started: " + to_string(lp["started_at"]))
+			print("")
+			entries := lp["entries"]
+			if len(entries) > 0 {
+				print("| # | Status | Note | Timestamp |")
+				print("|---|--------|------|-----------|")
+				mut summary_entry_idx := 0
+				while summary_entry_idx < len(entries) {
+					entry := entries[summary_entry_idx]
+					note_str := ""
+					if dict_has_key(entry, "note") {
+						note_str = to_string(entry["note"])
+						if len(note_str) > 60 {
+							note_str = substring(note_str, 0, 57) + "..."
+						}
+					}
+					ts_str := ""
+					if dict_has_key(entry, "timestamp") {
+						ts_str = to_string(entry["timestamp"])
+					}
+					print("| " + to_string(entry["loop"]) + " | " + to_string(entry["status"]) + " | " + note_str + " | " + ts_str + " |")
+					summary_entry_idx = summary_entry_idx + 1
+				}
+			} else {
+				print("No entries recorded.")
+			}
+			print("")
+			summary_loop_idx = summary_loop_idx + 1
+		}
+
+	} else {
+		print("Error: Unknown loop command: '" + subcmd + "'. Use: start, next, done, status, summary")
+		exit(2)
+	}
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+func main() {
+	argv := args()
+
+	if len(argv) < 1 {
+		print_help()
+		exit(0)
+	}
+
+	first_arg := to_string(argv[0])
+	if first_arg == "--help" || first_arg == "-h" {
+		print_help()
+		exit(0)
+	}
+
+	if first_arg == "--version" || first_arg == "-V" {
+		print_version()
+		exit(0)
+	}
+
+	subcommand := parse_subcommand(argv)
+	if subcommand == "" || subcommand == "help" {
+		print_help()
+		exit(0)
+	}
+
+	if subcommand == "init" {
+		cmd_init()
+		exit(0)
+	}
+
+	if subcommand == "list" || subcommand == "ls" {
+		cmd_list()
+		exit(0)
+	}
+
+	if subcommand == "info" || subcommand == "show" {
+		pos_args := positional_args(argv)
+		if len(pos_args) < 1 {
+			print("Error: Usage: muzzle info <workflow>")
+			exit(2)
+		}
+		cmd_info(to_string(pos_args[0]))
+		exit(0)
+	}
+
+	if subcommand == "run" || subcommand == "execute" {
+		cmd_run(argv)
+		exit(0)
+	}
+
+	if subcommand == "logs" || subcommand == "log" {
+		filter := ""
+		pos_args := positional_args(argv)
+		if len(pos_args) > 0 {
+			filter = to_string(pos_args[0])
+		}
+		cmd_logs(filter)
+		exit(0)
+	}
+
+	if subcommand == "report" || subcommand == "reports" {
+		filter := ""
+		pos_args := positional_args(argv)
+		if len(pos_args) > 0 {
+			filter = to_string(pos_args[0])
+		}
+		cmd_report(filter)
+		exit(0)
+	}
+
+	if subcommand == "loop" {
+		cmd_loop(argv)
+		exit(0)
+	}
+
+	if subcommand == "clean" {
+		cmd_clean(argv)
+		exit(0)
+	}
+
+	# Unknown command
+	print("Error: Unknown command: '" + subcommand + "'. Run 'muzzle help' for usage.")
+	exit(2)
+}
+
+main()
