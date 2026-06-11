@@ -98,9 +98,9 @@ export func dict_has_key(map_obj, key_name) {
 
 # --- timestamp formatting ---
 
-# Returns compact timestamp for filenames (epoch seconds, unique and filesystem-safe).
+# Returns compact timestamp for filenames (epoch milliseconds, unique and filesystem-safe).
 export func timestamp_compact() {
-	return to_string(now_unix())
+	return to_string(current_timestamp())
 }
 
 # Returns ISO 8601 timestamp (e.g., "2026-05-28T22:30:00Z").

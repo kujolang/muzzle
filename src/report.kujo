@@ -62,7 +62,8 @@ export func write_json_report(workflow_name, status, exit_code, started_at, fini
 
 # Generate file paths for a workflow run.
 export func make_paths(workflow_name, ts_compact) {
-	log_path := LOGS_DIR + "/" + workflow_name + "-" + ts_compact + ".log"
-	report_path := REPORTS_DIR + "/" + workflow_name + "-" + ts_compact + ".md"
+	unique_id := replace(uuid_v4(), "-", "")
+	log_path := LOGS_DIR + "/" + workflow_name + "-" + ts_compact + "-" + unique_id + ".log"
+	report_path := REPORTS_DIR + "/" + workflow_name + "-" + ts_compact + "-" + unique_id + ".md"
 	return {"log": log_path, "report": report_path}
 }
