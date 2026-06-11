@@ -4,7 +4,7 @@
 [![Language](https://img.shields.io/badge/language-Kujo-2ea44f)](https://github.com/kujolang/kujo)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-**Quiet workflow runner for AI-assisted development — built in Kujo.**
+**Quiet workflow runner for AI-assisted development - built in Kujo.**
 
 Muzzle is a **workflow compression layer** that keeps noisy, repeated command output out of AI agent context. It runs known local workflows with quieter terminal output, captures full logs to disk, and returns compact, agent-friendly summaries.
 
