@@ -19,7 +19,7 @@ notes = "Kujo-native CLI with 14 commands. Functionally complete for daily use. 
 minimum_version = "0.1.0"
 entry = "muzzle.kujo"
 sources = ["src", "."]
-includes = ["README.md", "docs", "muzzle", "LICENSE"]
+includes = ["README.md", "AGENTS.md", "docs", "muzzle", "LICENSE"]
 excludes = [".git", ".muzzle/logs", ".muzzle/reports", ".muzzle/state", ".dogfood", "dist", "build", ".kujo_cache"]
 
 [scripts]

@@ -200,12 +200,22 @@ Create `.muzzle/workflows/build.kujo`:
 ```bash
 cat > .muzzle/workflows/build.kujo << 'EOF'
 // Build Workflow — compiles the project and runs checks.
-print("Step 1: Cleaning build artifacts...")
-print("Step 2: Compiling source files...")
-print("Step 3: Running static analysis...")
-print("")
-print("Build complete. All checks passed.")
-print("Output: dist/myproject.tar.gz")
+func print_lines(items) {
+	mut idx := 0
+	while idx < len(items) {
+		print(items[idx])
+		idx = idx + 1
+	}
+}
+
+print_lines(array(
+	"Step 1: Cleaning build artifacts...",
+	"Step 2: Compiling source files...",
+	"Step 3: Running static analysis...",
+	"",
+	"Build complete. All checks passed.",
+	"Output: dist/myproject.tar.gz"
+))
 EOF
 ```
 
@@ -233,13 +243,10 @@ echo "Branch:        ${BRANCH}"
 echo "Timestamp:     $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 echo ""
 
-# Simulate deployment steps
-echo "Building..."
-sleep 0.5
-echo "Testing..."
-sleep 0.5
-echo "Pushing..."
-sleep 0.5
+for step in "Building..." "Testing..." "Pushing..."; do
+  echo "$step"
+  sleep 0.5
+done
 echo ""
 
 echo "Deploy complete. ${TARGET} is live."
@@ -271,9 +278,8 @@ print(f"Analyzing: {target}")
 print(f"Timestamp: {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
 print()
 
-print("Running linter...")
-print("Checking formatting...")
-print("Counting lines of code...")
+for line in ["Running linter...", "Checking formatting...", "Counting lines of code..."]:
+    print(line)
 print()
 
 print("Analysis complete. No issues found.")

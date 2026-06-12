@@ -46,10 +46,10 @@ scope: |
   - Loop state stored in .muzzle/state/loops/
   - Secret redaction in summaries (preserved in full logs)
   - Argument safety (no eval, shell-quoted literal args)
+  - Modular runners for Kujo, Bash, Python, and Node workflows
   - Ecosystem dogfood documentation in .dogfood/muzzle/
 
   Out of scope for MVP:
-  - Python/Node/Kujo script runners (Bash only)
   - Network services or daemons
   - Cross-platform Windows support
   - Kennel packaging/distribution
@@ -72,7 +72,6 @@ non_goals:
   - "Diff summarization (PatchBrief handles that)"
   - "Mac-specific text expansion (Snips handles that)"
   - "Mobile approval control plane (Leash handles that)"
-  - "Python/Node/Kujo script runners (future enhancement)"
   - "Windows support (future enhancement)"
   - "Remote/network workflow execution (future enhancement)"
 
@@ -87,7 +86,7 @@ relevant_systems:
   - "kujo-leash (future: approve dangerous workflows via mobile)"
   - "snips (future: expand human snippets into muzzle commands)"
   - "strata (future: store workflow decisions and failure notes)"
-  - "bash (MVP implementation language)"
+  - "bash (launcher wrapper and Bash workflow runner)"
 
 likely_files:
   - "muzzle (main CLI script)"

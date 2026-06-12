@@ -86,7 +86,7 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 |-------|----------|-------------|
 | `name` | Yes | Workflow name (must match filename without extension) |
 | `summary` | No | One-line description shown in `muzzle list` |
-| `runner` | No | Always `"bash"` for MVP (default: `"bash"`) |
+| `runner` | No | Override runner: `kujo`, `bash`, `python`, or `node` |
 | `script` | Yes | Path relative to `.muzzle/` directory |
 | `args` | No | Array of argument definitions |
 | `args[].name` | Yes | Argument name |
@@ -185,18 +185,24 @@ if ! git rev-parse --git-dir &>/dev/null; then
     exit 1
 fi
 
-echo "=== Git Status ==="
+section_seen=0
+section() {
+    if [[ "$section_seen" -eq 1 ]]; then
+        echo ""
+    fi
+    section_seen=1
+    echo "=== $1 ==="
+}
+
+section "Git Status"
 git status --short
 
-echo ""
-echo "=== Current Branch ==="
+section "Current Branch"
 git branch --show-current
 
-echo ""
-echo "=== Remotes ==="
+section "Remotes"
 git remote -v
 
-echo ""
-echo "=== Last 3 Commits ==="
+section "Last 3 Commits"
 git log --oneline -3
 ```
