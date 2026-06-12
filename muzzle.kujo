@@ -26,59 +26,71 @@ SESSION_FILE := ".muzzle/state/session.json"
 # =============================================================================
 # HELP
 # =============================================================================
+func print_lines(output_lines) {
+	mut idx := 0
+	while idx < len(output_lines) {
+		print(output_lines[idx])
+		idx = idx + 1
+	}
+}
+
 func print_help() {
-	print("Muzzle v" + MUZZLE_VERSION + " — Quiet Workflow Runner for AI-Assisted Development")
-	print("")
-	print("Usage:")
-	print("  kujo run muzzle.kujo -- <command> [options]")
-	print("  muzzle <command> [options]")
-	print("")
-	print("Commands:")
-	print("  init                          Initialize .muzzle/ in current directory")
-	print("  list                          List available workflows")
-	print("  info <workflow>               Show workflow details")
-	print("  run <workflow> [args...]      Run a workflow quietly")
-	print("  logs [workflow]               Show log file paths")
-	print("  report [workflow]             Show report file paths")
-	print("  loop start <wf> --limit <n>   Start a stateful agent loop")
-	print("  loop next                     Advance to next loop iteration")
-	print("  loop done --note \"...\"        Record completed iteration")
-	print("  loop status                   Show loop progress")
-	print("  loop summary                  Show all loop entries")
-	print("  clean                         Remove all logs and reports")
-	print("  help                          Show this help")
-	print("  version                       Print version")
-	print("")
-	print("Run options:")
-	print("  --verbose, -v    Stream full output to terminal")
-	print("  --dry-run, -n    Print what would happen without executing")
-	print("  --json           Output machine-readable JSON summary")
-	print("  --runner <name>  Force runner: kujo (default), bash, python, node")
-	print("  --timeout <ms>   Max execution time in ms (default: 300000, min: 1000, max: 3600000)")
-	print("")
-	print("Runners:")
-	print("  kujo             Execute .kujo scripts via KUJO_BIN (default)")
-	print("  bash             Execute .sh scripts via bash")
-	print("  python           Execute .py scripts via python3")
-	print("  node             Execute .js scripts via node")
-	print("")
-	print("Examples:")
-	print("  muzzle init")
-	print("  muzzle run hello")
-	print("  muzzle run deploy production --verbose")
-	print("  muzzle run build --json")
-	print("  muzzle run analyze --runner python")
-	print("  muzzle loop start release-pass --limit 10")
-	print("")
-	print("Muzzle keeps noisy workflow output out of AI agent context.")
-	print("Full logs: .muzzle/logs/   Reports: .muzzle/reports/")
-	print("Docs: https://github.com/kujolang/muzzle")
+	print_lines(array(
+		"Muzzle v" + MUZZLE_VERSION + " — Quiet Workflow Runner for AI-Assisted Development",
+		"",
+		"Usage:",
+		"  kujo run muzzle.kujo -- <command> [options]",
+		"  muzzle <command> [options]",
+		"",
+		"Commands:",
+		"  init                          Initialize .muzzle/ in current directory",
+		"  list                          List available workflows",
+		"  info <workflow>               Show workflow details",
+		"  run <workflow> [args...]      Run a workflow quietly",
+		"  logs [workflow]               Show log file paths",
+		"  report [workflow]             Show report file paths",
+		"  loop start <wf> --limit <n>   Start a stateful agent loop",
+		"  loop next                     Advance to next loop iteration",
+		"  loop done --note \"...\"        Record completed iteration",
+		"  loop status                   Show loop progress",
+		"  loop summary                  Show all loop entries",
+		"  clean                         Remove all logs and reports",
+		"  help                          Show this help",
+		"  version                       Print version",
+		"",
+		"Run options:",
+		"  --verbose, -v    Stream full output to terminal",
+		"  --dry-run, -n    Print what would happen without executing",
+		"  --json           Output machine-readable JSON summary",
+		"  --runner <name>  Force runner: kujo (default), bash, python, node",
+		"  --timeout <ms>   Max execution time in ms (default: 300000, min: 1000, max: 3600000)",
+		"",
+		"Runners:",
+		"  kujo             Execute .kujo scripts via KUJO_BIN (default)",
+		"  bash             Execute .sh scripts via bash",
+		"  python           Execute .py scripts via python3",
+		"  node             Execute .js scripts via node",
+		"",
+		"Examples:",
+		"  muzzle init",
+		"  muzzle run hello",
+		"  muzzle run deploy production --verbose",
+		"  muzzle run build --json",
+		"  muzzle run analyze --runner python",
+		"  muzzle loop start release-pass --limit 10",
+		"",
+		"Muzzle keeps noisy workflow output out of AI agent context.",
+		"Full logs: .muzzle/logs/   Reports: .muzzle/reports/",
+		"Docs: https://github.com/kujolang/muzzle"
+	))
 }
 
 func print_version() {
-	print("Muzzle v" + MUZZLE_VERSION)
-	print("Quiet workflow runner for AI-assisted development.")
-	print("Part of the Kujo/Kujo ecosystem.")
+	print_lines(array(
+		"Muzzle v" + MUZZLE_VERSION,
+		"Quiet workflow runner for AI-assisted development.",
+		"Part of the Kujo/Kujo ecosystem."
+	))
 }
 
 # =============================================================================
@@ -97,79 +109,101 @@ func cmd_init() {
 	ensure_dir(".muzzle/state/loops")
 
 	# Create example hello workflow (Kujo — default runner)
-	hello_script := "// Hello workflow — a safe, read-only example for Muzzle.\n"
-	hello_script = hello_script + "// Runs in Kujo (default runner).\n"
-	hello_script = hello_script + "print(\"Hello from Muzzle!\")\n"
-	hello_script = hello_script + "print(\"Runner: Kujo (default)\")\n"
-	hello_script = hello_script + "print(\"This is a sample workflow. Replace with your own.\")\n"
+	hello_script := join(array(
+		"// Hello workflow — a safe, read-only example for Muzzle.",
+		"// Runs in Kujo (default runner).",
+		"print(\"Hello from Muzzle!\")",
+		"print(\"Runner: Kujo (default)\")",
+		"print(\"This is a sample workflow. Replace with your own.\")"
+	), "\n") + "\n"
 	write_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
 
 	# Create example Bash workflow as well
-	bash_script := "#!/usr/bin/env bash\n"
-	bash_script = bash_script + "# Hello workflow (Bash runner) — a safe, read-only example.\n"
-	bash_script = bash_script + "echo \"Hello from Muzzle (Bash)!\"\n"
-	bash_script = bash_script + "echo \"Current directory: $(pwd)\"\n"
-	bash_script = bash_script + "echo \"Date: $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"\n"
-	bash_script = bash_script + "exit 0\n"
+	bash_script := join(array(
+		"#!/usr/bin/env bash",
+		"# Hello workflow (Bash runner) — a safe, read-only example.",
+		"echo \"Hello from Muzzle (Bash)!\"",
+		"echo \"Current directory: $(pwd)\"",
+		"echo \"Date: $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"",
+		"exit 0"
+	), "\n") + "\n"
 	write_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
 
 	# Create manifests
-	hello_manifest := "{\n"
-	hello_manifest = hello_manifest + "  \"name\": \"hello\",\n"
-	hello_manifest = hello_manifest + "  \"summary\": \"Simple hello-world workflow (Kujo runner). Safe and read-only.\",\n"
-	hello_manifest = hello_manifest + "  \"runner\": \"kujo\",\n"
-	hello_manifest = hello_manifest + "  \"script\": \"workflows/hello.kujo\",\n"
-	hello_manifest = hello_manifest + "  \"args\": [],\n"
-	hello_manifest = hello_manifest + "  \"quiet_by_default\": true,\n"
-	hello_manifest = hello_manifest + "  \"safety\": {\n"
-	hello_manifest = hello_manifest + "    \"require_git_repo\": false,\n"
-	hello_manifest = hello_manifest + "    \"allow_dirty_tree\": true,\n"
-	hello_manifest = hello_manifest + "    \"requires_network\": false,\n"
-	hello_manifest = hello_manifest + "    \"human_approval_recommended\": false\n"
-	hello_manifest = hello_manifest + "  }\n"
-	hello_manifest = hello_manifest + "}\n"
+	hello_manifest := join(array(
+		"{",
+		"  \"name\": \"hello\",",
+		"  \"summary\": \"Simple hello-world workflow (Kujo runner). Safe and read-only.\",",
+		"  \"runner\": \"kujo\",",
+		"  \"script\": \"workflows/hello.kujo\",",
+		"  \"args\": [],",
+		"  \"quiet_by_default\": true,",
+		"  \"safety\": {",
+		"    \"require_git_repo\": false,",
+		"    \"allow_dirty_tree\": true,",
+		"    \"requires_network\": false,",
+		"    \"human_approval_recommended\": false",
+		"  }",
+		"}"
+	), "\n") + "\n"
 	write_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
 
-	bash_manifest := "{\n"
-	bash_manifest = bash_manifest + "  \"name\": \"hello-bash\",\n"
-	bash_manifest = bash_manifest + "  \"summary\": \"Simple hello-world workflow (Bash runner). Safe and read-only.\",\n"
-	bash_manifest = bash_manifest + "  \"runner\": \"bash\",\n"
-	bash_manifest = bash_manifest + "  \"script\": \"workflows/hello-bash.sh\",\n"
-	bash_manifest = bash_manifest + "  \"args\": [],\n"
-	bash_manifest = bash_manifest + "  \"quiet_by_default\": true,\n"
-	bash_manifest = bash_manifest + "  \"safety\": {\n"
-	bash_manifest = bash_manifest + "    \"require_git_repo\": false,\n"
-	bash_manifest = bash_manifest + "    \"allow_dirty_tree\": true,\n"
-	bash_manifest = bash_manifest + "    \"requires_network\": false,\n"
-	bash_manifest = bash_manifest + "    \"human_approval_recommended\": false\n"
-	bash_manifest = bash_manifest + "  }\n"
-	bash_manifest = bash_manifest + "}\n"
+	bash_manifest := join(array(
+		"{",
+		"  \"name\": \"hello-bash\",",
+		"  \"summary\": \"Simple hello-world workflow (Bash runner). Safe and read-only.\",",
+		"  \"runner\": \"bash\",",
+		"  \"script\": \"workflows/hello-bash.sh\",",
+		"  \"args\": [],",
+		"  \"quiet_by_default\": true,",
+		"  \"safety\": {",
+		"    \"require_git_repo\": false,",
+		"    \"allow_dirty_tree\": true,",
+		"    \"requires_network\": false,",
+		"    \"human_approval_recommended\": false",
+		"  }",
+		"}"
+	), "\n") + "\n"
 	write_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
 
 	# Create session state
-	session_json := "{\n  \"project\": \"\",\n  \"last_workflow\": null,\n  \"last_run_at\": null,\n  \"total_runs\": 0\n}\n"
+	session_json := join(array(
+		"{",
+		"  \"project\": \"\",",
+		"  \"last_workflow\": null,",
+		"  \"last_run_at\": null,",
+		"  \"total_runs\": 0",
+		"}"
+	), "\n") + "\n"
 	write_file(SESSION_FILE, session_json, true)
 
 	# Create .gitignore
-	gitignore := "# Muzzle logs and reports — local workflow artifacts\nlogs/\nreports/\nstate/session.json\n"
+	gitignore := join(array(
+		"# Muzzle logs and reports — local workflow artifacts",
+		"logs/",
+		"reports/",
+		"state/session.json"
+	), "\n") + "\n"
 	write_file(".muzzle/.gitignore", gitignore)
 
-	print("OK Muzzle initialized in .muzzle/")
-	print("")
-	print("  Created:")
-	print("    .muzzle/workflows/hello.kujo      (Kujo example — default)")
-	print("    .muzzle/workflows/hello-bash.sh   (Bash example)")
-	print("    .muzzle/manifests/hello.json")
-	print("    .muzzle/manifests/hello-bash.json")
-	print("    .muzzle/logs/")
-	print("    .muzzle/reports/")
-	print("    .muzzle/state/")
-	print("")
-	print("  Next steps:")
-	print("    muzzle list              — see available workflows")
-	print("    muzzle run hello         — run the Kujo example (default)")
-	print("    muzzle run hello-bash    — run the Bash example")
-	print("    muzzle info hello        — see workflow details")
+	print_lines(array(
+		"OK Muzzle initialized in .muzzle/",
+		"",
+		"  Created:",
+		"    .muzzle/workflows/hello.kujo      (Kujo example — default)",
+		"    .muzzle/workflows/hello-bash.sh   (Bash example)",
+		"    .muzzle/manifests/hello.json",
+		"    .muzzle/manifests/hello-bash.json",
+		"    .muzzle/logs/",
+		"    .muzzle/reports/",
+		"    .muzzle/state/",
+		"",
+		"  Next steps:",
+		"    muzzle list              — see available workflows",
+		"    muzzle run hello         — run the Kujo example (default)",
+		"    muzzle run hello-bash    — run the Bash example",
+		"    muzzle info hello        — see workflow details"
+	))
 }
 
 # =============================================================================
