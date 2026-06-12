@@ -60,32 +60,24 @@ git clone https://github.com/kujolang/muzzle.git
 cd muzzle
 export PATH="$PWD:$PATH"
 
-# Initialize a project
 cd /path/to/your/project
 muzzle init
-
-# Explore
 muzzle list
-muzzle info hello
-
-# Run (Kujo workflow — default)
 muzzle run hello
-
-# Run with Bash runner
-muzzle run hello-bash
-
-# Machine-readable output
 muzzle run hello --json
+```
 
-# Preview without executing
+Useful follow-ups:
+
+```bash
+muzzle info hello                     # show workflow details
+muzzle run hello-bash                 # use the Bash runner example
 muzzle run deploy production --dry-run
-
-# Stream full output
 muzzle run build --verbose
-
-# Set a custom timeout
 muzzle run long-task --timeout 60000
 ```
+
+Agents and contributors should also read [`AGENTS.md`](AGENTS.md) for canonical examples, search exclusions, and copyable example style.
 
 ## Commands
 
