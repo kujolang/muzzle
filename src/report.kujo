@@ -16,20 +16,29 @@ export func write_markdown_report(workflow_name, status, exit_code, started_at, 
 		notes_section = "Failure detected. See log for full details."
 	}
 
-	report := "# Muzzle Workflow Report\n\n"
-	report = report + "Workflow: " + workflow_name + "\n"
-	report = report + "Status: " + status + "\n"
-	report = report + "Exit code: " + to_string(exit_code) + "\n"
-	report = report + "Started: " + started_at + "\n"
-	report = report + "Finished: " + finished_at + "\n"
-	report = report + "Duration: " + format_duration_ms(duration_ms) + "\n\n"
-	report = report + "## Summary\n\n"
-	report = report + summary_line + "\n\n"
-	report = report + "## Outputs\n\n"
-	report = report + "- Log: " + log_path + "\n"
-	report = report + "- JSON summary: " + replace(report_path, ".md", ".json") + "\n\n"
-	report = report + "## Notes\n\n"
-	report = report + notes_section + "\n"
+	report := join(array(
+		"# Muzzle Workflow Report",
+		"",
+		"Workflow: " + workflow_name,
+		"Status: " + status,
+		"Exit code: " + to_string(exit_code),
+		"Started: " + started_at,
+		"Finished: " + finished_at,
+		"Duration: " + format_duration_ms(duration_ms),
+		"",
+		"## Summary",
+		"",
+		summary_line,
+		"",
+		"## Outputs",
+		"",
+		"- Log: " + log_path,
+		"- JSON summary: " + replace(report_path, ".md", ".json"),
+		"",
+		"## Notes",
+		"",
+		notes_section
+	), "\n") + "\n"
 
 	write_file(report_path, report, true)
 }

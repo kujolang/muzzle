@@ -34,6 +34,10 @@ func print_lines(output_lines) {
 	}
 }
 
+func print_kv(prefix, value) {
+	print(prefix + to_string(value))
+}
+
 func print_help() {
 	print_lines(array(
 		"Muzzle v" + MUZZLE_VERSION + " — Quiet Workflow Runner for AI-Assisted Development",
@@ -218,14 +222,17 @@ func cmd_list() {
 	workflows := discover_workflows()
 
 	if len(workflows) == 0 {
-		print("No workflows found in .muzzle/")
-		print("Add scripts to .muzzle/workflows/ or manifests to .muzzle/manifests/")
+		print_lines(array(
+			"No workflows found in .muzzle/",
+			"Add scripts to .muzzle/workflows/ or manifests to .muzzle/manifests/"
+		))
 		exit(0)
 	}
 
-	# Print header
-	print("WORKFLOW             RUNNER   SUMMARY")
-	print("--------             ------   -------")
+	print_lines(array(
+		"WORKFLOW             RUNNER   SUMMARY",
+		"--------             ------   -------"
+	))
 
 	mut workflow_idx := 0
 	while workflow_idx < len(workflows) {
@@ -266,14 +273,14 @@ func cmd_info(name) {
 		exit(1)
 	}
 
-	print("Workflow:   " + to_string(info["name"]))
+	print_kv("Workflow:   ", info["name"])
 	if dict_has_key(info, "summary") {
-		print("Summary:    " + to_string(info["summary"]))
+		print_kv("Summary:    ", info["summary"])
 	} else {
 		print("Summary:    (no manifest)")
 	}
-	print("Runner:     " + to_string(info["runner"]))
-	print("Script:     " + to_string(info["script_path"]))
+	print_kv("Runner:     ", info["runner"])
+	print_kv("Script:     ", info["script_path"])
 
 	if dict_has_key(info, "args") {
 		args_arr := info["args"]
@@ -319,10 +326,12 @@ func cmd_info(name) {
 		if dict_has_key(safety, "human_approval_recommended") {
 			human_approval = to_string(safety["human_approval_recommended"])
 		}
-		print("  require_git_repo:           " + require_git)
-		print("  allow_dirty_tree:           " + allow_dirty)
-		print("  requires_network:           " + requires_net)
-		print("  human_approval_recommended:  " + human_approval)
+		print_lines(array(
+			"  require_git_repo:           " + require_git,
+			"  allow_dirty_tree:           " + allow_dirty,
+			"  requires_network:           " + requires_net,
+			"  human_approval_recommended:  " + human_approval
+		))
 	} else {
 		print("Safety:     (unknown — no manifest)")
 	}
@@ -366,8 +375,10 @@ func cmd_run(argv) {
 
 	# Validate workflow name for safety
 	if is_falseish(validate_workflow_name(workflow_name)) {
-		print("Error: Invalid workflow name '" + workflow_name + "'.")
-		print("Workflow names must not contain /, \\, or .. and must be 1-128 characters.")
+		print_lines(array(
+			"Error: Invalid workflow name '" + workflow_name + "'.",
+			"Workflow names must not contain /, \\, or .. and must be 1-128 characters."
+		))
 		exit(1)
 	}
 
@@ -398,12 +409,14 @@ func cmd_run(argv) {
 
 	# Dry run
 	if dry_run {
-		print("Muzzle: " + workflow_name + "  [DRY RUN]")
-		print("Runner:    " + runner_label(runner))
-		print("Script:    " + script_path)
-		print("Would execute with runner: " + runner)
+		print_lines(array(
+			"Muzzle: " + workflow_name + "  [DRY RUN]",
+			"Runner:    " + runner_label(runner),
+			"Script:    " + script_path,
+			"Would execute with runner: " + runner
+		))
 		if len(workflow_args) > 0 {
-			print("Args:      " + join(workflow_args, " "))
+			print_kv("Args:      ", join(workflow_args, " "))
 		}
 		exit(0)
 	}
@@ -498,46 +511,64 @@ func cmd_run(argv) {
 		}
 	} else if verbose {
 		# Verbose: print full output
-		print("Muzzle: " + workflow_name + "  [verbose]")
-		print("Runner: " + runner_label(runner))
-		print("---")
-		print(raw_output)
-		print("---")
-		print("")
-		print("Status:     " + status)
-		print("Exit code:  " + to_string(exit_code))
-		print("Duration:   " + format_duration_ms(duration_ms))
-		print("Report:     " + report_path)
-		print("Log:        " + log_path)
+		print_lines(array(
+			"Muzzle: " + workflow_name + "  [verbose]",
+			"Runner: " + runner_label(runner),
+			"---",
+			raw_output,
+			"---",
+			"",
+			"Status:     " + status,
+			"Exit code:  " + to_string(exit_code),
+			"Duration:   " + format_duration_ms(duration_ms),
+			"Report:     " + report_path,
+			"Log:        " + log_path
+		))
 	} else {
 		# Quiet default output
-		print("")
-		print("Muzzle: " + workflow_name)
 		if runner != "kujo" {
-			print("Runner:    " + runner_label(runner))
+			print_lines(array(
+				"",
+				"Muzzle: " + workflow_name,
+				"Runner:    " + runner_label(runner),
+				""
+			))
+		} else {
+			print_lines(array(
+				"",
+				"Muzzle: " + workflow_name,
+				""
+			))
 		}
-		print("")
 		if status == "success" {
 			print("Status:     success")
 		} else {
 			print("Status:     failed")
 		}
-		print("Exit code:  " + to_string(exit_code))
-		print("Duration:   " + format_duration_ms(duration_ms))
-		print("")
+		print_lines(array(
+			"Exit code:  " + to_string(exit_code),
+			"Duration:   " + format_duration_ms(duration_ms),
+			""
+		))
 
 		if status == "failed" && err_text != "" {
-			print("Error excerpt:")
-			print(err_text)
-			print("")
+			print_lines(array(
+				"Error excerpt:",
+				err_text,
+				""
+			))
 		}
 
-		print("Report:     " + report_path)
-		print("Log:        " + log_path)
-		print("")
+		print_lines(array(
+			"Report:     " + report_path,
+			"Log:        " + log_path,
+			""
+		))
 		if is_falseish(verbose) && status == "success" {
-			print("Use --verbose for full output or --json for machine-readable format.")
-			print("")
+			print_lines(array(
+				"Use --verbose for full output or --json for machine-readable format.",
+				""
+			))
 		}
 	}
 
@@ -575,8 +606,10 @@ func cmd_logs(filter) {
 			print("No logs found for workflow '" + filter + "'.")
 		}
 	} else {
-		print("Recent logs:")
-		print("")
+		print_lines(array(
+			"Recent logs:",
+			""
+		))
 		entries := list_dir(".muzzle/logs")
 		mut log_count := 0
 		mut log_list_idx := 0
@@ -593,8 +626,10 @@ func cmd_logs(filter) {
 		if log_count == 0 {
 			print("  (no logs yet)")
 		} else {
-			print("")
-			print("Use 'muzzle logs <workflow>' to filter by workflow name.")
+			print_lines(array(
+				"",
+				"Use 'muzzle logs <workflow>' to filter by workflow name."
+			))
 		}
 	}
 }
@@ -629,8 +664,10 @@ func cmd_report(filter) {
 			print("No reports found for workflow '" + filter + "'.")
 		}
 	} else {
-		print("Recent reports:")
-		print("")
+		print_lines(array(
+			"Recent reports:",
+			""
+		))
 		entries := list_dir(".muzzle/reports")
 		mut report_count := 0
 		mut report_list_idx := 0
@@ -645,9 +682,11 @@ func cmd_report(filter) {
 		if report_count == 0 {
 			print("  (no reports yet)")
 		} else {
-			print("")
-			print("Use 'muzzle report <workflow>' to filter by workflow name.")
-			print("Use 'cat .muzzle/reports/<file>' to read a full report.")
+			print_lines(array(
+				"",
+				"Use 'muzzle report <workflow>' to filter by workflow name.",
+				"Use 'cat .muzzle/reports/<file>' to read a full report."
+			))
 		}
 	}
 }
@@ -698,8 +737,10 @@ func cmd_clean(argv) {
 		}
 	}
 
-	print("Muzzle: Cleaned up workflow artifacts.")
-	print("  Removed: " + to_string(removed_logs) + " logs, " + to_string(removed_reports) + " reports")
+	print_lines(array(
+		"Muzzle: Cleaned up workflow artifacts.",
+		"  Removed: " + to_string(removed_logs) + " logs, " + to_string(removed_reports) + " reports"
+	))
 }
 
 # =============================================================================
@@ -756,10 +797,12 @@ func cmd_loop(argv) {
 		}
 		ts := timestamp_iso()
 		create_loop(wf_name, limit, ts)
-		print("Muzzle: Loop started: " + wf_name + " (0/" + to_string(limit) + ")")
-		print("")
-		print("  Run 'muzzle loop next' to begin the first iteration.")
-		print("  After each iteration, record with 'muzzle loop done --note \"...\"'")
+		print_lines(array(
+			"Muzzle: Loop started: " + wf_name + " (0/" + to_string(limit) + ")",
+			"",
+			"  Run 'muzzle loop next' to begin the first iteration.",
+			"  After each iteration, record with 'muzzle loop done --note \"...\"'"
+		))
 
 	} else if subcmd == "next" {
 		loop_file := find_active_loop()
@@ -781,12 +824,14 @@ func cmd_loop(argv) {
 		}
 		current := to_int(loop_data["current"])
 		limit := to_int(loop_data["limit"])
-		print("")
-		print("Loop " + to_string(current) + "/" + to_string(limit) + ": " + to_string(loop_data["workflow"]))
-		print("")
-		print("  Run your workflow iteration, then record it with:")
-		print("  muzzle loop done --note \"what you accomplished\"")
-		print("")
+		print_lines(array(
+			"",
+			"Loop " + to_string(current) + "/" + to_string(limit) + ": " + to_string(loop_data["workflow"]),
+			"",
+			"  Run your workflow iteration, then record it with:",
+			"  muzzle loop done --note \"what you accomplished\"",
+			""
+		))
 
 	} else if subcmd == "done" {
 		note := flag_value(argv, "--note", "")
@@ -810,8 +855,10 @@ func cmd_loop(argv) {
 		if note != "" {
 			print("  Note: " + note)
 		}
-		print("")
-		print("  Run 'muzzle loop next' for the next iteration.")
+		print_lines(array(
+			"",
+			"  Run 'muzzle loop next' for the next iteration."
+		))
 
 	} else if subcmd == "status" {
 		loop_file := find_active_loop()
@@ -834,10 +881,10 @@ func cmd_loop(argv) {
 		if loop_data == null {
 			exit(0)
 		}
-		print("Loop:       " + to_string(loop_data["workflow"]))
+		print_kv("Loop:       ", loop_data["workflow"])
 		print("Progress:   " + to_string(loop_data["current"]) + "/" + to_string(loop_data["limit"]))
-		print("Status:     " + to_string(loop_data["status"]))
-		print("Started:    " + to_string(loop_data["started_at"]))
+		print_kv("Status:     ", loop_data["status"])
+		print_kv("Started:    ", loop_data["started_at"])
 		entries := loop_data["entries"]
 		print("Completed:  " + to_string(len(entries)) + " iterations")
 		if len(entries) > 0 {
@@ -863,14 +910,18 @@ func cmd_loop(argv) {
 		mut summary_loop_idx := 0
 		while summary_loop_idx < len(all_loops) {
 			lp := all_loops[summary_loop_idx]
-			print("# Loop: " + to_string(lp["workflow"]))
-			print("Status: " + to_string(lp["status"]) + "  |  Progress: " + to_string(lp["current"]) + "/" + to_string(lp["limit"]))
-			print("Started: " + to_string(lp["started_at"]))
-			print("")
+			print_lines(array(
+				"# Loop: " + to_string(lp["workflow"]),
+				"Status: " + to_string(lp["status"]) + "  |  Progress: " + to_string(lp["current"]) + "/" + to_string(lp["limit"]),
+				"Started: " + to_string(lp["started_at"]),
+				""
+			))
 			entries := lp["entries"]
 			if len(entries) > 0 {
-				print("| # | Status | Note | Timestamp |")
-				print("|---|--------|------|-----------|")
+				print_lines(array(
+					"| # | Status | Note | Timestamp |",
+					"|---|--------|------|-----------|"
+				))
 				mut summary_entry_idx := 0
 				while summary_entry_idx < len(entries) {
 					entry := entries[summary_entry_idx]
