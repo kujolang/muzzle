@@ -656,6 +656,7 @@ chmod +x .muzzle/workflows/my-workflow.sh
 
 - Read the [Workflow Authoring Guide](workflows.md) for detailed workflow creation tips
 - Read the [Agent Usage Guide](agent-usage.md) if you're using Muzzle with AI coding assistants
+- Read [Compare Agent Context With And Without Muzzle](agent-context-comparison.md) to run a real task twice and measure the context difference
 - Read the [Security Model](security.md) to understand the guardrails and remaining limitations
 - Explore the [Kujo language](https://github.com/kujolang/kujo) to write Kujo-native workflows
 - Check the [issue tracker](https://github.com/kujolang/muzzle/issues) for known issues and planned enhancements

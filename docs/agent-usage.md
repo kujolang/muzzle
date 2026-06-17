@@ -95,6 +95,8 @@ Safely previews what would happen without executing.
 
 *Estimates are approximate. Actual savings depend on workflow output volume.*
 
+For a real task comparison, use [Compare Agent Context With And Without Muzzle](agent-context-comparison.md). It shows how to run the same local agent task once with direct commands and once with `muzzle run`, then compare agent usage, context usage, and exposed command-output tokens.
+
 ## Safety for Agents
 
 - Muzzle only runs scripts from `.muzzle/workflows/`; it rejects other paths
