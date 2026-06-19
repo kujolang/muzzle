@@ -99,6 +99,8 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 | `safety.requires_network` | No | Whether workflow needs network access (informational) |
 | `safety.human_approval_recommended` | No | Whether a human should approve before running |
 
+The `script` value can name a shared implementation, such as `workflows/shared-verify.sh`, even when the manifest is named `project-verify.json`. Muzzle resolves the path under `.muzzle/workflows/` and rejects traversal or symlink escapes before execution.
+
 ## Argument Handling
 
 Workflow arguments are passed positionally:
@@ -116,7 +118,10 @@ Usage:
 ```bash
 muzzle run deploy production
 muzzle run deploy staging develop
+muzzle run lint -- --fix
 ```
+
+Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle run flags such as `--json`, `--timeout`, and `--runner` are interpreted by Muzzle.
 
 ## Output Conventions
 
@@ -144,6 +149,7 @@ muzzle run deploy staging develop
 5. **Document in the manifest** — a good summary helps agents and humans
 6. **Mark safety flags honestly** — `human_approval_recommended: true` for dangerous workflows
 7. **Add `.muzzle/logs/` and `.muzzle/reports/` to `.gitignore`**
+8. **Keep scripts under `.muzzle/workflows/`** — manifest aliases are supported, but symlinks or paths that resolve outside the workflow directory are rejected
 
 ## Examples
 

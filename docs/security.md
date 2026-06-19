@@ -43,7 +43,7 @@ This prevents:
 
 ## Secret Redaction
 
-Muzzle scans output for common secret patterns and redacts matching lines from **summaries only**.
+Muzzle scans output for common secret patterns and redacts matching lines from **summaries only**. Single-line matching is case-insensitive.
 
 ### Patterns Detected
 
@@ -69,7 +69,7 @@ Muzzle scans output for common secret patterns and redacts matching lines from *
 
 - Pattern-based detection is conservative and will miss obfuscated secrets
 - Base64-encoded secrets are not detected
-- Secrets split across multiple lines are not detected
+- Arbitrary secrets split across multiple lines are not detected unless they match one of the supported key/certificate block markers
 - Custom secret formats are not detected
 
 **Recommendation**: Never print secrets from workflow scripts. Use environment variables and reference them, don't echo them.

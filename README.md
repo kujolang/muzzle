@@ -38,6 +38,12 @@ AI-assisted development wastes expensive model context on predictable operationa
 
 Muzzle is designed to keep the signal in context and leave the full run on disk for later review. Every command returns deterministic exit codes, machine-readable JSON, and structured reports that downstream tools can consume.
 
+## Readiness
+
+Muzzle is ready for trusted local workflow compression in real projects: it initializes predictable workflow folders, runs Kujo/Bash/Python/Node scripts, preserves full logs, emits compact summaries, and keeps machine-readable reports stable enough for agents and shell automation.
+
+It is not a sandbox for untrusted code and it is not yet a frozen enterprise platform API. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The current goal is a polished, production-useful Kujo showcase with a deliberately stabilizing CLI and manifest surface.
+
 ## Architecture
 
 ```
@@ -51,7 +57,7 @@ muzzle (Bash wrapper)
        └─ src/loops.kujo       Stateful agent loop management
 ```
 
-Muzzle is a **Kujo-native** CLI with a thin Bash wrapper for PATH convenience. The wrapper auto-discovers the Kujo runtime via `KUJO_BIN` or common paths.
+Muzzle is a **Kujo-native** CLI with a thin Bash wrapper for PATH convenience. The wrapper auto-discovers the Kujo runtime via `KUJO_BIN` or common paths and filters known debug-only Kujo optimizer stats so Muzzle's own output stays quiet. The root-level `muzzle` wrapper and `muzzle.kujo` entrypoint are both intentional: the rest of the implementation lives in `src/`.
 
 ## Quick Start
 
@@ -75,6 +81,7 @@ muzzle run hello-bash                 # use the Bash runner example
 muzzle run deploy production --dry-run
 muzzle run build --verbose
 muzzle run long-task --timeout 60000
+muzzle run lint -- --fix              # pass a literal leading-dash arg to the workflow
 ```
 
 Agents and contributors should also read [`AGENTS.md`](AGENTS.md) for canonical examples, search exclusions, and copyable example style.
@@ -107,6 +114,7 @@ Agents and contributors should also read [`AGENTS.md`](AGENTS.md) for canonical 
 | `--json` | Output machine-readable JSON summary |
 | `--runner <name>` | Force runner: `kujo` (default), `bash`, `python`, `node` |
 | `--timeout <ms>` | Max execution time in ms (default: 300000, min: 1000, max: 3600000) |
+| `--` | End Muzzle option parsing; remaining values are passed as workflow args |
 
 ## Runners
 
@@ -209,7 +217,7 @@ Create `.muzzle/manifests/<name>.json`:
 }
 ```
 
-Manifests power `muzzle info`, safety metadata, and future Leash approval integration.
+Manifests power `muzzle info`, safety metadata, stable aliases, and future Leash approval integration. The `script` path is relative to `.muzzle/`, must resolve under `.muzzle/workflows/`, and may point to a differently named implementation script.
 
 ## Loop Mode
 
@@ -228,8 +236,9 @@ muzzle loop summary       # Full table of all iterations
 ## Safety
 
 - **Path confinement**: Scripts must reside under `.muzzle/workflows/`. Path traversal (`..`) and slashes in workflow names are rejected.
+- **Canonical script checks**: Manifest script paths and symlinks are resolved before execution; scripts that escape `.muzzle/workflows/` are rejected.
 - **Argument safety**: Workflow arguments are shell-quoted as literal strings before execution, so shell metacharacters stay literal.
-- **Secret redaction**: 23 single-line patterns (tokens, keys, credentials) + 9 multi-line block patterns (PEM keys, certificates) are redacted from summaries.
+- **Secret redaction**: Case-insensitive single-line patterns (tokens, keys, credentials) + 9 multi-line block patterns (PEM keys, certificates) are redacted from summaries.
 - **Full logs preserved**: Redaction applies only to summaries. Complete output is always available in `.muzzle/logs/`.
 - **Input validation**: Workflow names are validated for length (≤128 chars) and forbidden characters (`/`, `\`, `..`).
 - **Timeout protection**: Configurable per-run timeout (default: 5 minutes, max: 1 hour).
@@ -259,7 +268,7 @@ Muzzle is part of the [Kujo/Kujo](https://github.com/kujolang/kujo) ecosystem an
 
 ## Status
 
-**Active development** — v0.2.0. The reviewed CLI surface is functional for local workflow capture and report generation. The public API (CLI surface, JSON report schema, manifest format) is stabilizing but not yet frozen. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for known issues and planned enhancements.
+**Active development** — v0.2.0. The reviewed CLI surface is functional for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. The public API (CLI surface, JSON report schema, manifest format) is stabilizing but not yet frozen. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for known issues and planned enhancements.
 
 ## License
 

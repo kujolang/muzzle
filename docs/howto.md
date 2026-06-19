@@ -362,6 +362,14 @@ Prints the resolved runner, script path, and arguments without running anything.
 muzzle run long-task --timeout 600000   # 10 minutes (600,000 ms)
 ```
 
+### Passing workflow args that look like flags
+
+Use `--` when a workflow argument starts with `-` and should not be parsed as a Muzzle flag:
+
+```bash
+muzzle run lint -- --fix
+```
+
 ---
 
 ## Command Reference
@@ -392,6 +400,7 @@ muzzle run long-task --timeout 600000   # 10 minutes (600,000 ms)
 | `--json` | | Output machine-readable JSON summary |
 | `--runner <name>` | | Force runner: `kujo`, `bash`, `python`, or `node` |
 | `--timeout <ms>` | | Max execution time in milliseconds (default: 300000, min: 1000, max: 3600000) |
+| `--` | | Stop parsing Muzzle flags and pass the remaining values to the workflow |
 
 ---
 
@@ -580,6 +589,8 @@ muzzle info deploy
 ```
 
 Displays the runner, script path, argument list, and safety metadata from the manifest.
+
+The manifest `script` can point at a differently named implementation, such as `"script": "workflows/shared-verify.sh"`. Muzzle resolves that path under `.muzzle/workflows/` before execution and rejects path traversal or symlink escapes.
 
 ---
 
