@@ -7,14 +7,14 @@
 #   kujo run muzzle.kujo -- <command> [options]
 #   muzzle <command> [options]           (via Bash wrapper)
 
-from src.common import parse_subcommand, has_flag, flag_value, positional_args
-from src.common import is_trueish, is_falseish, str_starts_with, str_contains, str_ends_with
+from src.common import parse_subcommand, flag_value, positional_args
+from src.common import is_trueish, is_falseish, str_starts_with, str_ends_with
 from src.common import dict_has_key, has_muzzle_dir, format_duration_ms
-from src.common import timestamp_compact, timestamp_iso, ensure_dir, path_join
-from src.runner import resolve_runner, build_command, parse_captured_output, runner_label, runner_extension
-from src.workflow import load_manifest, find_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
+from src.common import timestamp_compact, timestamp_iso, ensure_dir
+from src.runner import resolve_runner, valid_runner, build_command, parse_captured_output, runner_label
+from src.workflow import load_manifest, resolve_workflow_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
 from src.report import write_markdown_report, write_json_report, make_paths
-from src.redact import redact_text, error_excerpt
+from src.redact import error_excerpt
 from src.loops import find_active_loop, load_loop, create_loop, advance_loop, record_loop_done, list_all_loops
 
 MUZZLE_VERSION := "0.2.0"
@@ -95,6 +95,110 @@ func print_version() {
 		"Quiet workflow runner for AI-assisted development.",
 		"Part of the Kujo/Kujo ecosystem."
 	))
+}
+
+func is_run_value_flag(flag_name) {
+	if flag_name == "--runner" {
+		return true
+	}
+	if flag_name == "--timeout" {
+		return true
+	}
+	return false
+}
+
+func is_run_bool_flag(flag_name) {
+	if flag_name == "--verbose" {
+		return true
+	}
+	if flag_name == "-v" {
+		return true
+	}
+	if flag_name == "--dry-run" {
+		return true
+	}
+	if flag_name == "-n" {
+		return true
+	}
+	if flag_name == "--json" {
+		return true
+	}
+	return false
+}
+
+func has_run_option(argv, flag_name) {
+	mut idx := 1
+	while idx < len(argv) {
+		arg := to_string(argv[idx])
+		if arg == "--" {
+			return false
+		}
+		if arg == flag_name {
+			return true
+		}
+		idx = idx + 1
+	}
+	return false
+}
+
+func run_option_value(argv, flag_name, default_value) {
+	mut idx := 1
+	while idx < len(argv) {
+		arg := to_string(argv[idx])
+		if arg == "--" {
+			return default_value
+		}
+		if arg == flag_name {
+			if idx + 1 < len(argv) {
+				next := to_string(argv[idx + 1])
+				if next != "--" {
+					return next
+				}
+			}
+			return default_value
+		}
+		idx = idx + 1
+	}
+	return default_value
+}
+
+func parse_run_invocation(argv) {
+	mut workflow_name := ""
+	mut workflow_args := array()
+	mut idx := 1
+	mut found_workflow := false
+	mut literal_args := false
+
+	while idx < len(argv) {
+		arg := to_string(argv[idx])
+		mut step := 1
+
+		if literal_args {
+			if is_falseish(found_workflow) {
+				workflow_name = arg
+				found_workflow = true
+			} else {
+				workflow_args = push(workflow_args, arg)
+			}
+		} else if arg == "--" {
+			literal_args = true
+		} else if is_falseish(found_workflow) {
+			if is_run_value_flag(arg) {
+				step = 2
+			} else if is_falseish(is_run_bool_flag(arg)) {
+				workflow_name = arg
+				found_workflow = true
+			}
+		} else if is_run_value_flag(arg) {
+			step = 2
+		} else if is_falseish(is_run_bool_flag(arg)) {
+			workflow_args = push(workflow_args, arg)
+		}
+
+		idx = idx + step
+	}
+
+	return {"workflow": workflow_name, "args": workflow_args}
 }
 
 # =============================================================================
@@ -347,11 +451,15 @@ func cmd_run(argv) {
 	}
 
 	# Parse flags
-	verbose := has_flag(argv, "--verbose") || has_flag(argv, "-v")
-	dry_run := has_flag(argv, "--dry-run") || has_flag(argv, "-n")
-	json_out := has_flag(argv, "--json")
-	runner_override := flag_value(argv, "--runner", "")
-	timeout_str := flag_value(argv, "--timeout", "300000")
+	verbose := has_run_option(argv, "--verbose") || has_run_option(argv, "-v")
+	dry_run := has_run_option(argv, "--dry-run") || has_run_option(argv, "-n")
+	json_out := has_run_option(argv, "--json")
+	runner_override := run_option_value(argv, "--runner", "")
+	timeout_str := run_option_value(argv, "--timeout", "300000")
+	if runner_override != "" && is_falseish(valid_runner(runner_override)) {
+		print("Error: Unsupported runner '" + runner_override + "'. Use: kujo, bash, python, or node.")
+		exit(2)
+	}
 	timeout_ms := 300000
 	timeout_parsed := parse_int(timeout_str)
 	if type(timeout_parsed) != "Error" {
@@ -364,14 +472,13 @@ func cmd_run(argv) {
 		}
 	}
 
-	# Get positional args: first is workflow name, rest are workflow args
-	pos_args := positional_args(argv)
-	if len(pos_args) < 1 {
+	# Get workflow name and args while allowing literal workflow args after --.
+	run_args := parse_run_invocation(argv)
+	workflow_name := to_string(run_args["workflow"])
+	if workflow_name == "" {
 		print("Error: Usage: muzzle run <workflow> [args...]")
 		exit(2)
 	}
-
-	workflow_name := to_string(pos_args[0])
 
 	# Validate workflow name for safety
 	if is_falseish(validate_workflow_name(workflow_name)) {
@@ -382,15 +489,10 @@ func cmd_run(argv) {
 		exit(1)
 	}
 
-	mut workflow_args := array()
-	mut pi := 1
-	while pi < len(pos_args) {
-		workflow_args = push(workflow_args, pos_args[pi])
-		pi = pi + 1
-	}
+	workflow_args := run_args["args"]
 
 	# Resolve script
-	script_path := find_script(workflow_name)
+	script_path := resolve_workflow_script(workflow_name)
 	if script_path == "" {
 		print("Error: Workflow '" + workflow_name + "' not found. Check available workflows with 'muzzle list'.")
 		exit(1)
@@ -780,8 +882,21 @@ func cmd_loop(argv) {
 			print("Error: Usage: muzzle loop start <workflow> --limit <n>")
 			exit(2)
 		}
+		if is_falseish(validate_workflow_name(wf_name)) {
+			print_lines(array(
+				"Error: Invalid workflow name '" + wf_name + "'.",
+				"Workflow names must not contain /, \\, or .. and must be 1-128 characters."
+			))
+			exit(1)
+		}
+		if limit < 1 {
+			limit = 1
+		}
+		if limit > 1000 {
+			limit = 1000
+		}
 		# Validate workflow exists
-		script_path := find_script(wf_name)
+		script_path := resolve_workflow_script(wf_name)
 		if script_path == "" {
 			print("Error: Workflow '" + wf_name + "' not found.")
 			exit(1)

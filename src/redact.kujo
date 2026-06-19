@@ -2,7 +2,7 @@
 # Scans output for common secret patterns and redacts matching content.
 # Supports both single-line patterns and multi-line blocks (keys, certs).
 
-from src.common import str_contains, is_trueish
+from src.common import is_trueish
 
 # Single-line patterns — lines containing these are fully redacted.
 SINGLE_LINE_PATTERNS := array(
@@ -59,10 +59,11 @@ REDACTED_MARKER := "[REDACTED — secret pattern detected]"
 
 # Check if a single line contains a secret pattern.
 export func line_has_secret(line) {
+	line_lower := to_lower(to_string(line))
 	mut idx := 0
 	while idx < len(SINGLE_LINE_PATTERNS) {
 		pattern := SINGLE_LINE_PATTERNS[idx]
-		if is_trueish(contains(line, pattern)) {
+		if is_trueish(contains(line_lower, to_lower(pattern))) {
 			return true
 		}
 		idx = idx + 1

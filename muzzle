@@ -40,5 +40,7 @@ if [[ ! -f "$MUZZLE_KUJO" ]]; then
 	exit 1
 fi
 
-# Run muzzle.kujo via Kujo runtime
-exec "$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@"
+# Run muzzle.kujo via Kujo runtime. Some debug Kujo builds emit optimizer stats
+# on stderr; keep Muzzle's CLI contract quiet while preserving real diagnostics.
+"$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@" 2> >(grep -v '^Compiler optimization:' >&2)
+exit $?

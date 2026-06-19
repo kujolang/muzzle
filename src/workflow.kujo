@@ -1,7 +1,7 @@
 # Muzzle workflow discovery and manifest loading.
 # Discovers workflow scripts and their associated manifests.
 
-from src.common import str_ends_with, str_starts_with, is_trueish, is_falseish, dict_has_key, has_muzzle_dir, path_join
+from src.common import str_ends_with, str_starts_with, is_trueish, is_falseish, dict_has_key
 
 WORKFLOWS_DIR := ".muzzle/workflows"
 MANIFESTS_DIR := ".muzzle/manifests"
@@ -37,17 +37,57 @@ export func find_script(name) {
 	return ""
 }
 
-# Validate that a script is inside the expected workflows directory.
+# Normalize a manifest script path to a project-relative path.
+# Manifest paths are relative to .muzzle/; .muzzle/workflows/... is accepted too.
+export func normalize_manifest_script_path(script_path) {
+	clean := trim(to_string(script_path))
+	if clean == "" {
+		return ""
+	}
+	if is_trueish(str_starts_with(clean, "/")) {
+		return ""
+	}
+	if is_trueish(contains(clean, "\\")) {
+		return ""
+	}
+	if is_trueish(contains(clean, "..")) {
+		return ""
+	}
+	if is_trueish(str_starts_with(clean, ".muzzle/")) {
+		return clean
+	}
+	return ".muzzle/" + clean
+}
+
+# Resolve the executable script for a workflow, honoring manifest script mappings.
+export func resolve_workflow_script(name) {
+	manifest := load_manifest(name)
+	if manifest != null && dict_has_key(manifest, "script") {
+		manifest_script := normalize_manifest_script_path(manifest["script"])
+		if manifest_script != "" && is_trueish(file_exists(manifest_script)) {
+			return manifest_script
+		}
+		return ""
+	}
+	return find_script(name)
+}
+
+# Validate that a script exists and resolves under the expected workflows directory.
 export func validate_script_path(script_path) {
-	# Simple check: must start with .muzzle/workflows/
-	if is_falseish(str_starts_with(script_path, WORKFLOWS_DIR + "/")) {
+	if script_path == "" || is_trueish(contains(script_path, "..")) || is_trueish(contains(script_path, "\\")) {
 		return false
 	}
-	# Must not contain path traversal
-	if is_trueish(contains(script_path, "..")) {
+
+	base_abs := path_absolute(WORKFLOWS_DIR)
+	if type(base_abs) == "Error" {
 		return false
 	}
-	return true
+	script_abs := path_absolute(script_path)
+	if type(script_abs) == "Error" {
+		return false
+	}
+	base_prefix := to_string(base_abs) + "/"
+	return is_trueish(str_starts_with(to_string(script_abs), base_prefix))
 }
 
 # Validate a workflow name for safety (no path traversal, reasonable length).
@@ -90,7 +130,7 @@ export func discover_workflows() {
 					runner := "kujo"
 					summary := ""
 					if dict_has_key(manifest, "script") {
-						script = to_string(manifest["script"])
+						script = normalize_manifest_script_path(manifest["script"])
 					}
 					if script == "" {
 						script = find_script(name)
@@ -176,12 +216,11 @@ export func discover_workflows() {
 # Get workflow info by name.
 # Returns a dict with full details or null if not found.
 export func get_workflow_info(name) {
-	script_path := find_script(name)
+	manifest := load_manifest(name)
+	script_path := resolve_workflow_script(name)
 	if script_path == "" {
 		return null
 	}
-
-	manifest := load_manifest(name)
 
 	mut info := {
 		"name": name,

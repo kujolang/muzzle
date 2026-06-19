@@ -10,6 +10,12 @@ from src.common import str_ends_with, is_trueish, dict_has_key
 # Default runner when nothing else is specified.
 DEFAULT_RUNNER := "kujo"
 
+# Return true when the runner is supported.
+export func valid_runner(runner) {
+	lower := to_lower(to_string(runner))
+	return lower == "kujo" || lower == "bash" || lower == "python" || lower == "node"
+}
+
 # Resolve the runner for a workflow.
 # manifest: parsed manifest dict (or null)
 # script_path: path to the workflow script
@@ -18,7 +24,7 @@ export func resolve_runner(manifest, script_path, flag_override) {
 	# 1. CLI flag override takes highest priority
 	if flag_override != "" {
 		lower := to_lower(flag_override)
-		if lower == "kujo" || lower == "bash" || lower == "python" || lower == "node" {
+		if valid_runner(lower) {
 			return lower
 		}
 	}
@@ -27,7 +33,7 @@ export func resolve_runner(manifest, script_path, flag_override) {
 	if manifest != null && dict_has_key(manifest, "runner") {
 		runner := to_string(manifest["runner"])
 		lower := to_lower(runner)
-		if lower == "kujo" || lower == "bash" || lower == "python" || lower == "node" {
+		if valid_runner(lower) {
 			return lower
 		}
 	}
