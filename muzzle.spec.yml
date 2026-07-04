@@ -20,7 +20,7 @@ background: |
   Muzzle is a lightweight CLI that runs known workflows quietly, writes full
   details to local logs/reports, and gives the agent only the useful summary.
 
-  This project is also a dogfood test of the Kujo/Kujo ecosystem, intentionally
+  This project is also a dogfood test of the Kujo ecosystem, intentionally
   testing a different area than PatchBrief (diff summarization), ShipCheck
   (release readiness), or Trail (onboarding verification). This pass focuses on
   quiet workflow execution, token-noise reduction, agent-callable local

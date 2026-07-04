@@ -138,7 +138,7 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 
 ## Future Security Enhancements
 
-- Kujo/Kujo native runner with capability-based security (`--untrusted`, `--allow-shell-exec`)
+- Kujo native runner with capability-based security (`--untrusted`, `--allow-shell-exec`)
 - Leash integration for mobile approval of dangerous workflows
 - Checksum verification of workflow scripts
 - Manifest signature verification

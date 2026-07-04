@@ -253,7 +253,7 @@ muzzle loop summary       # Full table of all iterations
 
 ## Ecosystem
 
-Muzzle is part of the [Kujo/Kujo](https://github.com/kujolang/kujo) ecosystem and a showcase for Kujo as a tool-building language:
+Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a showcase for Kujo as a tool-building language:
 
 | Tool | Role |
 |---|---|

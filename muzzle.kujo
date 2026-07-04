@@ -93,7 +93,7 @@ func print_version() {
 	print_lines(array(
 		"Muzzle v" + MUZZLE_VERSION,
 		"Quiet workflow runner for AI-assisted development.",
-		"Part of the Kujo/Kujo ecosystem."
+		"Part of the Kujo ecosystem."
 	))
 }
 

@@ -674,4 +674,4 @@ chmod +x .muzzle/workflows/my-workflow.sh
 
 ---
 
-*Muzzle v0.2.0 — Part of the [Kujo/Kujo](https://github.com/kujolang/kujo) ecosystem.*
+*Muzzle v0.2.0 — Part of the [Kujo](https://github.com/kujolang/kujo) ecosystem.*
