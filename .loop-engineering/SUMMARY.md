@@ -10,9 +10,9 @@ blocked
 
 ## Verification
 
-- passed: wrapper_regression, diff_check, wrapper_regression, diff_check, wrapper_regression, diff_check
+- passed: kujo_checks, wrapper_regression, kujo_checks, wrapper_regression, kujo_checks, wrapper_regression
 - blocked: none
-- failed: kujo_checks, kujo_checks, kujo_checks
+- failed: diff_check, diff_check, diff_check
 
 ## Commits
 
