@@ -1,29 +1,46 @@
 diff --git a/.loop-engineering/iterations/001/context.md b/.loop-engineering/iterations/001/context.md
-index aa6f2c6..0e55c87 100644
+index 0e55c87..24e670e 100644
 --- a/.loop-engineering/iterations/001/context.md
 +++ b/.loop-engineering/iterations/001/context.md
 @@ -1,6 +1,6 @@
  # Context
  
  - objective: Evaluate HLP-004 migration to the first-party CLI parser package and classify it needs-contract-first when package wiring cannot preserve Muzzle flag semantics.
--- git_head: 0a4651d
-+- git_head: 2bc2694
+-- git_head: 2bc2694
++- git_head: 9a414b8
  - changed_files:
    - none
 diff --git a/.loop-engineering/iterations/001/diff.patch b/.loop-engineering/iterations/001/diff.patch
-index 11311ed..e69de29 100644
+index 9ad496d..e69de29 100644
 --- a/.loop-engineering/iterations/001/diff.patch
 +++ b/.loop-engineering/iterations/001/diff.patch
-@@ -1,12 +0,0 @@
+@@ -1,29 +0,0 @@
 -diff --git a/.loop-engineering/iterations/001/context.md b/.loop-engineering/iterations/001/context.md
--index 245aac1..aa6f2c6 100644
+-index aa6f2c6..0e55c87 100644
 ---- a/.loop-engineering/iterations/001/context.md
 -+++ b/.loop-engineering/iterations/001/context.md
 -@@ -1,6 +1,6 @@
 - # Context
 - 
 - - objective: Evaluate HLP-004 migration to the first-party CLI parser package and classify it needs-contract-first when package wiring cannot preserve Muzzle flag semantics.
---- git_head: 52c18ba
--+- git_head: 0a4651d
+--- git_head: 0a4651d
+-+- git_head: 2bc2694
 - - changed_files:
 -   - none
+-diff --git a/.loop-engineering/iterations/001/diff.patch b/.loop-engineering/iterations/001/diff.patch
+-index 11311ed..e69de29 100644
+---- a/.loop-engineering/iterations/001/diff.patch
+-+++ b/.loop-engineering/iterations/001/diff.patch
+-@@ -1,12 +0,0 @@
+--diff --git a/.loop-engineering/iterations/001/context.md b/.loop-engineering/iterations/001/context.md
+--index 245aac1..aa6f2c6 100644
+----- a/.loop-engineering/iterations/001/context.md
+--+++ b/.loop-engineering/iterations/001/context.md
+--@@ -1,6 +1,6 @@
+-- # Context
+-- 
+-- - objective: Evaluate HLP-004 migration to the first-party CLI parser package and classify it needs-contract-first when package wiring cannot preserve Muzzle flag semantics.
+---- git_head: 52c18ba
+--+- git_head: 0a4651d
+-- - changed_files:
+--   - none
