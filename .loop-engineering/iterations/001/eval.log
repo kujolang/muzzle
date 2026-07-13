@@ -1,8 +1,8 @@
 
 ## gate: kujo_checks
-$ for f in muzzle.kujo src/*.kujo; do /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo check $f >/dev/null || exit 1; done
+$ export KUJO_MODULE_PATH=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/modules; for f in muzzle.kujo src/*.kujo; do /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo check $f >/dev/null || exit 1; done
 Compiler optimization: 0 constants folded, 29 dead instructions removed, 0 peephole optimizations
-Compiler optimization: 0 constants folded, 31 dead instructions removed, 0 peephole optimizations
+Compiler optimization: 0 constants folded, 17 dead instructions removed, 0 peephole optimizations
 Compiler optimization: 0 constants folded, 22 dead instructions removed, 0 peephole optimizations
 Compiler optimization: 3 constants folded, 19 dead instructions removed, 0 peephole optimizations
 Compiler optimization: 0 constants folded, 1 dead instructions removed, 0 peephole optimizations
@@ -11,7 +11,7 @@ Compiler optimization: 0 constants folded, 44 dead instructions removed, 0 peeph
 gate kujo_checks: pass
 
 ## gate: wrapper_regression
-$ KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo bash tests/muzzle_wrapper_regression.sh
+$ KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo KUJO_MODULE_PATH=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/modules bash tests/muzzle_wrapper_regression.sh
 Muzzle wrapper regression checks passed.
 gate wrapper_regression: pass
 

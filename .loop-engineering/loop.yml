@@ -17,9 +17,9 @@ blocked_actions:
 
 eval_gates:
   - id: kujo_checks
-    command: "for f in muzzle.kujo src/*.kujo; do /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo check $f >/dev/null || exit 1; done"
+    command: "export KUJO_MODULE_PATH=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/modules; for f in muzzle.kujo src/*.kujo; do /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo check $f >/dev/null || exit 1; done"
   - id: wrapper_regression
-    command: "KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo bash tests/muzzle_wrapper_regression.sh"
+    command: "KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/debug/kujo KUJO_MODULE_PATH=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/modules bash tests/muzzle_wrapper_regression.sh"
   - id: diff_check
     command: 'files=$(git diff --name-only | grep -v "^.loop-engineering/" || true); if [ -n "$files" ]; then git diff --check -- $files; fi'
     required: true

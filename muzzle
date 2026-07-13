@@ -35,6 +35,13 @@ fi
 
 export KUJO_BIN
 
+# The first-party CLI compatibility package is shipped with the sibling Kujo
+# checkout. Keep it configurable for installed runtimes while making the
+# workspace wrapper self-contained.
+if [[ -z "${KUJO_MODULE_PATH:-}" && -d "${SCRIPT_DIR}/../kujo/modules" ]]; then
+	export KUJO_MODULE_PATH="${SCRIPT_DIR}/../kujo/modules"
+fi
+
 if [[ ! -f "$MUZZLE_KUJO" ]]; then
 	echo "Error: muzzle.kujo not found at ${MUZZLE_KUJO}" >&2
 	exit 1

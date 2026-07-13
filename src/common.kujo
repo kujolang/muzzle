@@ -2,6 +2,13 @@
 # Provides CLI arg parsing, truthy helpers, timestamp formatting,
 # and filesystem path helpers.
 
+from cli import parse_subcommand, has_flag, flag_value, positional_args
+
+export parse_subcommand := parse_subcommand
+export has_flag := has_flag
+export flag_value := flag_value
+export positional_args := positional_args
+
 # --- truthy / falsy helpers (Kujo predicates return 1/0 or true/false) ---
 
 export func is_trueish(value) {
@@ -10,72 +17,6 @@ export func is_trueish(value) {
 
 export func is_falseish(value) {
 	return value == false || value == 0
-}
-
-# --- CLI arg parsing ---
-
-# Parse subcommand from CLI args (first non-flag token).
-export func parse_subcommand(argv) {
-	if len(argv) < 1 {
-		return ""
-	}
-	arg := to_string(argv[0])
-	if is_trueish(starts_with(arg, "--")) || is_trueish(starts_with(arg, "-")) {
-		return ""
-	}
-	return arg
-}
-
-# Check if a flag is present in CLI args.
-export func has_flag(argv, flag_name) {
-	mut idx := 0
-	while idx < len(argv) {
-		if to_string(argv[idx]) == flag_name {
-			return true
-		}
-		idx = idx + 1
-	}
-	return false
-}
-
-# Get the value of a flag from CLI args (next token after flag, if not another flag).
-export func flag_value(argv, flag_name, default_value) {
-	mut idx := 0
-	while idx < len(argv) {
-		if to_string(argv[idx]) == flag_name {
-			if idx + 1 < len(argv) {
-				next := to_string(argv[idx + 1])
-				if is_falseish(starts_with(next, "--")) {
-					return next
-				}
-			}
-			return default_value
-		}
-		idx = idx + 1
-	}
-	return default_value
-}
-
-# Extract positional args (non-flag tokens) after subcommand.
-export func positional_args(argv) {
-	mut result := array()
-	mut idx := 1
-	while idx < len(argv) {
-		arg := to_string(argv[idx])
-		if is_falseish(starts_with(arg, "--")) && is_falseish(starts_with(arg, "-")) {
-			result = push(result, arg)
-		} else {
-			# Skip flag and its value
-			if idx + 1 < len(argv) {
-				next := to_string(argv[idx + 1])
-				if is_falseish(starts_with(next, "--")) && is_falseish(starts_with(next, "-")) {
-					idx = idx + 1
-				}
-			}
-		}
-		idx = idx + 1
-	}
-	return result
 }
 
 # --- string helpers ---
