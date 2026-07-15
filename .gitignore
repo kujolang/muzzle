@@ -7,3 +7,4 @@
 
 # Internal development documentation (dogfood notes, handoffs, pain points)
 .dogfood/
+.loop-engineering/
