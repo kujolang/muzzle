@@ -63,7 +63,7 @@ If you already have the Kujo runtime built elsewhere, note the path to the binar
 Add this to your shell profile (`~/.zshrc`, `~/.bashrc`, or `~/.bash_profile`):
 
 ```bash
-export KUJO_BIN=/path/to/kujo/target/debug/kujo
+export KUJO_BIN=kujo
 ```
 
 Verify it works:
@@ -606,7 +606,7 @@ Muzzle cannot locate the Kujo binary.
    ```
 2. If empty, set it:
    ```bash
-   export KUJO_BIN=/path/to/kujo/target/debug/kujo
+   export KUJO_BIN=kujo
    ```
 3. Verify the binary works:
    ```bash
