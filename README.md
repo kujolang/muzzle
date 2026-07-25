@@ -48,7 +48,7 @@ It is not a sandbox for untrusted code and it is not yet a frozen enterprise pla
 
 ```
 muzzle (Bash wrapper)
-  └─ $KUJO_BIN run muzzle.kujo --interpreter -- <command>
+  └─ kujo run muzzle.kujo --interpreter -- <command>
        ├─ src/common.kujo      CLI parsing, timestamps, helpers
        ├─ src/runner.kujo      Modular dispatch (kujo/bash/python/node)
        ├─ src/workflow.kujo    Discovery, manifest loading, validation
@@ -122,7 +122,7 @@ Muzzle supports multiple workflow runners. Kujo is the default.
 
 | Runner | Extension | Execution | Use Case |
 |---|---|---|---|
-| **kujo** | `.kujo` | `$KUJO_BIN run script.kujo` | Kujo-native workflows, ecosystem integration |
+| **kujo** | `.kujo` | `kujo run script.kujo` | Kujo-native workflows, ecosystem integration |
 | **bash** | `.sh` | `bash script.sh` | Shell scripts, existing build/deploy tooling |
 | **python** | `.py` | `python3 script.py` | Python automation scripts |
 | **node** | `.js` | `node script.js` | Node.js build/tooling scripts |
