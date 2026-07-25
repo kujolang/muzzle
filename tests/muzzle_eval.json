@@ -1,0 +1,34 @@
+{
+  "name": "muzzle-launch-readiness",
+  "version": "0.1.0",
+  "tests": [
+    {
+      "name": "Muzzle help succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo ./muzzle --help"
+      }
+    },
+    {
+      "name": "Muzzle named version succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo ./muzzle version"
+      }
+    },
+    {
+      "name": "Muzzle wrapper regression succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo bash tests/muzzle_wrapper_regression.sh"
+      }
+    },
+    {
+      "name": "Muzzle package metadata exists",
+      "check": "file_exists",
+      "params": {
+        "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/muzzle/kennel.toml"
+      }
+    }
+  ]
+}

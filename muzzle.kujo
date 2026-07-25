@@ -1095,6 +1095,11 @@ func main() {
 		exit(0)
 	}
 
+	if subcommand == "version" {
+		print_version()
+		exit(0)
+	}
+
 	if subcommand == "init" {
 		cmd_init()
 		exit(0)

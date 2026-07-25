@@ -1,173 +1,65 @@
-name: "muzzle"
-goal: "Build Muzzle, a terminal-native local workflow runner for AI-assisted development that reduces wasted model context and token spend by keeping noisy, repeated workflow execution out of agent chat context."
-id: "311fad25-ccd8-498d-a15f-8a8627963c49"
-status: "in-progress"
+name: "Muzzle launch readiness review"
+goal: "Keep Muzzle locally release-ready as a Kujo-native quiet workflow runner with deterministic wrapper behavior, compact summaries, local logs/reports, and scoped safety claims."
 version: "0.2.0"
-created_at: "2026-05-28T22:23:32Z"
+background: "Muzzle is part of the Kujo prelaunch ecosystem review. The verified scope is trusted local workflow compression; workflow scripts are local code and are not sandboxed."
+scope: "Repository-local CLI behavior, wrapper compatibility, workflow initialization/execution, JSON summaries, log/report capture, secret redaction in summaries, docs/readiness wording, and launch evidence capture."
+non_goals:
+  - "Publishing packages or public releases"
+  - "Running deploy, publish, destructive, networked, or production-like workflows without explicit approval"
+  - "Claiming sandboxing or enterprise platform API stability"
+relevant_systems:
+  - "Kujo runtime"
+  - "Muzzle wrapper"
+  - "repo-local .muzzle workflows"
+  - "prelaunch launch evidence packet"
+likely_files:
+  - "README.md"
+  - "muzzle"
+  - "muzzle.kujo"
+  - "src/runner.kujo"
+  - "src/workflow.kujo"
+  - "src/report.kujo"
+  - "src/redact.kujo"
+  - "tests/muzzle_wrapper_regression.sh"
+acceptance_criteria:
+  - "`muzzle --help`, `muzzle version`, and `muzzle --version` print documented output and exit 0."
+  - "Wrapper regression suite passes locally with `KUJO_BIN=kujo`."
+  - "Eval suite proves help, named version, wrapper regression, and package metadata."
+  - "ShipCheck and Concord pass locally."
+  - "README version badge matches `kennel.toml` and CLI output."
+  - "Docs remain clear that Muzzle is not a sandbox and risky workflows require review/dry-run/human approval."
+eval_requirements:
+  - description: "Run Muzzle help."
+    check_type: "command"
+    params:
+      command: "KUJO_BIN=kujo ./muzzle --help"
+  - description: "Run named version command."
+    check_type: "command"
+    params:
+      command: "KUJO_BIN=kujo ./muzzle version"
+  - description: "Run wrapper regression suite."
+    check_type: "command"
+    params:
+      command: "KUJO_BIN=kujo bash tests/muzzle_wrapper_regression.sh"
+risks:
+  - risk: "Workflow scripts run as local code with current process privileges."
+    mitigation: "Keep sandbox limits explicit in docs and require dry-run/review/human approval for sensitive workflows."
+    severity: "high"
+  - risk: "Secret redaction is pattern-based and may miss unknown secret formats."
+    mitigation: "Do not print secrets; keep logs/reports local and out of version control."
+    severity: "medium"
+dependencies:
+  - "kujo on PATH or KUJO_BIN set"
+  - "Bash 3.2+"
+review_expectations:
+  - "Review workflow manifests before running risky project workflows."
+  - "Review wrapper regression evidence and JSON output contract before launch sign-off."
+human_approval_points:
+  - "Before publishing packages or public releases"
+  - "Before running deploy, publish, destructive, networked, or production-like workflows"
+  - "Before claiming sandboxing or enterprise API stability"
 priority: "high"
 tags:
-  - "dogfood"
-  - "cli"
-  - "workflow"
-  - "agent-tools"
-  - "token-efficiency"
-
-background: |
-  AI-assisted developer work often wastes tokens on predictable operational noise:
-  repeated build/deploy/push commands, huge build logs, noisy terminal output,
-  repeated agent handoff summaries, and repeated process instructions.
-
-  Muzzle is a lightweight CLI that runs known workflows quietly, writes full
-  details to local logs/reports, and gives the agent only the useful summary.
-
-  This project is also a dogfood test of the Kujo ecosystem, intentionally
-  testing a different area than PatchBrief (diff summarization), ShipCheck
-  (release readiness), or Trail (onboarding verification). This pass focuses on
-  quiet workflow execution, token-noise reduction, agent-callable local
-  workflows, and cross-tool orchestration hooks.
-
-scope: |
-  MVP scope:
-  - CLI named `muzzle` (Bash script)
-  - `muzzle init` — creates .muzzle/ directory layout
-  - `muzzle list` — discovers and lists available workflows
-  - `muzzle info <name>` — shows workflow details
-  - `muzzle run <name> [args...]` — executes a workflow quietly
-  - `muzzle logs [name]` — shows log file paths or content
-  - `muzzle report [name]` — shows report paths or content
-  - `muzzle loop start|next|done|status|summary` — stateful loop support
-  - At least one safe example workflow (hello)
-  - Quiet output by default (≤6 lines for success, ≤12 for failure)
-  - Full stdout/stderr captured to .muzzle/logs/
-  - Markdown and JSON reports written to .muzzle/reports/
-  - --verbose, --dry-run, --json flags
-  - Meaningful exit codes
-  - Workflow manifest support (.muzzle/manifests/*.json)
-  - Loop state stored in .muzzle/state/loops/
-  - Secret redaction in summaries (preserved in full logs)
-  - Argument safety (no eval, shell-quoted literal args)
-  - Modular runners for Kujo, Bash, Python, and Node workflows
-  - Ecosystem dogfood documentation in .dogfood/muzzle/
-
-  Out of scope for MVP:
-  - Network services or daemons
-  - Cross-platform Windows support
-  - Kennel packaging/distribution
-  - MCP server integration
-  - Leash approval integration
-  - Dispatch orchestration integration
-  - Scout discovery integration
-  - Snips text-expansion integration
-  - Strata notes integration
-  - Full CI/CD platform features
-  - Remote workflow execution
-
-non_goals:
-  - "Full orchestration engine (Dispatch handles that)"
-  - "CI/CD platform or deployment platform"
-  - "Secrets manager"
-  - "Log analysis platform"
-  - "Codebase intelligence tool (Scout handles that)"
-  - "Release readiness scanner (ShipCheck handles that)"
-  - "Diff summarization (PatchBrief handles that)"
-  - "Mac-specific text expansion (Snips handles that)"
-  - "Mobile approval control plane (Leash handles that)"
-  - "Windows support (future enhancement)"
-  - "Remote/network workflow execution (future enhancement)"
-
-relevant_systems:
-  - "kujo (core language/runtime — used via KUJO_BIN for Spec/Eval validation)"
-  - "kujo-spec (task definition — this spec file)"
-  - "kujo-eval (validation framework — will validate Muzzle behavior)"
-  - "kujo-kennel (package manager — kennel.toml conventions adopted)"
-  - "kujo-dispatch (future: orchestrate Muzzle workflows as steps)"
-  - "kujo-mcp (future: expose Muzzle commands to agents)"
-  - "kujo-scout (future: discover workflow scripts, but Muzzle stays an executor)"
-  - "kujo-leash (future: approve dangerous workflows via mobile)"
-  - "snips (future: expand human snippets into muzzle commands)"
-  - "strata (future: store workflow decisions and failure notes)"
-  - "bash (launcher wrapper and Bash workflow runner)"
-
-likely_files:
-  - "muzzle (main CLI script)"
-  - "muzzle.spec.yml (this spec)"
-  - "kennel.toml (package manifest)"
-  - ".muzzle/workflows/hello.sh (example workflow)"
-  - ".muzzle/manifests/hello.json (example manifest)"
-  - ".dogfood/muzzle/ecosystem-inventory.md"
-  - ".dogfood/muzzle/ideal-workflow.md"
-  - ".dogfood/muzzle/spec-pain-points.md"
-  - ".dogfood/muzzle/testing-log.md"
-  - ".dogfood/muzzle/validation-results.md"
-  - ".dogfood/muzzle/final-field-report.md"
-  - "README.md"
-  - "docs/workflows.md"
-  - "docs/agent-usage.md"
-  - "docs/security.md"
-
-acceptance_criteria:
-  - "`muzzle --help` prints usage information and exits 0"
-  - "`muzzle init` creates .muzzle/ with workflows/, logs/, reports/, state/, manifests/ subdirectories"
-  - "`muzzle init` on existing .muzzle/ prints message and exits 0 (idempotent)"
-  - "`muzzle list` shows available workflows with name, runner, summary"
-  - "`muzzle list` outside a .muzzle/ project prints clear error"
-  - "`muzzle info hello` shows workflow details (script path, args, safety flags)"
-  - "`muzzle info missing-workflow` fails with clear error and non-zero exit"
-  - "`muzzle run hello` executes and prints compact summary (≤6 lines)"
-  - "`muzzle run hello` writes full log to .muzzle/logs/"
-  - "`muzzle run hello` writes Markdown report to .muzzle/reports/"
-  - "`muzzle run hello --json` writes JSON report and prints JSON summary"
-  - "`muzzle run hello --verbose` streams full output to terminal"
-  - "`muzzle run hello --dry-run` prints what would happen without executing"
-  - "`muzzle run missing-workflow` fails with clear error and non-zero exit"
-  - "`muzzle run` with a failing workflow propagates the failure exit code"
-  - "`muzzle logs` lists recent log files"
-  - "`muzzle report` lists recent report files"
-  - "`muzzle loop start release-pass --limit 3` creates loop state file"
-  - "`muzzle loop next` prints current iteration info"
-  - "`muzzle loop done --note 'Fixed X'` records completion and advances"
-  - "`muzzle loop status` shows progress"
-  - "`muzzle loop summary` prints all entries"
-  - "Default output does not print environment variables or secrets"
-  - "Secret-like patterns in output are redacted in summaries"
-  - "Workflow scripts outside .muzzle/workflows/ are rejected"
-  - "Example workflow (hello) is safe and read-only"
-
-eval_requirements:
-  - "command_succeeds: muzzle --help"
-  - "command_succeeds: muzzle init (in temp dir)"
-  - "output_contains: muzzle list — expected workflow names"
-  - "command_succeeds: muzzle run hello"
-  - "file_exists: .muzzle/logs/ (after muzzle run)"
-  - "file_exists: .muzzle/reports/ (after muzzle run)"
-  - "exit_code: muzzle run missing-workflow → non-zero"
-  - "json_path_value: muzzle run hello --json → .status == 'success'"
-  - "output_does_not_contain: muzzle run hello → no env vars in default output"
-  - "output_does_not_contain: muzzle run hello → no TOKEN/SECRET/API_KEY patterns"
-
-risks:
-  - "Bash portability: macOS ships with Bash 3.2 (GPLv2); some features require Bash 4+. MVP targets Bash 3.2+."
-  - "Secret redaction is pattern-based and will miss obfuscated secrets"
-  - "Loop state files could become stale if muzzle loop done is forgotten"
-  - "Workflow manifest format is provisional and may change"
-  - "Eval VM stack overflow prevents using `kujo run` path; must use `--interpreter`"
-  - "Spec tool requires Python 3 for YAML parsing (JSON works natively)"
-  - "No standard workflow manifest convention exists in the ecosystem yet"
-
-dependencies:
-  - "Bash 3.2+ (available on macOS and Linux by default)"
-  - "Kujo runtime (for Spec validation and Eval checks, not for Muzzle itself)"
-  - "Python 3 (for Spec YAML parsing, optional)"
-
-review_expectations:
-  - "Code review of muzzle script for argument safety and secret handling"
-  - "Manual testing of all commands on macOS"
-  - "Review of ecosystem pain points documentation"
-
-human_approval_points:
-  - "After workflow manifest format is reviewed"
-  - "Before adding any network/destructive example workflows"
-  - "Before any Kennel publishing"
-
-estimated_effort: "2 days"
-estimated_hours: 12
+  - "kujo"
+  - "muzzle"
+  - "launch-readiness"
