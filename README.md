@@ -1,6 +1,6 @@
 # Muzzle
 
-[![Version](https://img.shields.io/badge/version-0.2.0-black)](https://github.com/kujolang/muzzle)
+[![Version](https://img.shields.io/badge/version-1.0.0-black)](https://github.com/kujolang/muzzle)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
@@ -42,7 +42,7 @@ Muzzle is designed to keep the signal in context and leave the full run on disk 
 
 Muzzle is ready for trusted local workflow compression in real projects: it initializes predictable workflow folders, runs Kujo/Bash/Python/Node scripts, preserves full logs, emits compact summaries, and keeps machine-readable reports stable enough for agents and shell automation.
 
-It is not a sandbox for untrusted code and it is not yet a frozen enterprise platform API. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The current goal is a polished, production-useful Kujo showcase with a deliberately stabilizing CLI and manifest surface.
+It is not a sandbox for untrusted code or an enterprise isolation boundary. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The 1.0 CLI, JSON summary, and manifest contracts are stable within that trusted-local scope.
 
 ## Architecture
 
@@ -268,7 +268,7 @@ Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a s
 
 ## Status
 
-**Active development** — v0.2.0. The reviewed CLI surface is functional for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. The public API (CLI surface, JSON report schema, manifest format) is stabilizing but not yet frozen. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for known issues and planned enhancements.
+**Stable 1.0** — The reviewed CLI surface is stable for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. Muzzle remains local automation rather than a security sandbox. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for future enhancements.
 
 ## License
 

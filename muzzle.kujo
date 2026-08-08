@@ -17,7 +17,7 @@ from src.report import write_markdown_report, write_json_report, make_paths
 from src.redact import error_excerpt
 from src.loops import find_active_loop, load_loop, create_loop, advance_loop, record_loop_done, list_all_loops
 
-MUZZLE_VERSION := "0.2.0"
+MUZZLE_VERSION := "1.0.0"
 
 WORKFLOWS_DIR := ".muzzle/workflows"
 MANIFESTS_DIR := ".muzzle/manifests"

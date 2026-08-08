@@ -1,6 +1,6 @@
 name: "Muzzle launch readiness review"
 goal: "Keep Muzzle locally release-ready as a Kujo-native quiet workflow runner with deterministic wrapper behavior, compact summaries, local logs/reports, and scoped safety claims."
-version: "0.2.0"
+version: "1.0.0"
 background: "Muzzle is part of the Kujo prelaunch ecosystem review. The verified scope is trusted local workflow compression; workflow scripts are local code and are not sandboxed."
 scope: "Repository-local CLI behavior, wrapper compatibility, workflow initialization/execution, JSON summaries, log/report capture, secret redaction in summaries, docs/readiness wording, and launch evidence capture."
 non_goals:
