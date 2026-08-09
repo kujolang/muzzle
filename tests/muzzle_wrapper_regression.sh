@@ -56,6 +56,29 @@ if ! grep -q "Muzzle v" "$version_stdout"; then
 fi
 
 "$MUZZLE_BIN" init >/dev/null
+
+list_output="$($MUZZLE_BIN list)"
+if ! grep -q "hello" <<<"$list_output"; then
+	echo "Expected initialized hello workflow in list output." >&2
+	exit 1
+fi
+
+info_output="$($MUZZLE_BIN info hello)"
+if ! grep -q "Workflow:[[:space:]]*hello" <<<"$info_output"; then
+	echo "Expected info output for initialized hello workflow." >&2
+	exit 1
+fi
+
+dry_run_output="$($MUZZLE_BIN run hello --dry-run)"
+if ! grep -q "\[DRY RUN\]" <<<"$dry_run_output"; then
+	echo "Expected dry-run marker in output." >&2
+	exit 1
+fi
+if find .muzzle/logs .muzzle/reports -type f 2>/dev/null | grep -q .; then
+	echo "Expected dry run not to create logs or reports." >&2
+	exit 1
+fi
+
 "$MUZZLE_BIN" run hello >"$run_stdout" 2>"$run_stderr"
 if [[ -s "$run_stderr" ]]; then
 	echo "Expected muzzle run hello to be quiet on stderr." >&2
@@ -358,6 +381,67 @@ if [[ "$fail_code" -ne 3 ]]; then
 	echo "Expected muzzle run fail to exit 3, got $fail_code." >&2
 	exit 1
 fi
+
+cat > .muzzle/workflows/secret-fail.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo 'TOKEN=do-not-expose-this-value'
+exit 4
+EOF
+
+set +e
+secret_output="$($MUZZLE_BIN run secret-fail 2>&1)"
+secret_code=$?
+set -e
+if [[ "$secret_code" -ne 4 ]]; then
+	echo "Expected secret-fail workflow to preserve exit 4, got $secret_code." >&2
+	exit 1
+fi
+if grep -q 'do-not-expose-this-value' <<<"$secret_output"; then
+	echo "Expected quiet failure output to redact the secret value." >&2
+	exit 1
+fi
+if ! grep -q '\[REDACTED' <<<"$secret_output"; then
+	echo "Expected quiet failure output to include a redaction marker." >&2
+	exit 1
+fi
+if grep -q 'do-not-expose-this-value' .muzzle/reports/secret-fail-*.json; then
+	echo "Expected JSON report error excerpt to redact the secret value." >&2
+	exit 1
+fi
+if ! grep -q 'do-not-expose-this-value' .muzzle/logs/secret-fail-*.log; then
+	echo "Expected full local log to retain the workflow output." >&2
+	exit 1
+fi
+
+loop_start_output="$($MUZZLE_BIN loop start hello --limit 1)"
+loop_next_output="$($MUZZLE_BIN loop next)"
+$MUZZLE_BIN loop done --note "verified lifecycle" >/dev/null
+loop_status_output="$($MUZZLE_BIN loop status)"
+loop_complete_output="$($MUZZLE_BIN loop next)"
+loop_summary_output="$($MUZZLE_BIN loop summary)"
+if ! grep -q "Loop 1/1: hello" <<<"$loop_next_output" || ! grep -q "Progress:[[:space:]]*1/1" <<<"$loop_status_output"; then
+	echo "Expected loop next/status to report the active iteration." >&2
+	exit 1
+fi
+if ! grep -q "complete" <<<"$loop_complete_output" || ! grep -q "verified lifecycle" <<<"$loop_summary_output"; then
+	echo "Expected loop completion and summary to preserve the recorded note." >&2
+	exit 1
+fi
+
+logs_output="$($MUZZLE_BIN logs hello)"
+reports_output="$($MUZZLE_BIN report hello)"
+if ! grep -q "Log: .muzzle/logs/hello-" <<<"$logs_output" || ! grep -q "Report: .muzzle/reports/hello-" <<<"$reports_output"; then
+	echo "Expected filtered log and report discovery output." >&2
+	exit 1
+fi
+
+$MUZZLE_BIN clean >/dev/null
+if find .muzzle/logs .muzzle/reports -type f 2>/dev/null | grep -q .; then
+	echo "Expected clean to remove all logs and reports." >&2
+	exit 1
+fi
+
 if grep -q "Command must come before flags" "$help_stdout" || grep -q "Command must come before flags" "$version_stdout"; then
 	echo "Unexpected flag-order preamble in help/version output." >&2
 	exit 1
