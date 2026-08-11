@@ -28,9 +28,13 @@ runner_stdout="$(mktemp)"
 runner_stderr="$(mktemp)"
 missing_stdout="$(mktemp)"
 missing_stderr="$(mktemp)"
+timeout_stdout="$(mktemp)"
+timeout_stderr="$(mktemp)"
+no_newline_stdout="$(mktemp)"
+no_newline_stderr="$(mktemp)"
 
 cleanup_files() {
-	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$run_json_stdout" "$run_json_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr" "$alias_stdout" "$alias_stderr" "$escape_stdout" "$escape_stderr" "$runner_stdout" "$runner_stderr" "$missing_stdout" "$missing_stderr"
+	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$run_json_stdout" "$run_json_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr" "$alias_stdout" "$alias_stderr" "$escape_stdout" "$escape_stderr" "$runner_stdout" "$runner_stderr" "$missing_stdout" "$missing_stderr" "$timeout_stdout" "$timeout_stderr" "$no_newline_stdout" "$no_newline_stderr"
 	rm -rf "$tmpdir"
 }
 trap cleanup_files EXIT
@@ -54,6 +58,21 @@ if ! grep -q "Muzzle v" "$version_stdout"; then
 	echo "Expected --version output to include the version banner." >&2
 	exit 1
 fi
+
+mkdir partial-init
+cd partial-init
+mkdir -p .muzzle/workflows
+printf 'print("custom hello")\n' > .muzzle/workflows/hello.kujo
+"$MUZZLE_BIN" init >/dev/null
+if [[ ! -f .muzzle/workflows/hello.kujo || ! -f .muzzle/manifests/hello.json || ! -d .muzzle/state/loops ]]; then
+	echo "Expected init to repair an incomplete .muzzle directory." >&2
+	exit 1
+fi
+if ! grep -q 'custom hello' .muzzle/workflows/hello.kujo; then
+	echo "Expected init repair to preserve existing workflow files." >&2
+	exit 1
+fi
+cd ..
 
 "$MUZZLE_BIN" init >/dev/null
 
@@ -293,6 +312,11 @@ cat > .muzzle/manifests/manifest-missing.json <<'EOF'
 }
 EOF
 
+if grep -q '^manifest-missing[[:space:]]' <<<"$($MUZZLE_BIN list)"; then
+	echo "Expected list to omit a manifest whose configured script is missing." >&2
+	exit 1
+fi
+
 set +e
 "$MUZZLE_BIN" run manifest-missing >"$missing_stdout" 2>"$missing_stderr"
 missing_code=$?
@@ -303,6 +327,36 @@ if [[ "$missing_code" -ne 1 ]]; then
 fi
 if grep -q "should not run" .muzzle/logs/manifest-missing-*.log 2>/dev/null; then
 	echo "Unexpected fallback to same-name script when manifest script is missing." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/malformed-manifest.sh <<'EOF'
+#!/usr/bin/env bash
+echo "malformed manifest fallback"
+EOF
+printf '{invalid json\n' > .muzzle/manifests/malformed-manifest.json
+if ! grep -q '^malformed-manifest[[:space:]]' <<<"$($MUZZLE_BIN list)"; then
+	echo "Expected list to discover a script whose optional manifest is malformed." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/invalid-manifest-runner.sh <<'EOF'
+#!/usr/bin/env bash
+echo "should not run"
+EOF
+cat > .muzzle/manifests/invalid-manifest-runner.json <<'EOF'
+{
+  "name": "invalid-manifest-runner",
+  "runner": "ruby",
+  "script": "workflows/invalid-manifest-runner.sh"
+}
+EOF
+set +e
+invalid_manifest_runner_output="$($MUZZLE_BIN run invalid-manifest-runner 2>&1)"
+invalid_manifest_runner_code=$?
+set -e
+if [[ "$invalid_manifest_runner_code" -ne 2 || "$invalid_manifest_runner_output" != *"Unsupported runner 'ruby'"* ]]; then
+	echo "Expected an invalid manifest runner to fail explicitly with exit 2." >&2
 	exit 1
 fi
 
@@ -414,7 +468,98 @@ if ! grep -q 'do-not-expose-this-value' .muzzle/logs/secret-fail-*.log; then
 	exit 1
 fi
 
+cat > .muzzle/workflows/multiline-secret-fail.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' '-----BEGIN PRIVATE KEY-----'
+for part in 1 2 3 4 5 6; do
+  echo "PRIVATE-BODY-${part}"
+done
+printf '%s\n' '-----END PRIVATE KEY-----'
+exit 4
+EOF
+set +e
+multiline_secret_output="$($MUZZLE_BIN run multiline-secret-fail 2>&1)"
+multiline_secret_code=$?
+set -e
+if [[ "$multiline_secret_code" -ne 4 ]]; then
+	echo "Expected multiline-secret-fail workflow to preserve exit 4." >&2
+	exit 1
+fi
+if grep -q 'PRIVATE-BODY' <<<"$multiline_secret_output"; then
+	echo "Expected a truncated error excerpt not to leak the tail of a multiline secret." >&2
+	exit 1
+fi
+if ! grep -q '\[REDACTED' <<<"$multiline_secret_output"; then
+	echo "Expected multiline secret failure output to include a redaction marker." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/no-newline-fail.sh <<'EOF'
+#!/usr/bin/env bash
+printf 'final output without newline'
+exit 7
+EOF
+set +e
+"$MUZZLE_BIN" run no-newline-fail >"$no_newline_stdout" 2>"$no_newline_stderr"
+no_newline_code=$?
+set -e
+if [[ "$no_newline_code" -ne 7 ]]; then
+	echo "Expected no-newline workflow to preserve exit 7, got $no_newline_code." >&2
+	exit 1
+fi
+if ! grep -q 'final output without newline' .muzzle/logs/no-newline-fail-*.log; then
+	echo "Expected no-newline workflow output to be preserved in the log." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/timeout.sh <<'EOF'
+#!/usr/bin/env bash
+sleep 2
+EOF
+set +e
+"$MUZZLE_BIN" run timeout --timeout 1000 >"$timeout_stdout" 2>"$timeout_stderr"
+timeout_code=$?
+set -e
+if [[ "$timeout_code" -eq 0 ]]; then
+	echo "Expected a timed-out workflow to fail." >&2
+	exit 1
+fi
+if ! grep -q 'Status:[[:space:]]*failed' "$timeout_stdout"; then
+	echo "Expected a timed-out workflow summary to report failure." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/prefix.sh <<'EOF'
+#!/usr/bin/env bash
+echo "prefix"
+EOF
+cat > .muzzle/workflows/prefix-long.sh <<'EOF'
+#!/usr/bin/env bash
+echo "prefix-long"
+EOF
+"$MUZZLE_BIN" run prefix >/dev/null
+"$MUZZLE_BIN" run prefix-long >/dev/null
+prefix_logs_output="$($MUZZLE_BIN logs prefix)"
+prefix_reports_output="$($MUZZLE_BIN report prefix)"
+if grep -q 'prefix-long-' <<<"$prefix_logs_output"; then
+	echo "Expected logs filter to match the exact workflow name." >&2
+	exit 1
+fi
+if grep -q 'prefix-long-' <<<"$prefix_reports_output"; then
+	echo "Expected report filter to match the exact workflow name." >&2
+	exit 1
+fi
+
 loop_start_output="$($MUZZLE_BIN loop start hello --limit 1)"
+set +e
+second_loop_output="$($MUZZLE_BIN loop start hello-bash --limit 1 2>&1)"
+second_loop_code=$?
+set -e
+if [[ "$second_loop_code" -eq 0 || "$second_loop_output" != *"active loop"* ]]; then
+	echo "Expected loop start to refuse a second active loop." >&2
+	exit 1
+fi
 loop_next_output="$($MUZZLE_BIN loop next)"
 $MUZZLE_BIN loop done --note "verified lifecycle" >/dev/null
 loop_status_output="$($MUZZLE_BIN loop status)"

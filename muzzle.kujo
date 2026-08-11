@@ -205,7 +205,7 @@ func parse_run_invocation(argv) {
 # INIT
 # =============================================================================
 func cmd_init() {
-	if has_muzzle_dir() {
+	if has_muzzle_dir() && is_trueish(file_exists(WORKFLOWS_DIR)) && is_trueish(file_exists(MANIFESTS_DIR)) && is_trueish(file_exists(".muzzle/logs")) && is_trueish(file_exists(".muzzle/reports")) && is_trueish(file_exists(".muzzle/state/loops")) {
 		print("Muzzle: .muzzle/ already exists. Nothing to do.")
 		exit(0)
 	}
@@ -224,7 +224,9 @@ func cmd_init() {
 		"print(\"Runner: Kujo (default)\")",
 		"print(\"This is a sample workflow. Replace with your own.\")"
 	), "\n") + "\n"
-	write_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
+	if is_falseish(file_exists(WORKFLOWS_DIR + "/hello.kujo")) {
+		write_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
+	}
 
 	# Create example Bash workflow as well
 	bash_script := join(array(
@@ -235,7 +237,9 @@ func cmd_init() {
 		"echo \"Date: $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"",
 		"exit 0"
 	), "\n") + "\n"
-	write_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
+	if is_falseish(file_exists(WORKFLOWS_DIR + "/hello-bash.sh")) {
+		write_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
+	}
 
 	# Create manifests
 	hello_manifest := join(array(
@@ -254,7 +258,9 @@ func cmd_init() {
 		"  }",
 		"}"
 	), "\n") + "\n"
-	write_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
+	if is_falseish(file_exists(MANIFESTS_DIR + "/hello.json")) {
+		write_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
+	}
 
 	bash_manifest := join(array(
 		"{",
@@ -272,7 +278,9 @@ func cmd_init() {
 		"  }",
 		"}"
 	), "\n") + "\n"
-	write_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
+	if is_falseish(file_exists(MANIFESTS_DIR + "/hello-bash.json")) {
+		write_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
+	}
 
 	# Create session state
 	session_json := join(array(
@@ -283,7 +291,9 @@ func cmd_init() {
 		"  \"total_runs\": 0",
 		"}"
 	), "\n") + "\n"
-	write_file(SESSION_FILE, session_json, true)
+	if is_falseish(file_exists(SESSION_FILE)) {
+		write_file(SESSION_FILE, session_json, true)
+	}
 
 	# Create .gitignore
 	gitignore := join(array(
@@ -292,7 +302,9 @@ func cmd_init() {
 		"reports/",
 		"state/session.json"
 	), "\n") + "\n"
-	write_file(".muzzle/.gitignore", gitignore)
+	if is_falseish(file_exists(".muzzle/.gitignore")) {
+		write_file(".muzzle/.gitignore", gitignore)
+	}
 
 	print_lines(array(
 		"OK Muzzle initialized in .muzzle/",
@@ -505,6 +517,11 @@ func cmd_run(argv) {
 
 	# Load manifest for metadata
 	manifest := load_manifest(workflow_name)
+	if runner_override == "" && manifest != null && dict_has_key(manifest, "runner") && is_falseish(valid_runner(manifest["runner"])) {
+		manifest_runner := to_string(manifest["runner"])
+		print("Error: Unsupported runner '" + manifest_runner + "' in manifest. Use: kujo, bash, python, or node.")
+		exit(2)
+	}
 
 	# Resolve runner
 	runner := resolve_runner(manifest, script_path, runner_override)
@@ -554,7 +571,7 @@ func cmd_run(argv) {
 	if type(parsed) == "Error" {
 		# Could not parse — use raw output
 	} else {
-		if dict_has_key(parsed, "exit_code") {
+		if dict_has_key(parsed, "marker_found") && is_trueish(parsed["marker_found"]) && dict_has_key(parsed, "exit_code") {
 			exit_code = parsed["exit_code"]
 		}
 		if dict_has_key(parsed, "output") {
@@ -677,6 +694,21 @@ func cmd_run(argv) {
 	exit(exit_code)
 }
 
+func artifact_matches_workflow(entry_name, workflow_name, extension) {
+	prefix := workflow_name + "-"
+	if is_falseish(str_starts_with(entry_name, prefix)) || is_falseish(str_ends_with(entry_name, extension)) {
+		return false
+	}
+	stem_end := len(entry_name) - len(extension)
+	stem := substring(entry_name, len(prefix), stem_end)
+	parts := split(stem, "-")
+	if len(parts) != 2 || len(parts[1]) != 32 {
+		return false
+	}
+	timestamp_value := parse_int(parts[0])
+	return type(timestamp_value) != "Error"
+}
+
 # =============================================================================
 # LOGS
 # =============================================================================
@@ -698,7 +730,7 @@ func cmd_logs(filter) {
 		mut log_filter_idx := 0
 		while log_filter_idx < len(entries) {
 			entry_name := to_string(entries[log_filter_idx])
-			if is_trueish(str_starts_with(entry_name, filter + "-")) && is_trueish(str_ends_with(entry_name, ".log")) {
+			if is_trueish(artifact_matches_workflow(entry_name, filter, ".log")) {
 				print("Log: .muzzle/logs/" + entry_name)
 				log_found = log_found + 1
 			}
@@ -756,7 +788,7 @@ func cmd_report(filter) {
 		mut report_filter_idx := 0
 		while report_filter_idx < len(entries) {
 			entry_name := to_string(entries[report_filter_idx])
-			if is_trueish(str_starts_with(entry_name, filter + "-")) && is_trueish(str_ends_with(entry_name, ".md")) {
+			if is_trueish(artifact_matches_workflow(entry_name, filter, ".md")) {
 				print("Report: .muzzle/reports/" + entry_name)
 				report_found = report_found + 1
 			}
@@ -909,6 +941,8 @@ func cmd_loop(argv) {
 				print("Muzzle: Loop '" + wf_name + "' already exists. Use 'muzzle loop status' to check progress.")
 				exit(0)
 			}
+			print("Error: Another active loop already exists. Complete it before starting '" + wf_name + "'.")
+			exit(1)
 		}
 		ts := timestamp_iso()
 		create_loop(wf_name, limit, ts)
