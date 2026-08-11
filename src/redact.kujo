@@ -143,7 +143,10 @@ export func redact_text(text) {
 
 # Get a short error excerpt from full output (last N lines, redacted).
 export func error_excerpt(text, max_lines) {
-	lines_arr := lines(text)
+	# Redact the complete stream before truncating it. Starting at the tail first
+	# can discard a PEM begin marker and expose secret body lines in the excerpt.
+	redacted_text := redact_text(text)
+	lines_arr := lines(redacted_text)
 	mut start := len(lines_arr) - max_lines
 	if start < 0 {
 		start = 0
@@ -154,6 +157,5 @@ export func error_excerpt(text, max_lines) {
 		excerpt_lines = push(excerpt_lines, lines_arr[idx])
 		idx = idx + 1
 	}
-	excerpt_text := join(excerpt_lines, "\n")
-	return redact_text(excerpt_text)
+	return join(excerpt_lines, "\n")
 }

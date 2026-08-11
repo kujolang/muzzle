@@ -5,7 +5,7 @@
 #   2. File extension (.kujo -> kujo, .sh -> bash, .py -> python, .js -> node)
 #   3. --runner flag override
 
-from src.common import str_ends_with, is_trueish, dict_has_key
+from src.common import str_starts_with, str_ends_with, is_trueish, is_falseish, dict_has_key
 
 # Default runner when nothing else is specified.
 DEFAULT_RUNNER := "kujo"
@@ -85,8 +85,9 @@ export func build_command(runner, script_path, args_arr) {
 		idx = idx + 1
 	}
 
-	# Append stderr redirection and exit code capture
-	cmd = cmd + " 2>&1; printf 'MUZZLE_EXIT:%d' $?"
+	# Put the private exit marker on its own final line so workflow output cannot
+	# merge with it when the workflow omits a trailing newline.
+	cmd = cmd + " 2>&1; printf '\\nMUZZLE_EXIT:%d\\n' $?"
 
 	return cmd
 }
@@ -97,6 +98,7 @@ export func parse_captured_output(raw_output) {
 	raw_str := to_string(raw_output)
 	mut exit_code := 0
 	mut clean_output := raw_str
+	mut marker_found := false
 
 	# Find MUZZLE_EXIT: marker
 	if is_trueish(contains(raw_str, "MUZZLE_EXIT:")) {
@@ -107,15 +109,20 @@ export func parse_captured_output(raw_output) {
 		mut check_idx := last_idx
 		while check_idx >= 0 && check_idx > last_idx - 5 {
 			line := lines_arr[check_idx]
-			if is_trueish(contains(line, "MUZZLE_EXIT:")) {
+			if is_trueish(str_starts_with(line, "MUZZLE_EXIT:")) {
 				# Extract the exit code
 				parts := split(line, "MUZZLE_EXIT:")
-				if len(parts) > 1 {
+				if len(parts) == 2 && trim(parts[0]) == "" {
 					code_str := trim(parts[1])
 					parsed := parse_int(code_str)
 					if type(parsed) != "Error" {
 						exit_code = to_int(parsed)
+						marker_found = true
 					}
+				}
+				if is_falseish(marker_found) {
+					check_idx = check_idx - 1
+					continue
 				}
 				# Remove this line and any trailing newline
 				mut clean_lines := array()
@@ -135,7 +142,7 @@ export func parse_captured_output(raw_output) {
 		}
 	}
 
-	return {"output": clean_output, "exit_code": exit_code}
+	return {"output": clean_output, "exit_code": exit_code, "marker_found": marker_found}
 }
 
 # Get the file extension for a runner (for script discovery).
