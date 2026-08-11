@@ -12,8 +12,13 @@ export func load_manifest(name) {
 	manifest_path := MANIFESTS_DIR + "/" + name + ".json"
 	if is_trueish(file_exists(manifest_path)) {
 		raw := read_file(manifest_path)
-		parsed := parse_json(raw)
-		if type(parsed) != "Error" {
+		mut parsed := null
+		try {
+			parsed = parse_json(raw)
+		} except _err {
+			return null
+		}
+		if type(parsed) == "dict" {
 			return parsed
 		}
 	}
@@ -129,12 +134,7 @@ export func discover_workflows() {
 					script := ""
 					runner := "kujo"
 					summary := ""
-					if dict_has_key(manifest, "script") {
-						script = normalize_manifest_script_path(manifest["script"])
-					}
-					if script == "" {
-						script = find_script(name)
-					}
+					script = resolve_workflow_script(name)
 					if dict_has_key(manifest, "runner") {
 						runner = to_string(manifest["runner"])
 					} else if script != "" {
@@ -151,13 +151,15 @@ export func discover_workflows() {
 						summary = to_string(manifest["summary"])
 					}
 
-					workflows = push(workflows, {
-						"name": name,
-						"runner": runner,
-						"summary": summary,
-						"script_path": script,
-						"has_manifest": true
-					})
+					if script != "" && is_trueish(validate_script_path(script)) {
+						workflows = push(workflows, {
+							"name": name,
+							"runner": runner,
+							"summary": summary,
+							"script_path": script,
+							"has_manifest": true
+						})
+					}
 				}
 			}
 			idx = idx + 1
@@ -186,8 +188,8 @@ export func discover_workflows() {
 			if ext != "" {
 				name := replace(entry_str, ext, "")
 				# Check if already discovered via manifest
-				manifest_path := MANIFESTS_DIR + "/" + name + ".json"
-				if is_falseish(file_exists(manifest_path)) {
+				manifest := load_manifest(name)
+				if manifest == null {
 					runner := "kujo"
 					if ext == ".sh" {
 						runner = "bash"
