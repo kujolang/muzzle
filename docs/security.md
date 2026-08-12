@@ -32,14 +32,16 @@ This means:
 
 Muzzle validates that workflow scripts are inside the expected directory:
 
-1. Resolves the script's real path (following symlinks)
-2. Resolves the `.muzzle/workflows/` real path
-3. Rejects execution if the script is not under `.muzzle/workflows/`
+1. Anchors `.muzzle/` to the current project rather than trusting a symlinked root
+2. Resolves the workflow directory and script's real paths (following symlinks)
+3. Rejects execution if either path escapes the project-local `.muzzle/` tree
+4. Applies the same project-local boundary to log, report, manifest, session, and loop-state access
 
 This prevents:
 - Path traversal attacks (`../../etc/passwd`)
 - Symlink escapes to outside directories
 - Accidental execution of system binaries
+- External writes or cleanup through symlinked artifact/state directories
 
 ## Secret Redaction
 
