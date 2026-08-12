@@ -64,7 +64,7 @@ func print_help() {
 		"  version                       Print version",
 		"",
 		"Run options:",
-		"  --verbose, -v    Stream full output to terminal",
+		"  --verbose, -v    Print full captured output after execution",
 		"  --dry-run, -n    Print what would happen without executing",
 		"  --json           Output machine-readable JSON summary",
 		"  --runner <name>  Force runner: kujo (default), bash, python, node",
@@ -461,6 +461,10 @@ func cmd_info(name) {
 		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
 		exit(1)
 	}
+	if is_falseish(validate_workflow_name(name)) {
+		print("Error: Invalid workflow name '" + name + "'.")
+		exit(1)
+	}
 
 	info := get_workflow_info(name)
 	if info == null {
@@ -520,6 +524,10 @@ func cmd_info(name) {
 
 	if dict_has_key(info, "safety") {
 		safety := info["safety"]
+		if type(safety) != "dict" {
+			print("Error: Invalid manifest for '" + name + "': safety must be an object.")
+			exit(2)
+		}
 		print("Safety:")
 		mut require_git := "false"
 		mut allow_dirty := "true"
@@ -813,6 +821,10 @@ func cmd_logs(filter) {
 		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
 		exit(1)
 	}
+	if filter != "" && is_falseish(validate_workflow_name(filter)) {
+		print("Error: Invalid workflow name '" + filter + "'.")
+		exit(1)
+	}
 
 	if is_falseish(file_exists(".muzzle/logs")) {
 		print("No logs directory found.")
@@ -825,7 +837,7 @@ func cmd_logs(filter) {
 
 	if filter != "" {
 		# Show logs for specific workflow
-		entries := list_dir(".muzzle/logs")
+		entries := sort(list_dir(".muzzle/logs"))
 		mut log_found := 0
 		mut log_filter_idx := 0
 		while log_filter_idx < len(entries) {
@@ -844,7 +856,7 @@ func cmd_logs(filter) {
 			"Recent logs:",
 			""
 		))
-		entries := list_dir(".muzzle/logs")
+		entries := sort(list_dir(".muzzle/logs"))
 		mut log_count := 0
 		mut log_list_idx := 0
 		while log_list_idx < len(entries) {
@@ -878,6 +890,10 @@ func cmd_report(filter) {
 		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
 		exit(1)
 	}
+	if filter != "" && is_falseish(validate_workflow_name(filter)) {
+		print("Error: Invalid workflow name '" + filter + "'.")
+		exit(1)
+	}
 
 	if is_falseish(file_exists(".muzzle/reports")) {
 		print("No reports directory found.")
@@ -889,7 +905,7 @@ func cmd_report(filter) {
 	}
 
 	if filter != "" {
-		entries := list_dir(".muzzle/reports")
+		entries := sort(list_dir(".muzzle/reports"))
 		mut report_found := 0
 		mut report_filter_idx := 0
 		while report_filter_idx < len(entries) {
@@ -908,7 +924,7 @@ func cmd_report(filter) {
 			"Recent reports:",
 			""
 		))
-		entries := list_dir(".muzzle/reports")
+		entries := sort(list_dir(".muzzle/reports"))
 		mut report_count := 0
 		mut report_list_idx := 0
 		while report_list_idx < len(entries) {

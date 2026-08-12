@@ -123,10 +123,44 @@ if ! grep -q "hello" <<<"$list_output"; then
 	echo "Expected initialized hello workflow in list output." >&2
 	exit 1
 fi
+if [[ "$list_output" != "$($MUZZLE_BIN list)" ]]; then
+	echo "Expected workflow discovery output to have deterministic ordering." >&2
+	exit 1
+fi
 
 info_output="$($MUZZLE_BIN info hello)"
 if ! grep -q "Workflow:[[:space:]]*hello" <<<"$info_output"; then
 	echo "Expected info output for initialized hello workflow." >&2
+	exit 1
+fi
+
+set +e
+invalid_info_output="$($MUZZLE_BIN info ../hello 2>&1)"
+invalid_info_code=$?
+set -e
+if [[ "$invalid_info_code" -ne 1 || "$invalid_info_output" != *"Invalid workflow name"* || "$invalid_info_output" == *"Runtime Error"* ]]; then
+	echo "Expected info to reject an invalid workflow name cleanly." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/invalid-safety.sh <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+cat > .muzzle/manifests/invalid-safety.json <<'EOF'
+{
+  "name": "invalid-safety",
+  "runner": "bash",
+  "script": "workflows/invalid-safety.sh",
+  "safety": []
+}
+EOF
+set +e
+invalid_safety_output="$($MUZZLE_BIN info invalid-safety 2>&1)"
+invalid_safety_code=$?
+set -e
+if [[ "$invalid_safety_code" -ne 2 || "$invalid_safety_output" != *"safety must be an object"* || "$invalid_safety_output" == *"Runtime Error"* ]]; then
+	echo "Expected invalid manifest safety metadata to fail with a controlled error." >&2
 	exit 1
 fi
 
@@ -560,6 +594,10 @@ if ! grep -q '\[REDACTED' <<<"$secret_output"; then
 fi
 if grep -q 'do-not-expose-this-value' .muzzle/reports/secret-fail-*.json; then
 	echo "Expected JSON report error excerpt to redact the secret value." >&2
+	exit 1
+fi
+if grep -q 'do-not-expose-this-value' .muzzle/reports/secret-fail-*.md || ! grep -q '\[REDACTED' .muzzle/reports/secret-fail-*.md; then
+	echo "Expected Markdown reports to include a redacted failure excerpt." >&2
 	exit 1
 fi
 if ! grep -q 'do-not-expose-this-value' .muzzle/logs/secret-fail-*.log; then

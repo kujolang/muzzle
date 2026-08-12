@@ -135,7 +135,7 @@ export func discover_workflows() {
 
 	# First, check manifests directory
 	if is_trueish(path_is_dir(MANIFESTS_DIR)) && is_trueish(path_is_within_muzzle(MANIFESTS_DIR)) {
-		entries := list_dir(MANIFESTS_DIR)
+		entries := sort(list_dir(MANIFESTS_DIR))
 		mut idx := 0
 		while idx < len(entries) {
 			entry := entries[idx]
@@ -181,7 +181,7 @@ export func discover_workflows() {
 
 	# Then, check for scripts without manifests
 	if is_trueish(path_is_dir(WORKFLOWS_DIR)) && is_trueish(path_is_within_muzzle(WORKFLOWS_DIR)) {
-		entries := list_dir(WORKFLOWS_DIR)
+		entries := sort(list_dir(WORKFLOWS_DIR))
 		mut idx := 0
 		while idx < len(entries) {
 			entry := entries[idx]

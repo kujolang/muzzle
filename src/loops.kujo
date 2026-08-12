@@ -41,7 +41,7 @@ export func find_active_loop() {
 	if is_falseish(file_exists(LOOPS_DIR)) {
 		return ""
 	}
-	entries := list_dir(LOOPS_DIR)
+	entries := sort(list_dir(LOOPS_DIR))
 	mut idx := 0
 	while idx < len(entries) {
 		entry_name := to_string(entries[idx])
@@ -102,7 +102,7 @@ export func find_invalid_loop_state() {
 	if is_falseish(file_exists(LOOPS_DIR)) {
 		return ""
 	}
-	entries := list_dir(LOOPS_DIR)
+	entries := sort(list_dir(LOOPS_DIR))
 	mut idx := 0
 	while idx < len(entries) {
 		entry_name := to_string(entries[idx])
@@ -241,7 +241,7 @@ export func list_all_loops() {
 	if is_falseish(file_exists(LOOPS_DIR)) {
 		return result
 	}
-	entries := list_dir(LOOPS_DIR)
+	entries := sort(list_dir(LOOPS_DIR))
 	mut idx := 0
 	while idx < len(entries) {
 		entry_name := to_string(entries[idx])

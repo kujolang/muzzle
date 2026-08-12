@@ -14,6 +14,9 @@ export func write_markdown_report(workflow_name, status, exit_code, started_at, 
 	mut notes_section := "No failures detected."
 	if status == "failed" {
 		notes_section = "Failure detected. See log for full details."
+		if error_text != "" {
+			notes_section = notes_section + "\n\n### Redacted error excerpt\n\n```text\n" + redact_text(error_text) + "\n```"
+		}
 	}
 
 	report := join(array(
