@@ -195,6 +195,17 @@ if [[ "$malformed_session_code" -ne 0 || "$malformed_session_output" == *"Runtim
 fi
 printf '{"project":"","last_workflow":null,"last_run_at":null,"total_runs":0}\n' > .muzzle/state/session.json
 
+for _run_idx in $(seq 1 12); do
+	"$MUZZLE_BIN" run hello-bash >/dev/null &
+done
+wait
+session_total_runs="$(grep -o '"total_runs":[0-9]*' .muzzle/state/session.json | cut -d: -f2)"
+if [[ "$session_total_runs" -ne 12 ]]; then
+	echo "Expected 12 concurrent successful runs to record total_runs=12, got ${session_total_runs:-missing}." >&2
+	exit 1
+fi
+printf '{"project":"","last_workflow":null,"last_run_at":null,"total_runs":0}\n' > .muzzle/state/session.json
+
 cat > .muzzle/workflows/echoargs.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail

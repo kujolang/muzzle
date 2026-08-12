@@ -22,6 +22,7 @@ MUZZLE_VERSION := "1.0.0"
 WORKFLOWS_DIR := ".muzzle/workflows"
 MANIFESTS_DIR := ".muzzle/manifests"
 SESSION_FILE := ".muzzle/state/session.json"
+SESSION_LOCK_FILE := ".muzzle/state/session.lock"
 
 # =============================================================================
 # HELP
@@ -181,6 +182,50 @@ func existing_muzzle_path_is_safe(path) {
 	return is_falseish(file_exists(path)) || (is_trueish(path_is_dir(path)) && is_trueish(path_is_within_muzzle(path)))
 }
 
+func update_session_state(workflow_name, finished_at) {
+	if is_falseish(file_exists(SESSION_FILE)) || is_falseish(path_is_within_muzzle(SESSION_FILE)) {
+		return
+	}
+
+	mut lock_acquired := false
+	mut lock_attempt := 0
+	while lock_attempt < 200 && is_falseish(lock_acquired) {
+		try {
+			write_file_atomic(SESSION_LOCK_FILE, uuid_v4(), false)
+			lock_acquired = true
+		} except _err {
+			sleep(5)
+		}
+		lock_attempt = lock_attempt + 1
+	}
+	if is_falseish(lock_acquired) {
+		return
+	}
+
+	# Session bookkeeping is best-effort and must never replace the workflow's
+	# real result when local state is malformed or unwritable.
+	try {
+		session_raw := read_file(SESSION_FILE)
+		session := parse_json(session_raw)
+		if type(session) == "dict" {
+			total_runs := 0
+			if dict_has_key(session, "total_runs") {
+				total_runs = to_int(session["total_runs"]) + 1
+			} else {
+				total_runs = 1
+			}
+			session["last_workflow"] = workflow_name
+			session["last_run_at"] = finished_at
+			session["total_runs"] = total_runs
+			write_file_atomic(SESSION_FILE, to_json(session), true)
+		}
+	} except _err {}
+
+	try {
+		delete_file(SESSION_LOCK_FILE)
+	} except _err {}
+}
+
 func parse_run_invocation(argv) {
 	mut workflow_name := ""
 	mut workflow_args := array()
@@ -333,7 +378,8 @@ func cmd_init() {
 		"# Muzzle logs and reports — local workflow artifacts",
 		"logs/",
 		"reports/",
-		"state/session.json"
+		"state/session.json",
+		"state/session.lock"
 	), "\n") + "\n"
 	if is_falseish(file_exists(".muzzle/.gitignore")) {
 		write_file(".muzzle/.gitignore", gitignore)
@@ -668,27 +714,8 @@ func cmd_run(argv) {
 	write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
 	write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
 
-	# Update session state
-	if is_trueish(file_exists(SESSION_FILE)) && is_trueish(path_is_within_muzzle(SESSION_FILE)) {
-		# Session bookkeeping is best-effort and must never replace the workflow's
-		# real result when local state is malformed or unwritable.
-		try {
-			session_raw := read_file(SESSION_FILE)
-			session := parse_json(session_raw)
-			if type(session) == "dict" {
-				total_runs := 0
-				if dict_has_key(session, "total_runs") {
-					total_runs = to_int(session["total_runs"]) + 1
-				} else {
-					total_runs = 1
-				}
-				session["last_workflow"] = workflow_name
-				session["last_run_at"] = finished_at
-				session["total_runs"] = total_runs
-				write_file(SESSION_FILE, to_json(session), true)
-			}
-		} except _err {}
-	}
+	# Update session state.
+	update_session_state(workflow_name, finished_at)
 
 	# Output
 	if json_out {
