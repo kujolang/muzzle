@@ -92,6 +92,12 @@ Follow stricter runtime notes in the local repo when they exist.
 Before opening a pull request, run the strongest local validation available for
 the repo.
 
+For Muzzle, the canonical local gate is:
+
+```bash
+make quality
+```
+
 Prefer repo-owned commands, for example:
 
 ```bash

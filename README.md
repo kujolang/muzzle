@@ -36,7 +36,7 @@ AI-assisted development wastes expensive model context on predictable operationa
 | Test suite (500 lines) | ~500 lines | 6–12 lines |
 | 10-iteration loop instructions | Repeated prompts | Loop state tracking |
 
-Muzzle is designed to keep the signal in context and leave the full run on disk for later review. Every command returns deterministic exit codes, machine-readable JSON, and structured reports that downstream tools can consume.
+Muzzle is designed to keep the signal in context and leave the full run on disk for later review. Commands return deterministic exit codes, while `muzzle run --json` emits a machine-readable summary and every executed run writes structured reports for downstream tools.
 
 ## Readiness
 
@@ -86,6 +86,8 @@ muzzle run lint -- --fix              # pass a literal leading-dash arg to the w
 
 Agents and contributors should also read [`AGENTS.md`](AGENTS.md) for canonical examples, search exclusions, and copyable example style.
 
+For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](examples/build-check/). Contributors can run the complete local gate with `make quality`.
+
 ## Commands
 
 | Command | Description |
@@ -132,10 +134,10 @@ The runner is determined by: CLI `--runner` flag → manifest `runner` field →
 ## Output Modes
 
 ### Default (quiet)
-Compact summary. Full output written to `.muzzle/logs/`. Success output is ≤6 lines.
+Compact summary. Full output is written to `.muzzle/logs/`; the terminal shows status, timing, artifact paths, and one follow-up hint.
 
 ### Verbose (`--verbose`)
-Full output streams to terminal AND is captured to log file.
+Full captured output is printed to the terminal after execution and is also retained in the log file.
 
 ### JSON (`--json`)
 Single JSON object on stdout with status, exit code, duration, and file paths. Everything else on stderr.
@@ -269,6 +271,8 @@ Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a s
 ## Status
 
 **Stable 1.0** — The reviewed CLI surface is stable for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. Muzzle remains local automation rather than a security sandbox. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for future enhancements.
+
+The current hardening backlog and acceptance criteria are tracked in [`docs/next-session-hardening.md`](docs/next-session-hardening.md).
 
 ## License
 

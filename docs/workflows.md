@@ -128,7 +128,7 @@ Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle r
 ### Standard Output
 - Muzzle captures all stdout/stderr to `.muzzle/logs/<name>-<timestamp>.log`
 - The compact summary only shows status, exit code, duration, and file paths
-- Use `--verbose` to stream output to terminal during execution
+- Use `--verbose` to print the full captured output after execution
 
 ### Exit Codes
 - Exit 0 for success

@@ -1,0 +1,14 @@
+{
+  "name": "build-check",
+  "summary": "Run one detected local build entrypoint.",
+  "runner": "bash",
+  "script": "workflows/build-check.sh",
+  "args": [],
+  "quiet_by_default": true,
+  "safety": {
+    "require_git_repo": false,
+    "allow_dirty_tree": true,
+    "requires_network": false,
+    "human_approval_recommended": false
+  }
+}

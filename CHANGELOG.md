@@ -11,6 +11,10 @@ All notable changes to Muzzle are documented here.
 - Report invalid numeric options, malformed manifest/session/loop state, invalid loop transitions, and cleanup failures without raw runtime crashes or false success.
 - Serialize concurrent session-counter updates so successful parallel runs are not lost.
 - Escape free-form loop notes so `muzzle loop summary` remains a valid one-row-per-iteration Markdown table.
+- Sort workflow, loop, log, and report discovery for deterministic output across filesystems.
+- Apply workflow-name validation consistently to inspection commands and reject malformed safety metadata cleanly.
+- Include redacted failure excerpts in Markdown reports and correct stale output/version documentation.
+- Add a canonical local quality gate and a copyable manifest-backed build-check example.
 
 ## [1.0.0] - 2026-08-08
 

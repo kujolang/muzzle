@@ -1,0 +1,23 @@
+.PHONY: help lint format-check test quality
+
+KUJO_BIN ?= kujo
+
+help:
+	@printf '%s\n' \
+		'make lint         Check Kujo and shell sources' \
+		'make format-check Check patches for whitespace errors' \
+		'make test         Run the wrapper regression suite' \
+		'make quality      Run all local quality gates'
+
+lint:
+	$(KUJO_BIN) check muzzle.kujo
+	@for file in src/*.kujo; do $(KUJO_BIN) check "$$file"; done
+	bash -n muzzle tests/muzzle_wrapper_regression.sh
+
+format-check:
+	git diff --check
+
+test:
+	KUJO_BIN="$(KUJO_BIN)" bash tests/muzzle_wrapper_regression.sh
+
+quality: lint format-check test

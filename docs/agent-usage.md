@@ -12,6 +12,8 @@ AI coding agents waste significant context window space on operational noise:
 
 Muzzle compresses this noise in the reviewed workflows. The agent often sees a short summary instead of hundreds of lines of raw output.
 
+Workflow discovery and artifact listings are sorted by name so agents receive stable, diff-friendly output across filesystems.
+
 ## How to Use Muzzle as an Agent
 
 ### Basic Pattern

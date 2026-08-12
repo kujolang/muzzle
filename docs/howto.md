@@ -124,10 +124,10 @@ Run the help command to confirm everything works:
 muzzle --help
 ```
 
-Expected output:
+Expected output (version number should match the installed release):
 
 ```
-Muzzle v0.2.0 — Quiet Workflow Runner for AI-Assisted Development
+Muzzle v1.0.0 — Quiet Workflow Runner for AI-Assisted Development
 
 Usage:
   kujo run muzzle.kujo -- <command> [options]
@@ -408,15 +408,15 @@ muzzle run lint -- --fix
 
 ### Default (quiet)
 
-- Prints a compact 5–6 line summary on success, up to 12 lines on failure
+- Prints a compact status, timing, artifact-path, and follow-up summary; failures also include a short redacted excerpt
 - Full stdout and stderr written to `.muzzle/logs/<name>-<timestamp>.log`
 - Markdown and JSON reports written to `.muzzle/reports/`
 - Secrets are redacted from the summary (full logs preserve all output)
 
 ### Verbose (`--verbose`)
 
-- All output streams to the terminal in real time
-- Simultaneously captured to the log file
+- Full captured output is printed to the terminal after the workflow exits
+- The same output is retained in the log file
 - Secret redaction is **not** applied to terminal output (you chose to see everything)
 
 ### JSON (`--json`)
@@ -674,4 +674,4 @@ chmod +x .muzzle/workflows/my-workflow.sh
 
 ---
 
-*Muzzle v0.2.0 — Part of the [Kujo](https://github.com/kujolang/kujo) ecosystem.*
+*Muzzle v1.0.0 — Part of the [Kujo](https://github.com/kujolang/kujo) ecosystem.*

@@ -86,6 +86,8 @@ Muzzle validates workflow names before execution:
 
 Workflow scripts are validated to reside under `.muzzle/workflows/` using realpath checks. Scripts outside this directory tree are rejected regardless of symlinks.
 
+Workflow names supplied to `run`, `info`, `logs`, `report`, and loop commands use the same validation rules, so read-only inspection paths cannot bypass the project-local naming boundary.
+
 ## Timeout Protection
 
 The `--timeout <ms>` flag bounds workflow execution time:
