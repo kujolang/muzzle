@@ -9,13 +9,13 @@
 
 from src.common import parse_subcommand, flag_value, positional_args
 from src.common import is_trueish, is_falseish, str_starts_with, str_ends_with
-from src.common import dict_has_key, has_muzzle_dir, format_duration_ms
+from src.common import dict_has_key, has_muzzle_dir, format_duration_ms, path_is_within_muzzle
 from src.common import timestamp_compact, timestamp_iso, ensure_dir
 from src.runner import resolve_runner, valid_runner, build_command, parse_captured_output, runner_label
 from src.workflow import load_manifest, resolve_workflow_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
 from src.report import write_markdown_report, write_json_report, make_paths
 from src.redact import error_excerpt
-from src.loops import find_active_loop, load_loop, create_loop, advance_loop, record_loop_done, list_all_loops
+from src.loops import find_active_loop, find_invalid_loop_state, load_loop, create_loop, advance_loop, record_loop_done, current_iteration_recorded, list_all_loops
 
 MUZZLE_VERSION := "1.0.0"
 
@@ -162,6 +162,25 @@ func run_option_value(argv, flag_name, default_value) {
 	return default_value
 }
 
+func option_missing_value(argv, flag_name) {
+	mut idx := 1
+	while idx < len(argv) {
+		arg := to_string(argv[idx])
+		if arg == "--" {
+			return false
+		}
+		if arg == flag_name {
+			return idx + 1 >= len(argv) || to_string(argv[idx + 1]) == "--"
+		}
+		idx = idx + 1
+	}
+	return false
+}
+
+func existing_muzzle_path_is_safe(path) {
+	return is_falseish(file_exists(path)) || (is_trueish(path_is_dir(path)) && is_trueish(path_is_within_muzzle(path)))
+}
+
 func parse_run_invocation(argv) {
 	mut workflow_name := ""
 	mut workflow_args := array()
@@ -205,6 +224,20 @@ func parse_run_invocation(argv) {
 # INIT
 # =============================================================================
 func cmd_init() {
+	if is_trueish(file_exists(".muzzle")) && (is_falseish(path_is_dir(".muzzle")) || is_falseish(path_is_within_muzzle(".muzzle"))) {
+		print("Error: .muzzle is not a safe project-local directory. Refusing to initialize.")
+		exit(1)
+	}
+	managed_paths := array(WORKFLOWS_DIR, MANIFESTS_DIR, ".muzzle/logs", ".muzzle/reports", ".muzzle/state", ".muzzle/state/loops")
+	mut managed_idx := 0
+	while managed_idx < len(managed_paths) {
+		managed_path := managed_paths[managed_idx]
+		if is_falseish(existing_muzzle_path_is_safe(managed_path)) {
+			print("Error: " + managed_path + " resolves outside .muzzle. Refusing to initialize.")
+			exit(1)
+		}
+		managed_idx = managed_idx + 1
+	}
 	if has_muzzle_dir() && is_trueish(file_exists(WORKFLOWS_DIR)) && is_trueish(file_exists(MANIFESTS_DIR)) && is_trueish(file_exists(".muzzle/logs")) && is_trueish(file_exists(".muzzle/reports")) && is_trueish(file_exists(".muzzle/state/loops")) {
 		print("Muzzle: .muzzle/ already exists. Nothing to do.")
 		exit(0)
@@ -388,6 +421,22 @@ func cmd_info(name) {
 		print("Error: Workflow '" + name + "' not found. Check available workflows with 'muzzle list'.")
 		exit(1)
 	}
+	if dict_has_key(info, "args") {
+		manifest_args := info["args"]
+		if type(manifest_args) != "array" {
+			print("Error: Invalid manifest for '" + name + "': args must be an array.")
+			exit(2)
+		}
+		mut manifest_arg_idx := 0
+		while manifest_arg_idx < len(manifest_args) {
+			manifest_arg := manifest_args[manifest_arg_idx]
+			if type(manifest_arg) != "dict" || is_falseish(dict_has_key(manifest_arg, "name")) {
+				print("Error: Invalid manifest for '" + name + "': every argument must be an object with a name.")
+				exit(2)
+			}
+			manifest_arg_idx = manifest_arg_idx + 1
+		}
+	}
 
 	print_kv("Workflow:   ", info["name"])
 	if dict_has_key(info, "summary") {
@@ -466,6 +515,14 @@ func cmd_run(argv) {
 	verbose := has_run_option(argv, "--verbose") || has_run_option(argv, "-v")
 	dry_run := has_run_option(argv, "--dry-run") || has_run_option(argv, "-n")
 	json_out := has_run_option(argv, "--json")
+	if is_trueish(option_missing_value(argv, "--runner")) {
+		print("Error: --runner requires a value: kujo, bash, python, or node.")
+		exit(2)
+	}
+	if is_trueish(option_missing_value(argv, "--timeout")) {
+		print("Error: --timeout requires an integer value in milliseconds.")
+		exit(2)
+	}
 	runner_override := run_option_value(argv, "--runner", "")
 	timeout_str := run_option_value(argv, "--timeout", "300000")
 	if runner_override != "" && is_falseish(valid_runner(runner_override)) {
@@ -473,15 +530,19 @@ func cmd_run(argv) {
 		exit(2)
 	}
 	timeout_ms := 300000
-	timeout_parsed := parse_int(timeout_str)
-	if type(timeout_parsed) != "Error" {
-		timeout_ms = to_int(timeout_parsed)
-		if timeout_ms < 1000 {
-			timeout_ms = 1000
-		}
-		if timeout_ms > 3600000 {
-			timeout_ms = 3600000
-		}
+	mut timeout_parsed := null
+	try {
+		timeout_parsed = parse_int(timeout_str)
+	} except _err {
+		print("Error: Invalid timeout '" + timeout_str + "'. Use an integer number of milliseconds.")
+		exit(2)
+	}
+	timeout_ms = to_int(timeout_parsed)
+	if timeout_ms < 1000 {
+		timeout_ms = 1000
+	}
+	if timeout_ms > 3600000 {
+		timeout_ms = 3600000
 	}
 
 	# Get workflow name and args while allowing literal workflow args after --.
@@ -512,6 +573,10 @@ func cmd_run(argv) {
 
 	if is_falseish(validate_script_path(script_path)) {
 		print("Error: Workflow script '" + script_path + "' is outside expected directory. Refusing to run.")
+		exit(1)
+	}
+	if is_falseish(existing_muzzle_path_is_safe(".muzzle/logs")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/reports")) {
+		print("Error: Muzzle artifact directories resolve outside .muzzle. Refusing to run.")
 		exit(1)
 	}
 
@@ -604,21 +669,25 @@ func cmd_run(argv) {
 	write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
 
 	# Update session state
-	if is_trueish(file_exists(SESSION_FILE)) {
-		session_raw := read_file(SESSION_FILE)
-		session := parse_json(session_raw)
-		if type(session) != "Error" {
-			total_runs := 0
-			if dict_has_key(session, "total_runs") {
-				total_runs = to_int(session["total_runs"]) + 1
-			} else {
-				total_runs = 1
+	if is_trueish(file_exists(SESSION_FILE)) && is_trueish(path_is_within_muzzle(SESSION_FILE)) {
+		# Session bookkeeping is best-effort and must never replace the workflow's
+		# real result when local state is malformed or unwritable.
+		try {
+			session_raw := read_file(SESSION_FILE)
+			session := parse_json(session_raw)
+			if type(session) == "dict" {
+				total_runs := 0
+				if dict_has_key(session, "total_runs") {
+					total_runs = to_int(session["total_runs"]) + 1
+				} else {
+					total_runs = 1
+				}
+				session["last_workflow"] = workflow_name
+				session["last_run_at"] = finished_at
+				session["total_runs"] = total_runs
+				write_file(SESSION_FILE, to_json(session), true)
 			}
-			session["last_workflow"] = workflow_name
-			session["last_run_at"] = finished_at
-			session["total_runs"] = total_runs
-			write_file(SESSION_FILE, to_json(session), true)
-		}
+		} except _err {}
 	}
 
 	# Output
@@ -722,6 +791,10 @@ func cmd_logs(filter) {
 		print("No logs directory found.")
 		exit(0)
 	}
+	if is_falseish(path_is_dir(".muzzle/logs")) || is_falseish(path_is_within_muzzle(".muzzle/logs")) {
+		print("Error: Muzzle log directory resolves outside .muzzle. Refusing to inspect it.")
+		exit(1)
+	}
 
 	if filter != "" {
 		# Show logs for specific workflow
@@ -751,9 +824,11 @@ func cmd_logs(filter) {
 			entry_name := to_string(entries[log_list_idx])
 			if is_trueish(str_ends_with(entry_name, ".log")) {
 				log_full := ".muzzle/logs/" + entry_name
-				fsize := file_size(log_full)
-				print("  " + entry_name + "    " + to_string(fsize) + " bytes")
-				log_count = log_count + 1
+				if is_trueish(path_is_within_muzzle(log_full)) {
+					fsize := file_size(log_full)
+					print("  " + entry_name + "    " + to_string(fsize) + " bytes")
+					log_count = log_count + 1
+				}
 			}
 			log_list_idx = log_list_idx + 1
 		}
@@ -780,6 +855,10 @@ func cmd_report(filter) {
 	if is_falseish(file_exists(".muzzle/reports")) {
 		print("No reports directory found.")
 		exit(0)
+	}
+	if is_falseish(path_is_dir(".muzzle/reports")) || is_falseish(path_is_within_muzzle(".muzzle/reports")) {
+		print("Error: Muzzle report directory resolves outside .muzzle. Refusing to inspect it.")
+		exit(1)
 	}
 
 	if filter != "" {
@@ -834,8 +913,14 @@ func cmd_clean(argv) {
 		exit(1)
 	}
 
+	if is_falseish(existing_muzzle_path_is_safe(".muzzle/logs")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/reports")) {
+		print("Error: Muzzle artifact directories resolve outside .muzzle. Refusing to clean.")
+		exit(1)
+	}
+
 	mut removed_logs := 0
 	mut removed_reports := 0
+	mut removal_failures := 0
 
 	# Clean logs
 	if is_trueish(file_exists(".muzzle/logs")) {
@@ -848,7 +933,9 @@ func cmd_clean(argv) {
 				try {
 					delete_file(log_path)
 					removed_logs = removed_logs + 1
-				} except _err {}
+				} except _err {
+					removal_failures = removal_failures + 1
+				}
 			}
 			clean_log_idx = clean_log_idx + 1
 		}
@@ -865,7 +952,9 @@ func cmd_clean(argv) {
 				try {
 					delete_file(report_path)
 					removed_reports = removed_reports + 1
-				} except _err {}
+				} except _err {
+					removal_failures = removal_failures + 1
+				}
 			}
 			clean_report_idx = clean_report_idx + 1
 		}
@@ -875,6 +964,10 @@ func cmd_clean(argv) {
 		"Muzzle: Cleaned up workflow artifacts.",
 		"  Removed: " + to_string(removed_logs) + " logs, " + to_string(removed_reports) + " reports"
 	))
+	if removal_failures > 0 {
+		print("Error: Failed to remove " + to_string(removal_failures) + " artifact entries.")
+		exit(1)
+	}
 }
 
 # =============================================================================
@@ -886,7 +979,16 @@ func cmd_loop(argv) {
 		exit(1)
 	}
 
+	if is_falseish(existing_muzzle_path_is_safe(".muzzle/state")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/state/loops")) {
+		print("Error: Muzzle loop state resolves outside .muzzle. Refusing to continue.")
+		exit(1)
+	}
 	ensure_dir(".muzzle/state/loops")
+	invalid_loop_state := find_invalid_loop_state()
+	if invalid_loop_state != "" {
+		print("Error: Invalid loop state in '" + invalid_loop_state + "'. Refusing to continue.")
+		exit(1)
+	}
 
 	pos_args := positional_args(argv)
 	if len(pos_args) < 1 {
@@ -901,11 +1003,19 @@ func cmd_loop(argv) {
 		mut wf_name := ""
 		mut limit := 10
 		# Parse from raw argv for flags
-		limit_str := flag_value(argv, "--limit", "10")
-		limit_parsed := parse_int(limit_str)
-		if type(limit_parsed) != "Error" {
-			limit = to_int(limit_parsed)
+		if is_trueish(option_missing_value(argv, "--limit")) {
+			print("Error: --limit requires an integer value.")
+			exit(2)
 		}
+		limit_str := to_string(flag_value(argv, "--limit", "10"))
+		mut limit_parsed := null
+		try {
+			limit_parsed = parse_int(limit_str)
+		} except _err {
+			print("Error: Invalid loop limit '" + limit_str + "'. Use an integer.")
+			exit(2)
+		}
+		limit = to_int(limit_parsed)
 		# Workflow name is the first positional after 'start'
 		if len(pos_args) > 1 {
 			wf_name = to_string(pos_args[1])
@@ -945,6 +1055,11 @@ func cmd_loop(argv) {
 			exit(1)
 		}
 		ts := timestamp_iso()
+		loop_state_path := ".muzzle/state/loops/" + wf_name + ".json"
+		if is_trueish(file_exists(loop_state_path)) && is_falseish(path_is_within_muzzle(loop_state_path)) {
+			print("Error: Loop state for '" + wf_name + "' resolves outside .muzzle. Refusing to overwrite it.")
+			exit(1)
+		}
 		create_loop(wf_name, limit, ts)
 		print_lines(array(
 			"Muzzle: Loop started: " + wf_name + " (0/" + to_string(limit) + ")",
@@ -957,6 +1072,11 @@ func cmd_loop(argv) {
 		loop_file := find_active_loop()
 		if loop_file == "" {
 			print("Error: No active loop found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
+			exit(1)
+		}
+		existing_data := load_loop(loop_file)
+		if existing_data != null && is_falseish(current_iteration_recorded(existing_data)) {
+			print("Error: Complete the current iteration with 'muzzle loop done' before advancing.")
 			exit(1)
 		}
 		loop_data := advance_loop(loop_file)
@@ -1077,6 +1197,10 @@ func cmd_loop(argv) {
 					note_str := ""
 					if dict_has_key(entry, "note") {
 						note_str = to_string(entry["note"])
+						note_str = replace(note_str, "\r", " ")
+						note_str = replace(note_str, "\n", " ")
+						note_str = replace(note_str, "\\", "\\\\")
+						note_str = replace(note_str, "|", "\\|")
 						if len(note_str) > 60 {
 							note_str = substring(note_str, 0, 57) + "..."
 						}

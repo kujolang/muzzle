@@ -82,7 +82,34 @@ export func path_join(base, child) {
 	return base + "/" + child
 }
 
+# Return true only when .muzzle resolves to the project-local directory and the
+# requested path resolves inside it. This rejects parent-directory symlink
+# escapes for both read and write paths.
+export func path_is_within_muzzle(path) {
+	mut project_abs := null
+	mut muzzle_abs := null
+	mut path_abs := null
+	try {
+		project_abs = path_absolute(".")
+		muzzle_abs = path_absolute(".muzzle")
+		path_abs = path_absolute(path)
+	} except _err {
+		return false
+	}
+	if type(project_abs) == "Error" || type(muzzle_abs) == "Error" || type(path_abs) == "Error" {
+		return false
+	}
+	expected_muzzle := to_string(project_abs) + "/.muzzle"
+	if to_string(muzzle_abs) != expected_muzzle {
+		return false
+	}
+	if to_string(path_abs) == expected_muzzle {
+		return true
+	}
+	return is_trueish(starts_with(to_string(path_abs), expected_muzzle + "/"))
+}
+
 # Check if the current directory has a .muzzle/ directory.
 export func has_muzzle_dir() {
-	return is_trueish(file_exists(".muzzle"))
+	return is_trueish(file_exists(".muzzle")) && is_trueish(path_is_dir(".muzzle")) && is_trueish(path_is_within_muzzle(".muzzle"))
 }

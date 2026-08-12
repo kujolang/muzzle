@@ -32,10 +32,17 @@ timeout_stdout="$(mktemp)"
 timeout_stderr="$(mktemp)"
 no_newline_stdout="$(mktemp)"
 no_newline_stderr="$(mktemp)"
+invalid_option_stdout="$(mktemp)"
+invalid_option_stderr="$(mktemp)"
+loop_transition_stdout="$(mktemp)"
+loop_transition_stderr="$(mktemp)"
+symlink_stdout="$(mktemp)"
+symlink_stderr="$(mktemp)"
+outside_dir="$(mktemp -d /tmp/muzzle_regression_outside.XXXXXX)"
 
 cleanup_files() {
-	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$run_json_stdout" "$run_json_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr" "$alias_stdout" "$alias_stderr" "$escape_stdout" "$escape_stderr" "$runner_stdout" "$runner_stderr" "$missing_stdout" "$missing_stderr" "$timeout_stdout" "$timeout_stderr" "$no_newline_stdout" "$no_newline_stderr"
-	rm -rf "$tmpdir"
+	rm -f "$help_stdout" "$help_stderr" "$version_stdout" "$version_stderr" "$run_stdout" "$run_stderr" "$run_json_stdout" "$run_json_stderr" "$fail_stdout" "$fail_stderr" "$inject_stdout" "$inject_stderr" "$alias_stdout" "$alias_stderr" "$escape_stdout" "$escape_stderr" "$runner_stdout" "$runner_stderr" "$missing_stdout" "$missing_stderr" "$timeout_stdout" "$timeout_stderr" "$no_newline_stdout" "$no_newline_stderr" "$invalid_option_stdout" "$invalid_option_stderr" "$loop_transition_stdout" "$loop_transition_stderr" "$symlink_stdout" "$symlink_stderr"
+	rm -rf "$tmpdir" "$outside_dir"
 }
 trap cleanup_files EXIT
 
@@ -64,6 +71,41 @@ cd partial-init
 mkdir -p .muzzle/workflows
 printf 'print("custom hello")\n' > .muzzle/workflows/hello.kujo
 "$MUZZLE_BIN" init >/dev/null
+
+set +e
+"$MUZZLE_BIN" run hello-bash --timeout nope >"$invalid_option_stdout" 2>"$invalid_option_stderr"
+invalid_timeout_code=$?
+set -e
+if [[ "$invalid_timeout_code" -ne 2 ]]; then
+	echo "Expected a non-integer timeout to exit 2, got $invalid_timeout_code." >&2
+	exit 1
+fi
+if ! grep -q "Invalid timeout 'nope'" "$invalid_option_stdout" || grep -q 'Runtime Error' "$invalid_option_stderr"; then
+	echo "Expected a controlled invalid-timeout error without a Kujo runtime failure." >&2
+	exit 1
+fi
+
+set +e
+"$MUZZLE_BIN" run hello-bash --runner >"$invalid_option_stdout" 2>"$invalid_option_stderr"
+missing_runner_code=$?
+set -e
+if [[ "$missing_runner_code" -ne 2 ]]; then
+	echo "Expected --runner without a value to exit 2, got $missing_runner_code." >&2
+	exit 1
+fi
+
+set +e
+"$MUZZLE_BIN" loop start hello --limit nope >"$invalid_option_stdout" 2>"$invalid_option_stderr"
+invalid_limit_code=$?
+set -e
+if [[ "$invalid_limit_code" -ne 2 ]]; then
+	echo "Expected a non-integer loop limit to exit 2, got $invalid_limit_code." >&2
+	exit 1
+fi
+if ! grep -q "Invalid loop limit 'nope'" "$invalid_option_stdout" || grep -q 'Runtime Error' "$invalid_option_stderr"; then
+	echo "Expected a controlled invalid-loop-limit error without a Kujo runtime failure." >&2
+	exit 1
+fi
 if [[ ! -f .muzzle/workflows/hello.kujo || ! -f .muzzle/manifests/hello.json || ! -d .muzzle/state/loops ]]; then
 	echo "Expected init to repair an incomplete .muzzle directory." >&2
 	exit 1
@@ -123,6 +165,35 @@ if [[ "$log_count" -lt 2 || "$report_count" -lt 2 ]]; then
 	echo "Expected consecutive runs to create distinct log/report files." >&2
 	exit 1
 fi
+
+printf '[]\n' > .muzzle/state/session.json
+set +e
+malformed_session_output="$($MUZZLE_BIN run hello-bash 2>&1)"
+malformed_session_code=$?
+set -e
+if [[ "$malformed_session_code" -ne 0 || "$malformed_session_output" == *"Runtime Error"* ]]; then
+	echo "Expected an invalid session-state type not to override a successful workflow result." >&2
+	exit 1
+fi
+printf '{bad\n' > .muzzle/state/session.json
+set +e
+malformed_session_output="$($MUZZLE_BIN run hello-bash 2>&1)"
+malformed_session_code=$?
+set -e
+if [[ "$malformed_session_code" -ne 0 || "$malformed_session_output" == *"Runtime Error"* ]]; then
+	echo "Expected malformed session JSON not to override a successful workflow result." >&2
+	exit 1
+fi
+printf '{"total_runs":"invalid"}\n' > .muzzle/state/session.json
+set +e
+malformed_session_output="$($MUZZLE_BIN run hello-bash 2>&1)"
+malformed_session_code=$?
+set -e
+if [[ "$malformed_session_code" -ne 0 || "$malformed_session_output" == *"Runtime Error"* ]]; then
+	echo "Expected an invalid session counter not to override a successful workflow result." >&2
+	exit 1
+fi
+printf '{"project":"","last_workflow":null,"last_run_at":null,"total_runs":0}\n' > .muzzle/state/session.json
 
 cat > .muzzle/workflows/echoargs.sh <<'EOF'
 #!/usr/bin/env bash
@@ -323,6 +394,23 @@ missing_code=$?
 set -e
 if [[ "$missing_code" -ne 1 ]]; then
 	echo "Expected manifest with missing explicit script to exit 1, got $missing_code." >&2
+	exit 1
+fi
+
+cat > .muzzle/manifests/invalid-args.json <<'EOF'
+{
+  "name": "invalid-args",
+  "runner": "bash",
+  "script": "workflows/shared-implementation.sh",
+  "args": null
+}
+EOF
+set +e
+invalid_args_output="$($MUZZLE_BIN info invalid-args 2>&1)"
+invalid_args_code=$?
+set -e
+if [[ "$invalid_args_code" -ne 2 || "$invalid_args_output" != *"Invalid manifest"* || "$invalid_args_output" == *"Runtime Error"* ]]; then
+	echo "Expected invalid manifest argument metadata to fail with a controlled error." >&2
 	exit 1
 fi
 if grep -q "should not run" .muzzle/logs/manifest-missing-*.log 2>/dev/null; then
@@ -560,8 +648,32 @@ if [[ "$second_loop_code" -eq 0 || "$second_loop_output" != *"active loop"* ]]; 
 	echo "Expected loop start to refuse a second active loop." >&2
 	exit 1
 fi
+set +e
+"$MUZZLE_BIN" loop done --note "premature" >"$loop_transition_stdout" 2>"$loop_transition_stderr"
+premature_done_code=$?
+set -e
+if [[ "$premature_done_code" -ne 1 ]]; then
+	echo "Expected loop done to reject completion before the first iteration starts." >&2
+	exit 1
+fi
 loop_next_output="$($MUZZLE_BIN loop next)"
-$MUZZLE_BIN loop done --note "verified lifecycle" >/dev/null
+set +e
+"$MUZZLE_BIN" loop next >"$loop_transition_stdout" 2>"$loop_transition_stderr"
+repeated_next_code=$?
+set -e
+if [[ "$repeated_next_code" -ne 1 ]]; then
+	echo "Expected loop next to reject advancing an unfinished iteration." >&2
+	exit 1
+fi
+$MUZZLE_BIN loop done --note $'verified | lifecycle\ncontinued' >/dev/null
+set +e
+"$MUZZLE_BIN" loop done --note "duplicate" >"$loop_transition_stdout" 2>"$loop_transition_stderr"
+duplicate_done_code=$?
+set -e
+if [[ "$duplicate_done_code" -ne 1 ]]; then
+	echo "Expected loop done to reject a duplicate completion record." >&2
+	exit 1
+fi
 loop_status_output="$($MUZZLE_BIN loop status)"
 loop_complete_output="$($MUZZLE_BIN loop next)"
 loop_summary_output="$($MUZZLE_BIN loop summary)"
@@ -569,8 +681,12 @@ if ! grep -q "Loop 1/1: hello" <<<"$loop_next_output" || ! grep -q "Progress:[[:
 	echo "Expected loop next/status to report the active iteration." >&2
 	exit 1
 fi
-if ! grep -q "complete" <<<"$loop_complete_output" || ! grep -q "verified lifecycle" <<<"$loop_summary_output"; then
+if ! grep -q "complete" <<<"$loop_complete_output" || ! grep -Fq 'verified \| lifecycle continued' <<<"$loop_summary_output"; then
 	echo "Expected loop completion and summary to preserve the recorded note." >&2
+	exit 1
+fi
+if [[ "$(grep -c '^| 1 | done |' <<<"$loop_summary_output")" -ne 1 ]]; then
+	echo "Expected loop summary notes with pipes and newlines to remain one valid Markdown row." >&2
 	exit 1
 fi
 
@@ -581,11 +697,101 @@ if ! grep -q "Log: .muzzle/logs/hello-" <<<"$logs_output" || ! grep -q "Report: 
 	exit 1
 fi
 
+mkdir .muzzle/logs/undeletable-entry
+set +e
+"$MUZZLE_BIN" clean >"$invalid_option_stdout" 2>"$invalid_option_stderr"
+clean_failure_code=$?
+set -e
+if [[ "$clean_failure_code" -ne 1 || ! -d .muzzle/logs/undeletable-entry ]]; then
+	echo "Expected clean to report a deletion failure instead of false success." >&2
+	exit 1
+fi
+rmdir .muzzle/logs/undeletable-entry
 $MUZZLE_BIN clean >/dev/null
 if find .muzzle/logs .muzzle/reports -type f 2>/dev/null | grep -q .; then
 	echo "Expected clean to remove all logs and reports." >&2
 	exit 1
 fi
+
+mkdir symlink-project
+cd symlink-project
+"$MUZZLE_BIN" init >/dev/null
+mkdir "$outside_dir/workflows" "$outside_dir/logs"
+cp .muzzle/workflows/hello-bash.sh "$outside_dir/workflows/hello-bash.sh"
+rm .muzzle/workflows/hello.kujo .muzzle/workflows/hello-bash.sh
+rmdir .muzzle/workflows
+ln -s "$outside_dir/workflows" .muzzle/workflows
+set +e
+"$MUZZLE_BIN" run hello-bash >"$symlink_stdout" 2>"$symlink_stderr"
+symlink_workflow_code=$?
+set -e
+if [[ "$symlink_workflow_code" -ne 1 ]]; then
+	echo "Expected a symlinked workflows root outside .muzzle to be rejected." >&2
+	exit 1
+fi
+
+rm .muzzle/workflows
+mkdir .muzzle/workflows
+cp "$outside_dir/workflows/hello-bash.sh" .muzzle/workflows/hello-bash.sh
+rmdir .muzzle/logs
+ln -s "$outside_dir/logs" .muzzle/logs
+set +e
+"$MUZZLE_BIN" run hello-bash >"$symlink_stdout" 2>"$symlink_stderr"
+symlink_log_code=$?
+set -e
+if [[ "$symlink_log_code" -ne 1 || -n "$(find "$outside_dir/logs" -maxdepth 1 -type f -print -quit)" ]]; then
+	echo "Expected a symlinked log directory outside .muzzle to be rejected without external writes." >&2
+	exit 1
+fi
+printf 'preserve me\n' > "$outside_dir/logs/sentinel.log"
+set +e
+"$MUZZLE_BIN" clean >"$symlink_stdout" 2>"$symlink_stderr"
+symlink_clean_code=$?
+set -e
+if [[ "$symlink_clean_code" -ne 1 || ! -f "$outside_dir/logs/sentinel.log" ]]; then
+	echo "Expected clean to reject an external symlink without deleting external files." >&2
+	exit 1
+fi
+cd ..
+
+mkdir malformed-loop-project
+cd malformed-loop-project
+"$MUZZLE_BIN" init >/dev/null
+printf '{bad\n' > .muzzle/state/loops/corrupt.json
+set +e
+malformed_loop_output="$($MUZZLE_BIN loop status 2>&1)"
+malformed_loop_code=$?
+set -e
+if [[ "$malformed_loop_code" -ne 1 || "$malformed_loop_output" != *"Invalid loop state"* || "$malformed_loop_output" == *"Runtime Error"* ]]; then
+	echo "Expected malformed loop state to fail with a controlled, non-mutating error." >&2
+	exit 1
+fi
+cd ..
+
+mkdir invalid-directory-project
+cd invalid-directory-project
+printf 'not a directory\n' > .muzzle
+set +e
+invalid_directory_output="$($MUZZLE_BIN init 2>&1)"
+invalid_directory_code=$?
+set -e
+if [[ "$invalid_directory_code" -ne 1 || "$invalid_directory_output" == *"Runtime Error"* ]]; then
+	echo "Expected init to reject a non-directory .muzzle path with a controlled error." >&2
+	exit 1
+fi
+rm .muzzle
+"$MUZZLE_BIN" init >/dev/null
+rmdir .muzzle/logs
+printf 'not a directory\n' > .muzzle/logs
+set +e
+invalid_directory_output="$($MUZZLE_BIN run hello-bash 2>&1)"
+invalid_directory_code=$?
+set -e
+if [[ "$invalid_directory_code" -ne 1 || "$invalid_directory_output" == *"Runtime Error"* ]]; then
+	echo "Expected run to reject a non-directory artifact path with a controlled error." >&2
+	exit 1
+fi
+cd ..
 
 if grep -q "Command must come before flags" "$help_stdout" || grep -q "Command must come before flags" "$version_stdout"; then
 	echo "Unexpected flag-order preamble in help/version output." >&2

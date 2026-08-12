@@ -1,7 +1,7 @@
 # Muzzle workflow discovery and manifest loading.
 # Discovers workflow scripts and their associated manifests.
 
-from src.common import str_ends_with, str_starts_with, is_trueish, is_falseish, dict_has_key
+from src.common import str_ends_with, str_starts_with, is_trueish, is_falseish, dict_has_key, path_is_within_muzzle
 
 WORKFLOWS_DIR := ".muzzle/workflows"
 MANIFESTS_DIR := ".muzzle/manifests"
@@ -10,7 +10,13 @@ MANIFESTS_DIR := ".muzzle/manifests"
 # Returns a dict or null if not found.
 export func load_manifest(name) {
 	manifest_path := MANIFESTS_DIR + "/" + name + ".json"
+	if is_falseish(path_is_within_muzzle(MANIFESTS_DIR)) {
+		return null
+	}
 	if is_trueish(file_exists(manifest_path)) {
+		if is_falseish(path_is_within_muzzle(manifest_path)) {
+			return null
+		}
 		raw := read_file(manifest_path)
 		mut parsed := null
 		try {
@@ -29,6 +35,9 @@ export func load_manifest(name) {
 # Checks multiple runners and extensions.
 # Returns the script path (relative to project root) or "" if not found.
 export func find_script(name) {
+	if is_falseish(path_is_dir(WORKFLOWS_DIR)) || is_falseish(path_is_within_muzzle(WORKFLOWS_DIR)) {
+		return ""
+	}
 	extensions := array(".kujo", ".sh", ".py", ".js")
 	mut idx := 0
 	while idx < len(extensions) {
@@ -83,6 +92,10 @@ export func validate_script_path(script_path) {
 		return false
 	}
 
+	if is_falseish(path_is_within_muzzle(WORKFLOWS_DIR)) || is_falseish(path_is_within_muzzle(script_path)) {
+		return false
+	}
+
 	base_abs := path_absolute(WORKFLOWS_DIR)
 	if type(base_abs) == "Error" {
 		return false
@@ -121,7 +134,7 @@ export func discover_workflows() {
 	mut workflows := array()
 
 	# First, check manifests directory
-	if is_trueish(file_exists(MANIFESTS_DIR)) {
+	if is_trueish(path_is_dir(MANIFESTS_DIR)) && is_trueish(path_is_within_muzzle(MANIFESTS_DIR)) {
 		entries := list_dir(MANIFESTS_DIR)
 		mut idx := 0
 		while idx < len(entries) {
@@ -167,7 +180,7 @@ export func discover_workflows() {
 	}
 
 	# Then, check for scripts without manifests
-	if is_trueish(file_exists(WORKFLOWS_DIR)) {
+	if is_trueish(path_is_dir(WORKFLOWS_DIR)) && is_trueish(path_is_within_muzzle(WORKFLOWS_DIR)) {
 		entries := list_dir(WORKFLOWS_DIR)
 		mut idx := 0
 		while idx < len(entries) {
