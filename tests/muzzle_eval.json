@@ -19,6 +19,7 @@
     {
       "name": "Muzzle wrapper regression succeeds",
       "check": "command_succeeds",
+      "timeout_seconds": 90,
       "params": {
         "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo bash tests/muzzle_wrapper_regression.sh"
       }

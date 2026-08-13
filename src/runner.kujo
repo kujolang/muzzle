@@ -5,15 +5,24 @@
 #   2. File extension (.kujo -> kujo, .sh -> bash, .py -> python, .js -> node)
 #   3. --runner flag override
 
-from src.common import str_starts_with, str_ends_with, is_trueish, is_falseish, dict_has_key
+from src.common import str_ends_with, is_trueish, is_falseish, dict_has_key
 
 # Default runner when nothing else is specified.
 DEFAULT_RUNNER := "kujo"
 
+export func runner_catalog() {
+	return {
+		"kujo": {"extension": ".kujo", "executable": env_or("KUJO_BIN", "kujo"), "label": "kujo"},
+		"bash": {"extension": ".sh", "executable": "bash", "label": "bash"},
+		"python": {"extension": ".py", "executable": "python3", "label": "python"},
+		"node": {"extension": ".js", "executable": "node", "label": "node"}
+	}
+}
+
 # Return true when the runner is supported.
 export func valid_runner(runner) {
 	lower := to_lower(to_string(runner))
-	return lower == "kujo" || lower == "bash" || lower == "python" || lower == "node"
+	return dict_has_key(runner_catalog(), lower)
 }
 
 # Resolve the runner for a workflow.
@@ -56,125 +65,59 @@ export func resolve_runner(manifest, script_path, flag_override) {
 	return DEFAULT_RUNNER
 }
 
-# Shell-quote a value so it is passed as a literal argument.
-export func shell_quote(value) {
-	text := to_string(value)
-	return "'" + replace(text, "'", "'\"'\"'") + "'"
-}
-
-# Build the command string for a given runner.
-export func build_command(runner, script_path, args_arr) {
-	mut cmd := ""
-
-	if runner == "bash" {
-		cmd = "bash " + shell_quote(script_path)
-	} else if runner == "python" {
-		cmd = "python3 " + shell_quote(script_path)
-	} else if runner == "node" {
-		cmd = "node " + shell_quote(script_path)
-	} else {
-		# kujo: default — use KUJO_BIN or fall back to "kujo"
-		kujo_bin := env_or("KUJO_BIN", "kujo")
-		cmd = shell_quote(kujo_bin) + " run " + shell_quote(script_path)
-	}
-
-	# Append arguments as literal shell words.
+# Execute through the repository helper so workflow output is spooled directly
+# to the full log instead of accumulating in the Kujo process. The runtime's
+# structured process API supplies timeout/cancellation and Unix process-group
+# termination for the helper and all of its descendants.
+export func run_workflow(runner, script_path, args_arr, log_path, verbose, timeout_ms, cancel_file) {
+	muzzle_root := env_or("MUZZLE_ROOT", path_absolute("."))
+	helper_path := to_string(muzzle_root) + "/src/muzzle_exec.sh"
+	kujo_bin := env_or("KUJO_BIN", "kujo")
+	mut argv := array("bash", helper_path, runner, script_path, log_path, to_string(verbose), kujo_bin, "--")
 	mut idx := 0
 	while idx < len(args_arr) {
-		cmd = cmd + " " + shell_quote(args_arr[idx])
+		argv = push(argv, to_string(args_arr[idx]))
 		idx = idx + 1
 	}
-
-	# Put the private exit marker on its own final line so workflow output cannot
-	# merge with it when the workflow omits a trailing newline.
-	cmd = cmd + " 2>&1; printf '\\nMUZZLE_EXIT:%d\\n' $?"
-
-	return cmd
+	max_capture := 65536
+	if verbose {
+		max_capture = 16777216
+	}
+	mut options := {"timeout_ms": timeout_ms, "max_output_bytes": max_capture}
+	if cancel_file != "" {
+		options["cancel_file"] = cancel_file
+	}
+	return spawn_process(argv, options)
 }
 
-# Parse the exit code from captured output.
-# Returns a dict with "output" (cleaned text) and "exit_code" (int).
-export func parse_captured_output(raw_output) {
-	raw_str := to_string(raw_output)
-	mut exit_code := 0
-	mut clean_output := raw_str
-	mut marker_found := false
-
-	# Find MUZZLE_EXIT: marker
-	if is_trueish(contains(raw_str, "MUZZLE_EXIT:")) {
-		lines_arr := lines(raw_str)
-		mut last_idx := len(lines_arr) - 1
-
-		# Check last few lines for the marker
-		mut check_idx := last_idx
-		while check_idx >= 0 && check_idx > last_idx - 5 {
-			line := lines_arr[check_idx]
-			if is_trueish(str_starts_with(line, "MUZZLE_EXIT:")) {
-				# Extract the exit code
-				parts := split(line, "MUZZLE_EXIT:")
-				if len(parts) == 2 && trim(parts[0]) == "" {
-					code_str := trim(parts[1])
-					parsed := parse_int(code_str)
-					if type(parsed) != "Error" {
-						exit_code = to_int(parsed)
-						marker_found = true
-					}
-				}
-				if is_falseish(marker_found) {
-					check_idx = check_idx - 1
-					continue
-				}
-				# Remove this line and any trailing newline
-				mut clean_lines := array()
-				mut i := 0
-				while i < len(lines_arr) {
-					if i != check_idx {
-						clean_lines = push(clean_lines, lines_arr[i])
-					}
-					i = i + 1
-				}
-				clean_output = join(clean_lines, "\n")
-				# Trim trailing whitespace
-				clean_output = trim_end(clean_output)
-				break
-			}
-			check_idx = check_idx - 1
-		}
+# Read only a bounded log tail for failure summaries. `tail` is part of the
+# documented Unix runtime requirement and avoids reading an arbitrarily large
+# workflow log back into agent memory.
+export func read_log_tail(log_path, max_lines) {
+	if is_falseish(file_exists(log_path)) {
+		return ""
 	}
-
-	return {"output": clean_output, "exit_code": exit_code, "marker_found": marker_found}
+	result := spawn_process(array("tail", "-n", to_string(max_lines), log_path), {"timeout_ms": 5000, "max_output_bytes": 65536})
+	if result.exitcode != 0 {
+		return ""
+	}
+	return trim_end(result.stdout)
 }
 
 # Get the file extension for a runner (for script discovery).
 export func runner_extension(runner) {
-	if runner == "kujo" {
-		return ".kujo"
-	}
-	if runner == "bash" {
-		return ".sh"
-	}
-	if runner == "python" {
-		return ".py"
-	}
-	if runner == "node" {
-		return ".js"
+	catalog := runner_catalog()
+	if dict_has_key(catalog, runner) {
+		return to_string(catalog[runner]["extension"])
 	}
 	return ""
 }
 
 # Get a human-readable label for a runner.
 export func runner_label(runner) {
-	if runner == "kujo" {
-		return "kujo"
-	}
-	if runner == "bash" {
-		return "bash"
-	}
-	if runner == "python" {
-		return "python"
-	}
-	if runner == "node" {
-		return "node"
+	catalog := runner_catalog()
+	if dict_has_key(catalog, runner) {
+		return to_string(catalog[runner]["label"])
 	}
 	return runner
 }

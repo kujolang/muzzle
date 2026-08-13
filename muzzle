@@ -7,8 +7,18 @@
 # =============================================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOURCE_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE_PATH" ]]; do
+	SOURCE_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+	SOURCE_PATH="$(readlink "$SOURCE_PATH")"
+	case "$SOURCE_PATH" in
+		/*) ;;
+		*) SOURCE_PATH="${SOURCE_DIR}/${SOURCE_PATH}" ;;
+	esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
 MUZZLE_KUJO="${SCRIPT_DIR}/muzzle.kujo"
+export MUZZLE_ROOT="${SCRIPT_DIR}"
 
 # Resolve Kujo runtime binary
 KUJO_BIN="${KUJO_BIN:-}"
@@ -49,5 +59,12 @@ fi
 
 # Run muzzle.kujo via Kujo runtime. Some debug Kujo builds emit optimizer stats
 # on stderr; keep Muzzle's CLI contract quiet while preserving real diagnostics.
-"$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@" 2> >(grep -v '^Compiler optimization:' >&2)
-exit $?
+set +e
+"$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@" 2> >(grep -v '^Compiler optimization:' >&2) &
+kujo_pid=$!
+trap 'kill -INT "$kujo_pid" 2>/dev/null || true; wait "$kujo_pid" 2>/dev/null || true; exit 130' INT
+trap 'kill -TERM "$kujo_pid" 2>/dev/null || true; wait "$kujo_pid" 2>/dev/null || true; exit 130' TERM
+wait "$kujo_pid"
+status=$?
+trap - INT TERM
+exit "$status"

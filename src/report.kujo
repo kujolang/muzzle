@@ -8,7 +8,7 @@ REPORTS_DIR := ".muzzle/reports"
 LOGS_DIR := ".muzzle/logs"
 
 # Generate a Markdown report for a workflow run.
-export func write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text) {
+export func write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text, timed_out, cancelled, display_truncated) {
 	ensure_dir(REPORTS_DIR)
 
 	mut notes_section := "No failures detected."
@@ -28,6 +28,9 @@ export func write_markdown_report(workflow_name, status, exit_code, started_at, 
 		"Started: " + started_at,
 		"Finished: " + finished_at,
 		"Duration: " + format_duration_ms(duration_ms),
+		"Timed out: " + to_string(timed_out),
+		"Cancelled: " + to_string(cancelled),
+		"Terminal output truncated: " + to_string(display_truncated),
 		"",
 		"## Summary",
 		"",
@@ -47,7 +50,7 @@ export func write_markdown_report(workflow_name, status, exit_code, started_at, 
 }
 
 # Generate a JSON report for a workflow run.
-export func write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text) {
+export func write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, error_text, timed_out, cancelled, display_truncated) {
 	ensure_dir(REPORTS_DIR)
 
 	mut report := dict()
@@ -60,6 +63,9 @@ export func write_json_report(workflow_name, status, exit_code, started_at, fini
 	report["log_path"] = log_path
 	report["report_path"] = report_path
 	report["summary"] = summary_line
+	report["timed_out"] = timed_out
+	report["cancelled"] = cancelled
+	report["display_truncated"] = display_truncated
 
 	if error_text != "" {
 		redacted_error := redact_text(error_text)

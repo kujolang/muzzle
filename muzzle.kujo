@@ -7,15 +7,18 @@
 #   kujo run muzzle.kujo -- <command> [options]
 #   muzzle <command> [options]           (via Bash wrapper)
 
-from src.common import parse_subcommand, flag_value, positional_args
+from src.common import parse_subcommand, has_flag, flag_value, positional_args
 from src.common import is_trueish, is_falseish, str_starts_with, str_ends_with
 from src.common import dict_has_key, has_muzzle_dir, format_duration_ms, path_is_within_muzzle
 from src.common import timestamp_compact, timestamp_iso, ensure_dir
-from src.runner import resolve_runner, valid_runner, build_command, parse_captured_output, runner_label
-from src.workflow import load_manifest, resolve_workflow_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
+from src.runner import resolve_runner, valid_runner, run_workflow, read_log_tail, runner_label
+from src.workflow import load_manifest, inspect_manifest, first_manifest_issue, verify_manifest_integrity, resolve_workflow_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
 from src.report import write_markdown_report, write_json_report, make_paths
 from src.redact import error_excerpt
 from src.loops import find_active_loop, find_invalid_loop_state, load_loop, create_loop, advance_loop, record_loop_done, current_iteration_recorded, list_all_loops
+from src.policy import valid_policy_mode, evaluate_safety_policy, validate_manifest_args, display_args, verify_signed_policy_bundle
+from src.doctor import run_doctor
+from src.retention import clean_artifacts
 
 MUZZLE_VERSION := "1.0.0"
 
@@ -39,6 +42,19 @@ func print_kv(prefix, value) {
 	print(prefix + to_string(value))
 }
 
+func command_json(argv) {
+	return is_trueish(has_flag(argv, "--json"))
+}
+
+func fail_command(command_name, code, message, details, json_out, exit_code) {
+	if json_out {
+		print(to_json({"schema_version": "muzzle.error/v1", "command": command_name, "code": code, "message": message, "details": details}))
+	} else {
+		print("Error [" + code + "]: " + message)
+	}
+	exit(exit_code)
+}
+
 func print_help() {
 	print_lines(array(
 		"Muzzle v" + MUZZLE_VERSION + " — Quiet Workflow Runner for AI-Assisted Development",
@@ -60,6 +76,8 @@ func print_help() {
 		"  loop status                   Show loop progress",
 		"  loop summary                  Show all loop entries",
 		"  clean                         Remove all logs and reports",
+		"  doctor [--json]               Validate runtime, manifests, and local paths",
+		"  integrity <workflow> [--json] Show or verify a workflow script checksum",
 		"  help                          Show this help",
 		"  version                       Print version",
 		"",
@@ -69,6 +87,12 @@ func print_help() {
 		"  --json           Output machine-readable JSON summary",
 		"  --runner <name>  Force runner: kujo (default), bash, python, node",
 		"  --timeout <ms>   Max execution time in ms (default: 300000, min: 1000, max: 3600000)",
+		"  --cancel-file <path> Cancel when a project-local marker file appears",
+		"  --policy <mode>  trusted (default) or enforce manifest safety metadata",
+		"  --approve        Confirm network/approval-marked work in enforce mode",
+		"  --validate-args  Enforce manifest arity and allowed argument values",
+		"  --policy-bundle <file> --policy-public-key <file> --policy-signature <file>",
+		"                   Verify a signed muzzle.policy/v1 authorization bundle",
 		"",
 		"Runners:",
 		"  kujo             Execute .kujo scripts via KUJO_BIN (default)",
@@ -105,6 +129,15 @@ func is_run_value_flag(flag_name) {
 	if flag_name == "--timeout" {
 		return true
 	}
+	if flag_name == "--policy" {
+		return true
+	}
+	if flag_name == "--cancel-file" {
+		return true
+	}
+	if flag_name == "--policy-bundle" || flag_name == "--policy-public-key" || flag_name == "--policy-signature" {
+		return true
+	}
 	return false
 }
 
@@ -122,6 +155,12 @@ func is_run_bool_flag(flag_name) {
 		return true
 	}
 	if flag_name == "--json" {
+		return true
+	}
+	if flag_name == "--approve" {
+		return true
+	}
+	if flag_name == "--validate-args" {
 		return true
 	}
 	return false
@@ -322,6 +361,7 @@ func cmd_init() {
 	# Create manifests
 	hello_manifest := join(array(
 		"{",
+		"  \"schema_version\": \"muzzle.manifest/v1\",",
 		"  \"name\": \"hello\",",
 		"  \"summary\": \"Simple hello-world workflow (Kujo runner). Safe and read-only.\",",
 		"  \"runner\": \"kujo\",",
@@ -342,6 +382,7 @@ func cmd_init() {
 
 	bash_manifest := join(array(
 		"{",
+		"  \"schema_version\": \"muzzle.manifest/v1\",",
 		"  \"name\": \"hello-bash\",",
 		"  \"summary\": \"Simple hello-world workflow (Bash runner). Safe and read-only.\",",
 		"  \"runner\": \"bash\",",
@@ -408,13 +449,20 @@ func cmd_init() {
 # =============================================================================
 # LIST
 # =============================================================================
-func cmd_list() {
+func cmd_list(json_out) {
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("list", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
+	}
+	manifest_issue := first_manifest_issue()
+	if manifest_issue != null {
+		fail_command("list", to_string(manifest_issue["code"]), to_string(manifest_issue["message"]), {"workflow": manifest_issue["name"], "manifest_status": manifest_issue["status"]}, json_out, 2)
 	}
 
 	workflows := discover_workflows()
+	if json_out {
+		print(to_json({"schema_version": "muzzle.command/v1", "command": "list", "workflows": workflows, "count": len(workflows)}))
+		exit(0)
+	}
 
 	if len(workflows) == 0 {
 		print_lines(array(
@@ -456,36 +504,42 @@ func cmd_list() {
 # =============================================================================
 # INFO
 # =============================================================================
-func cmd_info(name) {
+func cmd_info(name, json_out) {
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("info", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 	if is_falseish(validate_workflow_name(name)) {
-		print("Error: Invalid workflow name '" + name + "'.")
-		exit(1)
+		fail_command("info", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + name + "'.", {"workflow": name}, json_out, 1)
+	}
+	manifest_inspection := inspect_manifest(name)
+	if to_string(manifest_inspection["status"]) != "missing" && to_string(manifest_inspection["status"]) != "valid" {
+		fail_command("info", to_string(manifest_inspection["code"]), to_string(manifest_inspection["message"]), {"workflow": name, "manifest_status": manifest_inspection["status"]}, json_out, 2)
 	}
 
 	info := get_workflow_info(name)
 	if info == null {
-		print("Error: Workflow '" + name + "' not found. Check available workflows with 'muzzle list'.")
-		exit(1)
+		fail_command("info", "WORKFLOW_NOT_FOUND", "Workflow '" + name + "' not found.", {"workflow": name}, json_out, 1)
 	}
 	if dict_has_key(info, "args") {
 		manifest_args := info["args"]
 		if type(manifest_args) != "array" {
-			print("Error: Invalid manifest for '" + name + "': args must be an array.")
-			exit(2)
+			fail_command("info", "MANIFEST_ARGS_TYPE", "Manifest args must be an array.", {"workflow": name}, json_out, 2)
 		}
 		mut manifest_arg_idx := 0
 		while manifest_arg_idx < len(manifest_args) {
 			manifest_arg := manifest_args[manifest_arg_idx]
 			if type(manifest_arg) != "dict" || is_falseish(dict_has_key(manifest_arg, "name")) {
-				print("Error: Invalid manifest for '" + name + "': every argument must be an object with a name.")
-				exit(2)
+				fail_command("info", "MANIFEST_ARG_NAME", "Every argument must be an object with a name.", {"workflow": name}, json_out, 2)
 			}
 			manifest_arg_idx = manifest_arg_idx + 1
 		}
+	}
+	if json_out {
+		mut payload := info
+		payload["schema_version"] = "muzzle.command/v1"
+		payload["command"] = "info"
+		print(to_json(payload))
+		exit(0)
 	}
 
 	print_kv("Workflow:   ", info["name"])
@@ -525,8 +579,7 @@ func cmd_info(name) {
 	if dict_has_key(info, "safety") {
 		safety := info["safety"]
 		if type(safety) != "dict" {
-			print("Error: Invalid manifest for '" + name + "': safety must be an object.")
-			exit(2)
+			fail_command("info", "MANIFEST_SAFETY_TYPE", "Manifest safety must be an object.", {"workflow": name}, json_out, 2)
 		}
 		print("Safety:")
 		mut require_git := "false"
@@ -560,36 +613,53 @@ func cmd_info(name) {
 # RUN
 # =============================================================================
 func cmd_run(argv) {
+	json_out := has_run_option(argv, "--json")
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("run", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 
 	# Parse flags
 	verbose := has_run_option(argv, "--verbose") || has_run_option(argv, "-v")
 	dry_run := has_run_option(argv, "--dry-run") || has_run_option(argv, "-n")
-	json_out := has_run_option(argv, "--json")
+	approved := has_run_option(argv, "--approve")
+	validate_args := has_run_option(argv, "--validate-args")
 	if is_trueish(option_missing_value(argv, "--runner")) {
-		print("Error: --runner requires a value: kujo, bash, python, or node.")
-		exit(2)
+		fail_command("run", "OPTION_VALUE_REQUIRED", "--runner requires a value: kujo, bash, python, or node.", {"option": "--runner"}, json_out, 2)
 	}
 	if is_trueish(option_missing_value(argv, "--timeout")) {
-		print("Error: --timeout requires an integer value in milliseconds.")
-		exit(2)
+		fail_command("run", "OPTION_VALUE_REQUIRED", "--timeout requires an integer value in milliseconds.", {"option": "--timeout"}, json_out, 2)
+	}
+	if is_trueish(option_missing_value(argv, "--policy")) {
+		fail_command("run", "OPTION_VALUE_REQUIRED", "--policy requires a value: trusted or enforce.", {"option": "--policy"}, json_out, 2)
+	}
+	if is_trueish(option_missing_value(argv, "--cancel-file")) {
+		fail_command("run", "OPTION_VALUE_REQUIRED", "--cancel-file requires a project-local path.", {"option": "--cancel-file"}, json_out, 2)
+	}
+	if is_trueish(option_missing_value(argv, "--policy-bundle")) || is_trueish(option_missing_value(argv, "--policy-public-key")) || is_trueish(option_missing_value(argv, "--policy-signature")) {
+		fail_command("run", "OPTION_VALUE_REQUIRED", "Signed policy options each require a file path.", dict(), json_out, 2)
 	}
 	runner_override := run_option_value(argv, "--runner", "")
 	timeout_str := run_option_value(argv, "--timeout", "300000")
+	mut policy_mode := run_option_value(argv, "--policy", "trusted")
+	cancel_file := run_option_value(argv, "--cancel-file", "")
+	policy_bundle := run_option_value(argv, "--policy-bundle", "")
+	policy_public_key := run_option_value(argv, "--policy-public-key", "")
+	policy_signature := run_option_value(argv, "--policy-signature", "")
+	if cancel_file != "" && (is_trueish(starts_with(cancel_file, "/")) || is_trueish(contains(cancel_file, ".."))) {
+		fail_command("run", "CANCEL_FILE_UNSAFE", "--cancel-file must be a safe project-relative path.", {"path": cancel_file}, json_out, 2)
+	}
 	if runner_override != "" && is_falseish(valid_runner(runner_override)) {
-		print("Error: Unsupported runner '" + runner_override + "'. Use: kujo, bash, python, or node.")
-		exit(2)
+		fail_command("run", "RUNNER_UNSUPPORTED", "Unsupported runner '" + runner_override + "'.", {"runner": runner_override}, json_out, 2)
+	}
+	if is_falseish(valid_policy_mode(policy_mode)) {
+		fail_command("run", "POLICY_UNSUPPORTED", "Unsupported policy '" + policy_mode + "'.", {"policy": policy_mode}, json_out, 2)
 	}
 	timeout_ms := 300000
 	mut timeout_parsed := null
 	try {
 		timeout_parsed = parse_int(timeout_str)
 	} except _err {
-		print("Error: Invalid timeout '" + timeout_str + "'. Use an integer number of milliseconds.")
-		exit(2)
+		fail_command("run", "TIMEOUT_INVALID", "Invalid timeout '" + timeout_str + "'.", {"timeout": timeout_str}, json_out, 2)
 	}
 	timeout_ms = to_int(timeout_parsed)
 	if timeout_ms < 1000 {
@@ -603,50 +673,73 @@ func cmd_run(argv) {
 	run_args := parse_run_invocation(argv)
 	workflow_name := to_string(run_args["workflow"])
 	if workflow_name == "" {
-		print("Error: Usage: muzzle run <workflow> [args...]")
-		exit(2)
+		fail_command("run", "USAGE", "Usage: muzzle run <workflow> [args...]", dict(), json_out, 2)
 	}
 
 	# Validate workflow name for safety
 	if is_falseish(validate_workflow_name(workflow_name)) {
-		print_lines(array(
-			"Error: Invalid workflow name '" + workflow_name + "'.",
-			"Workflow names must not contain /, \\, or .. and must be 1-128 characters."
-		))
-		exit(1)
+		fail_command("run", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + workflow_name + "'.", {"workflow": workflow_name}, json_out, 1)
 	}
 
 	workflow_args := run_args["args"]
+	if policy_bundle != "" || policy_public_key != "" || policy_signature != "" {
+		bundle_result := verify_signed_policy_bundle(policy_bundle, policy_public_key, policy_signature, workflow_name)
+		if is_falseish(bundle_result["allowed"]) {
+			fail_command("run", to_string(bundle_result["code"]), to_string(bundle_result["message"]), bundle_result["details"], json_out, 3)
+		}
+		policy_mode = "enforce"
+		if is_trueish(bundle_result["approved"]) {
+			approved = true
+		}
+	}
+	manifest_inspection := inspect_manifest(workflow_name)
+	if to_string(manifest_inspection["status"]) != "missing" && to_string(manifest_inspection["status"]) != "valid" {
+		fail_command("run", to_string(manifest_inspection["code"]), to_string(manifest_inspection["message"]), {"workflow": workflow_name, "manifest_status": manifest_inspection["status"]}, json_out, 2)
+	}
 
 	# Resolve script
 	script_path := resolve_workflow_script(workflow_name)
 	if script_path == "" {
-		print("Error: Workflow '" + workflow_name + "' not found. Check available workflows with 'muzzle list'.")
-		exit(1)
+		fail_command("run", "WORKFLOW_NOT_FOUND", "Workflow '" + workflow_name + "' not found.", {"workflow": workflow_name}, json_out, 1)
 	}
 
 	if is_falseish(validate_script_path(script_path)) {
-		print("Error: Workflow script '" + script_path + "' is outside expected directory. Refusing to run.")
-		exit(1)
+		fail_command("run", "WORKFLOW_SCRIPT_UNSAFE", "Workflow script is outside the expected directory.", {"workflow": workflow_name, "script": script_path}, json_out, 1)
 	}
 	if is_falseish(existing_muzzle_path_is_safe(".muzzle/logs")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/reports")) {
-		print("Error: Muzzle artifact directories resolve outside .muzzle. Refusing to run.")
-		exit(1)
+		fail_command("run", "ARTIFACT_DIRECTORY_UNSAFE", "Muzzle artifact directories resolve outside .muzzle.", dict(), json_out, 1)
 	}
 
 	# Load manifest for metadata
 	manifest := load_manifest(workflow_name)
 	if runner_override == "" && manifest != null && dict_has_key(manifest, "runner") && is_falseish(valid_runner(manifest["runner"])) {
 		manifest_runner := to_string(manifest["runner"])
-		print("Error: Unsupported runner '" + manifest_runner + "' in manifest. Use: kujo, bash, python, or node.")
-		exit(2)
+		fail_command("run", "RUNNER_UNSUPPORTED", "Unsupported runner '" + manifest_runner + "' in manifest.", {"runner": manifest_runner}, json_out, 2)
+	}
+	integrity := verify_manifest_integrity(manifest, script_path)
+	if is_falseish(integrity["ok"]) {
+		fail_command("run", to_string(integrity["code"]), to_string(integrity["message"]), {"workflow": workflow_name, "expected": integrity["expected"], "actual": integrity["actual"]}, json_out, 3)
 	}
 
 	# Resolve runner
 	runner := resolve_runner(manifest, script_path, runner_override)
+	policy_result := evaluate_safety_policy(manifest, policy_mode, approved)
+	if is_falseish(policy_result["allowed"]) {
+		fail_command("run", to_string(policy_result["code"]), to_string(policy_result["message"]), policy_result["details"], json_out, 3)
+	}
+	if validate_args {
+		arg_result := validate_manifest_args(manifest, workflow_args)
+		if is_falseish(arg_result["allowed"]) {
+			fail_command("run", to_string(arg_result["code"]), to_string(arg_result["message"]), arg_result["details"], json_out, 2)
+		}
+	}
 
 	# Dry run
 	if dry_run {
+		if json_out {
+			print(to_json({"schema_version": "muzzle.command/v1", "command": "run", "dry_run": true, "workflow": workflow_name, "runner": runner, "script_path": script_path, "args": display_args(manifest, workflow_args), "policy": policy_mode}))
+			exit(0)
+		}
 		print_lines(array(
 			"Muzzle: " + workflow_name + "  [DRY RUN]",
 			"Runner:    " + runner_label(runner),
@@ -654,7 +747,7 @@ func cmd_run(argv) {
 			"Would execute with runner: " + runner
 		))
 		if len(workflow_args) > 0 {
-			print_kv("Args:      ", join(workflow_args, " "))
+			print_kv("Args:      ", join(display_args(manifest, workflow_args), " "))
 		}
 		exit(0)
 	}
@@ -667,35 +760,39 @@ func cmd_run(argv) {
 	ensure_dir(".muzzle/logs")
 	ensure_dir(".muzzle/reports")
 
-	# Build and execute command
+	# Execute through the bounded-capture helper. Full output is spooled directly
+	# to the log; only verbose output (bounded by the runtime) or a short failure
+	# tail is retained in this process.
 	started_at := timestamp_iso()
 	start_ms := current_timestamp()
-
-	cmd := build_command(runner, script_path, workflow_args)
-
-	# Execute and capture output
 	mut exit_code := 0
 	mut raw_output := ""
+	mut timed_out := false
+	mut cancelled := false
+	mut display_truncated := false
 
 	try {
-		raw_output = execute(cmd, {"timeout_ms": timeout_ms})
+		process_result := run_workflow(runner, script_path, workflow_args, log_path, verbose, timeout_ms, cancel_file)
+		exit_code = to_int(process_result.exitcode)
+		timed_out = is_trueish(process_result.timed_out)
+		cancelled = is_trueish(process_result.cancelled)
+		display_truncated = is_trueish(process_result.stdout_truncated) || is_trueish(process_result.stderr_truncated)
+		if verbose {
+			raw_output = to_string(process_result.stdout)
+			if to_string(process_result.stderr) != "" {
+				raw_output = raw_output + to_string(process_result.stderr)
+			}
+		}
 	} except err {
-		# Execution failed — capture the error
 		raw_output = to_string(err)
 		exit_code = 1
+		write_file(log_path, raw_output)
 	}
-
-	# Parse captured output for exit code
-	parsed := parse_captured_output(raw_output)
-	if type(parsed) == "Error" {
-		# Could not parse — use raw output
-	} else {
-		if dict_has_key(parsed, "marker_found") && is_trueish(parsed["marker_found"]) && dict_has_key(parsed, "exit_code") {
-			exit_code = parsed["exit_code"]
-		}
-		if dict_has_key(parsed, "output") {
-			raw_output = to_string(parsed["output"])
-		}
+	if timed_out {
+		exit_code = 124
+	}
+	if cancelled {
+		exit_code = 130
 	}
 
 	end_ms := current_timestamp()
@@ -711,16 +808,20 @@ func cmd_run(argv) {
 	mut err_text := ""
 	if exit_code != 0 {
 		status = "failed"
-		summary_line = "The workflow failed with exit code " + to_string(exit_code) + "."
-		err_text = error_excerpt(raw_output, 5)
+		if timed_out {
+			summary_line = "The workflow timed out with exit code 124."
+		} else if cancelled {
+			summary_line = "The workflow was interrupted with exit code 130."
+		} else {
+			summary_line = "The workflow failed with exit code " + to_string(exit_code) + "."
+		}
+		tail_output := read_log_tail(log_path, 40)
+		err_text = error_excerpt(tail_output, 5)
 	}
 
-	# Write log file (full output, not redacted)
-	write_file(log_path, raw_output)
-
 	# Write reports (with redaction)
-	write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
-	write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text)
+	write_markdown_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text, timed_out, cancelled, display_truncated)
+	write_json_report(workflow_name, status, exit_code, started_at, finished_at, duration_ms, log_path, report_path, summary_line, err_text, timed_out, cancelled, display_truncated)
 
 	# Update session state.
 	update_session_state(workflow_name, finished_at)
@@ -747,6 +848,9 @@ func cmd_run(argv) {
 			"Report:     " + report_path,
 			"Log:        " + log_path
 		))
+		if display_truncated {
+			print("Note: terminal display was truncated; the full output is in " + log_path)
+		}
 	} else {
 		# Quiet default output
 		if runner != "kujo" {
@@ -816,24 +920,26 @@ func artifact_matches_workflow(entry_name, workflow_name, extension) {
 # =============================================================================
 # LOGS
 # =============================================================================
-func cmd_logs(filter) {
+func cmd_logs(filter, json_out) {
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("logs", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 	if filter != "" && is_falseish(validate_workflow_name(filter)) {
-		print("Error: Invalid workflow name '" + filter + "'.")
-		exit(1)
+		fail_command("logs", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + filter + "'.", {"workflow": filter}, json_out, 1)
 	}
 
 	if is_falseish(file_exists(".muzzle/logs")) {
+		if json_out {
+			print(to_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": array(), "count": 0}))
+			exit(0)
+		}
 		print("No logs directory found.")
 		exit(0)
 	}
 	if is_falseish(path_is_dir(".muzzle/logs")) || is_falseish(path_is_within_muzzle(".muzzle/logs")) {
-		print("Error: Muzzle log directory resolves outside .muzzle. Refusing to inspect it.")
-		exit(1)
+		fail_command("logs", "ARTIFACT_DIRECTORY_UNSAFE", "Muzzle log directory resolves outside .muzzle.", {"path": ".muzzle/logs"}, json_out, 1)
 	}
+	mut artifacts := array()
 
 	if filter != "" {
 		# Show logs for specific workflow
@@ -843,19 +949,27 @@ func cmd_logs(filter) {
 		while log_filter_idx < len(entries) {
 			entry_name := to_string(entries[log_filter_idx])
 			if is_trueish(artifact_matches_workflow(entry_name, filter, ".log")) {
-				print("Log: .muzzle/logs/" + entry_name)
+				path := ".muzzle/logs/" + entry_name
+				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
+				if is_falseish(json_out) {
+					print("Log: " + path)
+				}
 				log_found = log_found + 1
 			}
 			log_filter_idx = log_filter_idx + 1
 		}
 		if log_found == 0 {
-			print("No logs found for workflow '" + filter + "'.")
+			if is_falseish(json_out) {
+				print("No logs found for workflow '" + filter + "'.")
+			}
 		}
 	} else {
-		print_lines(array(
-			"Recent logs:",
-			""
-		))
+		if is_falseish(json_out) {
+			print_lines(array(
+				"Recent logs:",
+				""
+			))
+		}
 		entries := sort(list_dir(".muzzle/logs"))
 		mut log_count := 0
 		mut log_list_idx := 0
@@ -865,44 +979,54 @@ func cmd_logs(filter) {
 				log_full := ".muzzle/logs/" + entry_name
 				if is_trueish(path_is_within_muzzle(log_full)) {
 					fsize := file_size(log_full)
-					print("  " + entry_name + "    " + to_string(fsize) + " bytes")
+					artifacts = push(artifacts, {"path": log_full, "size_bytes": fsize})
+					if is_falseish(json_out) {
+						print("  " + entry_name + "    " + to_string(fsize) + " bytes")
+					}
 					log_count = log_count + 1
 				}
 			}
 			log_list_idx = log_list_idx + 1
 		}
 		if log_count == 0 {
-			print("  (no logs yet)")
-		} else {
+			if is_falseish(json_out) {
+				print("  (no logs yet)")
+			}
+		} else if is_falseish(json_out) {
 			print_lines(array(
 				"",
 				"Use 'muzzle logs <workflow>' to filter by workflow name."
 			))
 		}
 	}
+	if json_out {
+		print(to_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)}))
+	}
 }
 
 # =============================================================================
 # REPORT
 # =============================================================================
-func cmd_report(filter) {
+func cmd_report(filter, json_out) {
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("report", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 	if filter != "" && is_falseish(validate_workflow_name(filter)) {
-		print("Error: Invalid workflow name '" + filter + "'.")
-		exit(1)
+		fail_command("report", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + filter + "'.", {"workflow": filter}, json_out, 1)
 	}
 
 	if is_falseish(file_exists(".muzzle/reports")) {
+		if json_out {
+			print(to_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": array(), "count": 0}))
+			exit(0)
+		}
 		print("No reports directory found.")
 		exit(0)
 	}
 	if is_falseish(path_is_dir(".muzzle/reports")) || is_falseish(path_is_within_muzzle(".muzzle/reports")) {
-		print("Error: Muzzle report directory resolves outside .muzzle. Refusing to inspect it.")
-		exit(1)
+		fail_command("report", "ARTIFACT_DIRECTORY_UNSAFE", "Muzzle report directory resolves outside .muzzle.", {"path": ".muzzle/reports"}, json_out, 1)
 	}
+	mut artifacts := array()
 
 	if filter != "" {
 		entries := sort(list_dir(".muzzle/reports"))
@@ -911,33 +1035,47 @@ func cmd_report(filter) {
 		while report_filter_idx < len(entries) {
 			entry_name := to_string(entries[report_filter_idx])
 			if is_trueish(artifact_matches_workflow(entry_name, filter, ".md")) {
-				print("Report: .muzzle/reports/" + entry_name)
+				path := ".muzzle/reports/" + entry_name
+				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
+				if is_falseish(json_out) {
+					print("Report: " + path)
+				}
 				report_found = report_found + 1
 			}
 			report_filter_idx = report_filter_idx + 1
 		}
 		if report_found == 0 {
-			print("No reports found for workflow '" + filter + "'.")
+			if is_falseish(json_out) {
+				print("No reports found for workflow '" + filter + "'.")
+			}
 		}
 	} else {
-		print_lines(array(
-			"Recent reports:",
-			""
-		))
+		if is_falseish(json_out) {
+			print_lines(array(
+				"Recent reports:",
+				""
+			))
+		}
 		entries := sort(list_dir(".muzzle/reports"))
 		mut report_count := 0
 		mut report_list_idx := 0
 		while report_list_idx < len(entries) {
 			entry_name := to_string(entries[report_list_idx])
 			if is_trueish(str_ends_with(entry_name, ".md")) {
-				print("  " + entry_name)
+				path := ".muzzle/reports/" + entry_name
+				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
+				if is_falseish(json_out) {
+					print("  " + entry_name)
+				}
 				report_count = report_count + 1
 			}
 			report_list_idx = report_list_idx + 1
 		}
 		if report_count == 0 {
-			print("  (no reports yet)")
-		} else {
+			if is_falseish(json_out) {
+				print("  (no reports yet)")
+			}
+		} else if is_falseish(json_out) {
 			print_lines(array(
 				"",
 				"Use 'muzzle report <workflow>' to filter by workflow name.",
@@ -945,71 +1083,120 @@ func cmd_report(filter) {
 			))
 		}
 	}
+	if json_out {
+		print(to_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)}))
+	}
 }
 
 # =============================================================================
 # CLEAN
 # =============================================================================
 func cmd_clean(argv) {
+	json_out := command_json(argv)
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("clean", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 
 	if is_falseish(existing_muzzle_path_is_safe(".muzzle/logs")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/reports")) {
-		print("Error: Muzzle artifact directories resolve outside .muzzle. Refusing to clean.")
+		fail_command("clean", "ARTIFACT_DIRECTORY_UNSAFE", "Muzzle artifact directories resolve outside .muzzle.", dict(), json_out, 1)
+	}
+	if is_trueish(option_missing_value(argv, "--workflow")) || is_trueish(option_missing_value(argv, "--older-than")) || is_trueish(option_missing_value(argv, "--keep")) {
+		fail_command("clean", "OPTION_VALUE_REQUIRED", "--workflow, --older-than, and --keep require values when provided.", dict(), json_out, 2)
+	}
+	workflow_filter := to_string(flag_value(argv, "--workflow", ""))
+	if workflow_filter != "" && is_falseish(validate_workflow_name(workflow_filter)) {
+		fail_command("clean", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + workflow_filter + "'.", {"workflow": workflow_filter}, json_out, 1)
+	}
+	mut older_than_ms := 0
+	mut keep_count := 0
+	try {
+		older_than_ms = to_int(parse_int(to_string(flag_value(argv, "--older-than", "0"))))
+		keep_count = to_int(parse_int(to_string(flag_value(argv, "--keep", "0"))))
+	} except _err {
+		fail_command("clean", "OPTION_INTEGER_REQUIRED", "--older-than and --keep require integer values.", dict(), json_out, 2)
+	}
+	if older_than_ms < 0 || keep_count < 0 {
+		fail_command("clean", "OPTION_RANGE", "--older-than and --keep must be zero or greater.", dict(), json_out, 2)
+	}
+	dry_run := is_trueish(has_flag(argv, "--dry-run")) || is_trueish(has_flag(argv, "-n"))
+	result := clean_artifacts(workflow_filter, older_than_ms, keep_count, dry_run)
+	if json_out {
+		print(to_json(result))
+	} else if dry_run {
+		print("Muzzle: Cleanup preview selected " + to_string(result["selected"]) + " recognized artifacts.")
+	} else {
+		print("Muzzle: Removed " + to_string(result["removed"]) + " recognized workflow artifacts.")
+	}
+	if to_int(result["skipped_unrecognized"]) > 0 && is_falseish(json_out) {
+		print("  Preserved: " + to_string(result["skipped_unrecognized"]) + " unrecognized entries")
+	}
+	if to_int(result["failures"]) > 0 {
 		exit(1)
 	}
+}
 
-	mut removed_logs := 0
-	mut removed_reports := 0
-	mut removal_failures := 0
-
-	# Clean logs
-	if is_trueish(file_exists(".muzzle/logs")) {
-		entries := list_dir(".muzzle/logs")
-		mut clean_log_idx := 0
-		while clean_log_idx < len(entries) {
-			entry_name := to_string(entries[clean_log_idx])
-			log_path := ".muzzle/logs/" + entry_name
-			if is_trueish(file_exists(log_path)) {
-				try {
-					delete_file(log_path)
-					removed_logs = removed_logs + 1
-				} except _err {
-					removal_failures = removal_failures + 1
-				}
+# =============================================================================
+# DOCTOR
+# =============================================================================
+func cmd_doctor(argv) {
+	json_out := is_trueish(has_flag(argv, "--json"))
+	result := run_doctor()
+	if json_out {
+		print(to_json(result))
+	} else {
+		print_lines(array(
+			"Muzzle Doctor",
+			"Errors:   " + to_string(result["errors"]),
+			"Warnings: " + to_string(result["warnings"])
+		))
+		findings := result["findings"]
+		if len(findings) == 0 {
+			print("OK All checks passed.")
+		} else {
+			mut idx := 0
+			while idx < len(findings) {
+				item := findings[idx]
+				print(to_upper(to_string(item["severity"])) + " [" + to_string(item["code"]) + "] " + to_string(item["message"]) + " (" + to_string(item["path"]) + ")")
+				idx = idx + 1
 			}
-			clean_log_idx = clean_log_idx + 1
 		}
 	}
-
-	# Clean reports
-	if is_trueish(file_exists(".muzzle/reports")) {
-		entries := list_dir(".muzzle/reports")
-		mut clean_report_idx := 0
-		while clean_report_idx < len(entries) {
-			entry_name := to_string(entries[clean_report_idx])
-			report_path := ".muzzle/reports/" + entry_name
-			if is_trueish(file_exists(report_path)) {
-				try {
-					delete_file(report_path)
-					removed_reports = removed_reports + 1
-				} except _err {
-					removal_failures = removal_failures + 1
-				}
-			}
-			clean_report_idx = clean_report_idx + 1
-		}
-	}
-
-	print_lines(array(
-		"Muzzle: Cleaned up workflow artifacts.",
-		"  Removed: " + to_string(removed_logs) + " logs, " + to_string(removed_reports) + " reports"
-	))
-	if removal_failures > 0 {
-		print("Error: Failed to remove " + to_string(removal_failures) + " artifact entries.")
+	if is_falseish(result["ok"]) {
 		exit(1)
+	}
+}
+
+func cmd_integrity(name, json_out) {
+	if is_falseish(has_muzzle_dir()) {
+		fail_command("integrity", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
+	}
+	if is_falseish(validate_workflow_name(name)) {
+		fail_command("integrity", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + name + "'.", {"workflow": name}, json_out, 1)
+	}
+	inspection := inspect_manifest(name)
+	if to_string(inspection["status"]) != "missing" && to_string(inspection["status"]) != "valid" {
+		fail_command("integrity", to_string(inspection["code"]), to_string(inspection["message"]), {"workflow": name}, json_out, 2)
+	}
+	script_path := resolve_workflow_script(name)
+	if script_path == "" || is_falseish(validate_script_path(script_path)) {
+		fail_command("integrity", "WORKFLOW_NOT_FOUND", "Workflow '" + name + "' not found.", {"workflow": name}, json_out, 1)
+	}
+	manifest := load_manifest(name)
+	result := verify_manifest_integrity(manifest, script_path)
+	payload := {"schema_version": "muzzle.integrity/v1", "command": "integrity", "workflow": name, "script_path": script_path, "ok": result["ok"], "status": result["code"], "message": result["message"], "expected_sha256": result["expected"], "actual_sha256": result["actual"]}
+	if json_out {
+		print(to_json(payload))
+	} else {
+		print_lines(array(
+			"Workflow: " + name,
+			"Script:   " + script_path,
+			"Status:   " + to_string(result["code"]),
+			"SHA-256:  " + to_string(result["actual"]),
+			to_string(result["message"])
+		))
+	}
+	if is_falseish(result["ok"]) {
+		exit(3)
 	}
 }
 
@@ -1017,26 +1204,23 @@ func cmd_clean(argv) {
 # LOOP
 # =============================================================================
 func cmd_loop(argv) {
+	json_out := command_json(argv)
 	if is_falseish(has_muzzle_dir()) {
-		print("Error: No .muzzle/ directory found. Run 'muzzle init' first.")
-		exit(1)
+		fail_command("loop", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 
 	if is_falseish(existing_muzzle_path_is_safe(".muzzle/state")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/state/loops")) {
-		print("Error: Muzzle loop state resolves outside .muzzle. Refusing to continue.")
-		exit(1)
+		fail_command("loop", "LOOP_STATE_UNSAFE", "Muzzle loop state resolves outside .muzzle.", dict(), json_out, 1)
 	}
 	ensure_dir(".muzzle/state/loops")
 	invalid_loop_state := find_invalid_loop_state()
 	if invalid_loop_state != "" {
-		print("Error: Invalid loop state in '" + invalid_loop_state + "'. Refusing to continue.")
-		exit(1)
+		fail_command("loop", "LOOP_STATE_INVALID", "Invalid loop state.", {"path": invalid_loop_state}, json_out, 1)
 	}
 
 	pos_args := positional_args(argv)
 	if len(pos_args) < 1 {
-		print("Error: Usage: muzzle loop <start|next|done|status|summary> [options]")
-		exit(2)
+		fail_command("loop", "USAGE", "Usage: muzzle loop <start|next|done|status|summary> [options]", dict(), json_out, 2)
 	}
 
 	subcmd := to_string(pos_args[0])
@@ -1047,16 +1231,14 @@ func cmd_loop(argv) {
 		mut limit := 10
 		# Parse from raw argv for flags
 		if is_trueish(option_missing_value(argv, "--limit")) {
-			print("Error: --limit requires an integer value.")
-			exit(2)
+			fail_command("loop", "OPTION_VALUE_REQUIRED", "--limit requires an integer value.", {"option": "--limit"}, json_out, 2)
 		}
 		limit_str := to_string(flag_value(argv, "--limit", "10"))
 		mut limit_parsed := null
 		try {
 			limit_parsed = parse_int(limit_str)
 		} except _err {
-			print("Error: Invalid loop limit '" + limit_str + "'. Use an integer.")
-			exit(2)
+			fail_command("loop", "LOOP_LIMIT_INVALID", "Invalid loop limit '" + limit_str + "'. Use an integer.", {"limit": limit_str}, json_out, 2)
 		}
 		limit = to_int(limit_parsed)
 		# Workflow name is the first positional after 'start'
@@ -1064,15 +1246,10 @@ func cmd_loop(argv) {
 			wf_name = to_string(pos_args[1])
 		}
 		if wf_name == "" {
-			print("Error: Usage: muzzle loop start <workflow> --limit <n>")
-			exit(2)
+			fail_command("loop", "USAGE", "Usage: muzzle loop start <workflow> --limit <n>", dict(), json_out, 2)
 		}
 		if is_falseish(validate_workflow_name(wf_name)) {
-			print_lines(array(
-				"Error: Invalid workflow name '" + wf_name + "'.",
-				"Workflow names must not contain /, \\, or .. and must be 1-128 characters."
-			))
-			exit(1)
+			fail_command("loop", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + wf_name + "'.", {"workflow": wf_name}, json_out, 1)
 		}
 		if limit < 1 {
 			limit = 1
@@ -1083,8 +1260,7 @@ func cmd_loop(argv) {
 		# Validate workflow exists
 		script_path := resolve_workflow_script(wf_name)
 		if script_path == "" {
-			print("Error: Workflow '" + wf_name + "' not found.")
-			exit(1)
+			fail_command("loop", "WORKFLOW_NOT_FOUND", "Workflow '" + wf_name + "' not found.", {"workflow": wf_name}, json_out, 1)
 		}
 		# Check if loop already exists
 		existing := find_active_loop()
@@ -1094,16 +1270,18 @@ func cmd_loop(argv) {
 				print("Muzzle: Loop '" + wf_name + "' already exists. Use 'muzzle loop status' to check progress.")
 				exit(0)
 			}
-			print("Error: Another active loop already exists. Complete it before starting '" + wf_name + "'.")
-			exit(1)
+			fail_command("loop", "LOOP_ALREADY_ACTIVE", "Another active loop already exists.", {"workflow": wf_name, "active_path": existing}, json_out, 1)
 		}
 		ts := timestamp_iso()
 		loop_state_path := ".muzzle/state/loops/" + wf_name + ".json"
 		if is_trueish(file_exists(loop_state_path)) && is_falseish(path_is_within_muzzle(loop_state_path)) {
-			print("Error: Loop state for '" + wf_name + "' resolves outside .muzzle. Refusing to overwrite it.")
-			exit(1)
+			fail_command("loop", "LOOP_STATE_UNSAFE", "Loop state resolves outside .muzzle.", {"workflow": wf_name, "path": loop_state_path}, json_out, 1)
 		}
 		create_loop(wf_name, limit, ts)
+		if json_out {
+			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "start", "workflow": wf_name, "status": "active", "current": 0, "limit": limit, "state_path": loop_state_path}))
+			exit(0)
+		}
 		print_lines(array(
 			"Muzzle: Loop started: " + wf_name + " (0/" + to_string(limit) + ")",
 			"",
@@ -1114,13 +1292,11 @@ func cmd_loop(argv) {
 	} else if subcmd == "next" {
 		loop_file := find_active_loop()
 		if loop_file == "" {
-			print("Error: No active loop found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
-			exit(1)
+			fail_command("loop", "LOOP_NOT_FOUND", "No active loop found.", dict(), json_out, 1)
 		}
 		existing_data := load_loop(loop_file)
 		if existing_data != null && is_falseish(current_iteration_recorded(existing_data)) {
-			print("Error: Complete the current iteration with 'muzzle loop done' before advancing.")
-			exit(1)
+			fail_command("loop", "LOOP_ITERATION_OPEN", "Complete the current iteration before advancing.", {"path": loop_file}, json_out, 1)
 		}
 		loop_data := advance_loop(loop_file)
 		if loop_data == null {
@@ -1129,13 +1305,21 @@ func cmd_loop(argv) {
 			if existing != null {
 				current := to_int(existing["current"])
 				limit := to_int(existing["limit"])
-				print("Loop '" + to_string(existing["workflow"]) + "' is complete (" + to_string(current) + "/" + to_string(limit) + ").")
-				print("Run 'muzzle loop summary' to see all entries.")
+				if json_out {
+					print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": existing["workflow"], "status": "completed", "current": current, "limit": limit}))
+				} else {
+					print("Loop '" + to_string(existing["workflow"]) + "' is complete (" + to_string(current) + "/" + to_string(limit) + ").")
+					print("Run 'muzzle loop summary' to see all entries.")
+				}
 			}
 			exit(0)
 		}
 		current := to_int(loop_data["current"])
 		limit := to_int(loop_data["limit"])
+		if json_out {
+			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": limit}))
+			exit(0)
+		}
 		print_lines(array(
 			"",
 			"Loop " + to_string(current) + "/" + to_string(limit) + ": " + to_string(loop_data["workflow"]),
@@ -1149,19 +1333,21 @@ func cmd_loop(argv) {
 		note := flag_value(argv, "--note", "")
 		loop_file := find_active_loop()
 		if loop_file == "" {
-			print("Error: No active loop found.")
-			exit(1)
+			fail_command("loop", "LOOP_NOT_FOUND", "No active loop found.", dict(), json_out, 1)
 		}
 		ts := timestamp_iso()
 		ok := record_loop_done(loop_file, note, ts)
 		if is_falseish(ok) {
-			print("Error: Failed to record loop entry.")
-			exit(1)
+			fail_command("loop", "LOOP_RECORD_FAILED", "Failed to record loop entry.", {"path": loop_file}, json_out, 1)
 		}
 		loop_data := load_loop(loop_file)
 		current := 0
 		if loop_data != null {
 			current = to_int(loop_data["current"])
+		}
+		if json_out {
+			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "done", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": loop_data["limit"], "note": note}))
+			exit(0)
 		}
 		print("OK Loop " + to_string(current) + ": " + to_string(loop_data["workflow"]) + " — recorded.")
 		if note != "" {
@@ -1178,8 +1364,10 @@ func cmd_loop(argv) {
 			# Show all loops
 			all_loops := list_all_loops()
 			if len(all_loops) == 0 {
-				print("No loops found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
-			} else {
+				if is_falseish(json_out) {
+					print("No loops found. Start one with 'muzzle loop start <workflow> --limit <n>'.")
+				}
+			} else if is_falseish(json_out) {
 				mut status_loop_idx := 0
 				while status_loop_idx < len(all_loops) {
 					lp := all_loops[status_loop_idx]
@@ -1187,10 +1375,17 @@ func cmd_loop(argv) {
 					status_loop_idx = status_loop_idx + 1
 				}
 			}
+			if json_out {
+				print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loops": all_loops, "count": len(all_loops)}))
+			}
 			exit(0)
 		}
 		loop_data := load_loop(loop_file)
 		if loop_data == null {
+			exit(0)
+		}
+		if json_out {
+			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loop": loop_data}))
 			exit(0)
 		}
 		print_kv("Loop:       ", loop_data["workflow"])
@@ -1216,7 +1411,15 @@ func cmd_loop(argv) {
 	} else if subcmd == "summary" {
 		all_loops := list_all_loops()
 		if len(all_loops) == 0 {
-			print("No loops found.")
+			if json_out {
+				print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": 0}))
+			} else {
+				print("No loops found.")
+			}
+			exit(0)
+		}
+		if json_out {
+			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": len(all_loops)}))
 			exit(0)
 		}
 		mut summary_loop_idx := 0
@@ -1263,8 +1466,7 @@ func cmd_loop(argv) {
 		}
 
 	} else {
-		print("Error: Unknown loop command: '" + subcmd + "'. Use: start, next, done, status, summary")
-		exit(2)
+		fail_command("loop", "LOOP_ACTION_UNKNOWN", "Unknown loop command: '" + subcmd + "'.", {"action": subcmd}, json_out, 2)
 	}
 }
 
@@ -1307,17 +1509,16 @@ func main() {
 	}
 
 	if subcommand == "list" || subcommand == "ls" {
-		cmd_list()
+		cmd_list(command_json(argv))
 		exit(0)
 	}
 
 	if subcommand == "info" || subcommand == "show" {
 		pos_args := positional_args(argv)
 		if len(pos_args) < 1 {
-			print("Error: Usage: muzzle info <workflow>")
-			exit(2)
+			fail_command("info", "USAGE", "Usage: muzzle info <workflow>", dict(), command_json(argv), 2)
 		}
-		cmd_info(to_string(pos_args[0]))
+		cmd_info(to_string(pos_args[0]), command_json(argv))
 		exit(0)
 	}
 
@@ -1332,7 +1533,7 @@ func main() {
 		if len(pos_args) > 0 {
 			filter = to_string(pos_args[0])
 		}
-		cmd_logs(filter)
+		cmd_logs(filter, command_json(argv))
 		exit(0)
 	}
 
@@ -1342,7 +1543,7 @@ func main() {
 		if len(pos_args) > 0 {
 			filter = to_string(pos_args[0])
 		}
-		cmd_report(filter)
+		cmd_report(filter, command_json(argv))
 		exit(0)
 	}
 
@@ -1356,9 +1557,22 @@ func main() {
 		exit(0)
 	}
 
+	if subcommand == "doctor" {
+		cmd_doctor(argv)
+		exit(0)
+	}
+
+	if subcommand == "integrity" || subcommand == "checksum" {
+		pos_args := positional_args(argv)
+		if len(pos_args) < 1 {
+			fail_command("integrity", "USAGE", "Usage: muzzle integrity <workflow> [--json]", dict(), command_json(argv), 2)
+		}
+		cmd_integrity(to_string(pos_args[0]), command_json(argv))
+		exit(0)
+	}
+
 	# Unknown command
-	print("Error: Unknown command: '" + subcommand + "'. Run 'muzzle help' for usage.")
-	exit(2)
+	fail_command(subcommand, "COMMAND_UNKNOWN", "Unknown command '" + subcommand + "'.", dict(), command_json(argv), 2)
 }
 
 main()

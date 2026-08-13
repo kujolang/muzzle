@@ -1,4 +1,5 @@
 {
+  "schema_version": "muzzle.manifest/v1",
   "name": "build-check",
   "summary": "Run one detected local build entrypoint.",
   "runner": "bash",

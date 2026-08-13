@@ -2,7 +2,7 @@
 # Provides CLI arg parsing, truthy helpers, timestamp formatting,
 # and filesystem path helpers.
 
-from cli import parse_subcommand, has_flag, flag_value, positional_args
+from src.cli import parse_subcommand, has_flag, flag_value, positional_args
 
 export parse_subcommand := parse_subcommand
 export has_flag := has_flag

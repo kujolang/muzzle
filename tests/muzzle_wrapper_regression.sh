@@ -46,6 +46,22 @@ cleanup_files() {
 }
 trap cleanup_files EXIT
 
+portable_file_size() {
+	if stat -f '%z' "$1" >/dev/null 2>&1; then
+		stat -f '%z' "$1"
+	else
+		stat -c '%s' "$1"
+	fi
+}
+
+portable_sha256() {
+	if command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 "$1" | awk '{print $1}'
+	else
+		sha256sum "$1" | awk '{print $1}'
+	fi
+}
+
 "$MUZZLE_BIN" --help >"$help_stdout" 2>"$help_stderr"
 if [[ -s "$help_stderr" ]]; then
 	echo "Expected --help to be quiet on stderr." >&2
@@ -163,6 +179,7 @@ if [[ "$invalid_safety_code" -ne 2 || "$invalid_safety_output" != *"safety must 
 	echo "Expected invalid manifest safety metadata to fail with a controlled error." >&2
 	exit 1
 fi
+rm .muzzle/manifests/invalid-safety.json .muzzle/workflows/invalid-safety.sh
 
 dry_run_output="$($MUZZLE_BIN run hello --dry-run)"
 if ! grep -q "\[DRY RUN\]" <<<"$dry_run_output"; then
@@ -454,24 +471,43 @@ set +e
 invalid_args_output="$($MUZZLE_BIN info invalid-args 2>&1)"
 invalid_args_code=$?
 set -e
-if [[ "$invalid_args_code" -ne 2 || "$invalid_args_output" != *"Invalid manifest"* || "$invalid_args_output" == *"Runtime Error"* ]]; then
+if [[ "$invalid_args_code" -ne 2 || "$invalid_args_output" != *"MANIFEST_ARGS_TYPE"* || "$invalid_args_output" == *"Runtime Error"* ]]; then
 	echo "Expected invalid manifest argument metadata to fail with a controlled error." >&2
 	exit 1
 fi
+rm .muzzle/manifests/invalid-args.json
+cat > .muzzle/manifests/unknown-field.json <<'EOF'
+{"schema_version":"muzzle.manifest/v1","name":"unknown-field","script":"workflows/shared-implementation.sh","unexpected":true}
+EOF
+set +e
+unknown_field_output="$($MUZZLE_BIN info unknown-field --json 2>&1)"
+unknown_field_code=$?
+set -e
+if [[ "$unknown_field_code" -ne 2 || "$unknown_field_output" != *'"code":"MANIFEST_UNKNOWN_FIELD"'* ]]; then
+	echo "Expected strict manifests to reject unknown fields." >&2
+	exit 1
+fi
+rm .muzzle/manifests/unknown-field.json
 if grep -q "should not run" .muzzle/logs/manifest-missing-*.log 2>/dev/null; then
 	echo "Unexpected fallback to same-name script when manifest script is missing." >&2
 	exit 1
 fi
+rm .muzzle/manifests/manifest-missing.json .muzzle/workflows/manifest-missing.sh
 
 cat > .muzzle/workflows/malformed-manifest.sh <<'EOF'
 #!/usr/bin/env bash
 echo "malformed manifest fallback"
 EOF
 printf '{invalid json\n' > .muzzle/manifests/malformed-manifest.json
-if ! grep -q '^malformed-manifest[[:space:]]' <<<"$($MUZZLE_BIN list)"; then
-	echo "Expected list to discover a script whose optional manifest is malformed." >&2
+set +e
+malformed_manifest_output="$($MUZZLE_BIN list 2>&1)"
+malformed_manifest_code=$?
+set -e
+if [[ "$malformed_manifest_code" -ne 2 || "$malformed_manifest_output" != *"malformed JSON"* ]]; then
+	echo "Expected list to distinguish and reject malformed manifest JSON." >&2
 	exit 1
 fi
+rm .muzzle/manifests/malformed-manifest.json
 
 cat > .muzzle/workflows/invalid-manifest-runner.sh <<'EOF'
 #!/usr/bin/env bash
@@ -488,10 +524,11 @@ set +e
 invalid_manifest_runner_output="$($MUZZLE_BIN run invalid-manifest-runner 2>&1)"
 invalid_manifest_runner_code=$?
 set -e
-if [[ "$invalid_manifest_runner_code" -ne 2 || "$invalid_manifest_runner_output" != *"Unsupported runner 'ruby'"* ]]; then
-	echo "Expected an invalid manifest runner to fail explicitly with exit 2." >&2
+if [[ "$invalid_manifest_runner_code" -ne 2 || "$invalid_manifest_runner_output" != *"runner must be one of"* ]]; then
+	echo "Expected an invalid manifest runner to fail strict validation with exit 2." >&2
 	exit 1
 fi
+rm .muzzle/manifests/invalid-manifest-runner.json
 
 "$MUZZLE_BIN" run echoargs -- '--json' >"$inject_stdout" 2>"$inject_stderr"
 if ! grep -Fq -- '--json' .muzzle/logs/echoargs-*.log 2>/dev/null; then
@@ -533,10 +570,11 @@ if [[ "$escape_code" -ne 1 ]]; then
 	echo "Expected symlink escape workflow to exit 1, got $escape_code." >&2
 	exit 1
 fi
-if ! grep -q "outside expected directory" "$escape_stdout"; then
+if ! grep -q "outside the expected directory" "$escape_stdout"; then
 	echo "Expected symlink escape refusal message." >&2
 	exit 1
 fi
+rm .muzzle/manifests/escape.json .muzzle/workflows/escape.sh
 
 cat > .muzzle/workflows/fail.kujo <<'EOF'
 print("This workflow fails intentionally.")
@@ -666,6 +704,164 @@ if ! grep -q 'Status:[[:space:]]*failed' "$timeout_stdout"; then
 	echo "Expected a timed-out workflow summary to report failure." >&2
 	exit 1
 fi
+if [[ "$timeout_code" -ne 124 ]]; then
+	echo "Expected a timed-out workflow to use exit 124, got $timeout_code." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/large-output.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+for idx in $(seq 1 30000); do
+  printf 'large-output-%06d-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz\n' "$idx"
+done
+EOF
+large_json="$($MUZZLE_BIN run large-output --json)"
+large_log="$(grep -o '"log_path":"[^"]*"' <<<"$large_json" | cut -d'"' -f4)"
+if [[ -z "$large_log" || ! -f "$large_log" || "$(portable_file_size "$large_log")" -lt 2000000 ]]; then
+	echo "Expected large workflow output to be preserved completely in its spooled log." >&2
+	exit 1
+fi
+if [[ "${#large_json}" -gt 4096 || "$(tail -1 "$large_log")" != large-output-030000-* ]]; then
+	echo "Expected large-output JSON to stay bounded while the complete log remains available." >&2
+	exit 1
+fi
+
+cat > .muzzle/workflows/policy-check.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'policy approved\n'
+EOF
+cat > .muzzle/manifests/policy-check.json <<'EOF'
+{
+  "schema_version": "muzzle.manifest/v1",
+  "name": "policy-check",
+  "runner": "bash",
+  "script": "workflows/policy-check.sh",
+  "args": [
+    {"name": "environment", "required": true, "allowed_values": ["staging", "production"]},
+    {"name": "token", "required": false, "sensitive": true}
+  ],
+  "allow_extra_args": false,
+  "safety": {
+    "require_git_repo": false,
+    "allow_dirty_tree": true,
+    "requires_network": true,
+    "human_approval_recommended": true
+  }
+}
+EOF
+set +e
+policy_denial="$($MUZZLE_BIN run policy-check staging --policy enforce --validate-args --json 2>&1)"
+policy_denial_code=$?
+set -e
+if [[ "$policy_denial_code" -ne 3 || "$policy_denial" != *'"code":"POLICY_APPROVAL_REQUIRED"'* ]]; then
+	echo "Expected enforce policy to return a machine-readable approval denial." >&2
+	exit 1
+fi
+policy_success="$($MUZZLE_BIN run policy-check staging --policy enforce --approve --validate-args --json)"
+if [[ "$policy_success" != *'"status":"success"'* ]]; then
+	echo "Expected explicit policy approval to permit the workflow." >&2
+	exit 1
+fi
+set +e
+arg_denial="$($MUZZLE_BIN run policy-check invalid --approve --validate-args --json 2>&1)"
+arg_denial_code=$?
+set -e
+if [[ "$arg_denial_code" -ne 2 || "$arg_denial" != *'"code":"ARG_VALUE_NOT_ALLOWED"'* ]]; then
+	echo "Expected opt-in argument allowlist validation." >&2
+	exit 1
+fi
+sensitive_preview="$($MUZZLE_BIN run policy-check staging super-secret --dry-run)"
+if [[ "$sensitive_preview" == *'super-secret'* || "$sensitive_preview" != *'[REDACTED]'* ]]; then
+	echo "Expected dry-run to redact manifest arguments marked sensitive." >&2
+	exit 1
+fi
+
+if command -v openssl >/dev/null 2>&1; then
+	openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out policy-private.pem >/dev/null 2>&1
+	openssl pkey -in policy-private.pem -pubout -out policy-public.pem >/dev/null 2>&1
+	printf '%s\n' '{"schema_version":"muzzle.policy/v1","workflows":["policy-check"],"approved":true,"issuer":"regression"}' > policy-bundle.json
+	openssl dgst -sha256 -sign policy-private.pem -out policy-signature.bin policy-bundle.json
+	signed_policy_output="$($MUZZLE_BIN run policy-check staging --policy-bundle policy-bundle.json --policy-public-key policy-public.pem --policy-signature policy-signature.bin --json)"
+	if [[ "$signed_policy_output" != *'"status":"success"'* ]]; then
+		echo "Expected a valid detached policy signature to authorize the workflow." >&2
+		exit 1
+	fi
+	printf ' ' >> policy-bundle.json
+	set +e
+	signed_policy_denial="$($MUZZLE_BIN run policy-check staging --policy-bundle policy-bundle.json --policy-public-key policy-public.pem --policy-signature policy-signature.bin --json 2>&1)"
+	signed_policy_denial_code=$?
+	set -e
+	if [[ "$signed_policy_denial_code" -ne 3 || "$signed_policy_denial" != *'"code":"POLICY_SIGNATURE_INVALID"'* ]]; then
+		echo "Expected policy bundle tampering to fail closed." >&2
+		exit 1
+	fi
+	rm policy-private.pem policy-public.pem policy-bundle.json policy-signature.bin
+fi
+
+script_digest="$(portable_sha256 .muzzle/workflows/policy-check.sh)"
+sed "s/\"script\": \"workflows\/policy-check.sh\",/\"script\": \"workflows\/policy-check.sh\",\n  \"script_sha256\": \"${script_digest}\",/" .muzzle/manifests/policy-check.json > .muzzle/manifests/policy-check-pinned.json
+mv .muzzle/manifests/policy-check-pinned.json .muzzle/manifests/policy-check.json
+integrity_success="$($MUZZLE_BIN integrity policy-check --json)"
+if [[ "$integrity_success" != *'"status":"INTEGRITY_VERIFIED"'* ]]; then
+	echo "Expected integrity command to verify a pinned workflow checksum." >&2
+	exit 1
+fi
+printf '# drift\n' >> .muzzle/workflows/policy-check.sh
+set +e
+integrity_denial="$($MUZZLE_BIN run policy-check staging --approve --json 2>&1)"
+integrity_denial_code=$?
+set -e
+if [[ "$integrity_denial_code" -ne 3 || "$integrity_denial" != *'"code":"INTEGRITY_MISMATCH"'* ]]; then
+	echo "Expected checksum drift to block workflow execution." >&2
+	exit 1
+fi
+
+set +e
+doctor_mismatch="$($MUZZLE_BIN doctor --json 2>&1)"
+doctor_mismatch_code=$?
+set -e
+if [[ "$doctor_mismatch_code" -ne 1 || "$doctor_mismatch" != *'"code":"INTEGRITY_MISMATCH"'* ]]; then
+	echo "Expected doctor to report checksum drift with a stable finding code." >&2
+	exit 1
+fi
+rm .muzzle/manifests/policy-check.json .muzzle/workflows/policy-check.sh
+set +e
+doctor_ok_output="$($MUZZLE_BIN doctor --json 2>&1)"
+doctor_ok_code=$?
+set -e
+if [[ "$doctor_ok_code" -ne 0 || "$doctor_ok_output" != *'"ok":true'* ]]; then
+	echo "Expected doctor to pass after invalid fixtures are removed." >&2
+	echo "$doctor_ok_output" >&2
+	exit 1
+fi
+
+list_json_output="$($MUZZLE_BIN list --json)"
+info_json_output="$($MUZZLE_BIN info hello --json)"
+logs_json_output="$($MUZZLE_BIN logs --json)"
+reports_json_output="$($MUZZLE_BIN report --json)"
+if [[ "$list_json_output" != *'"schema_version":"muzzle.command/v1"'* || "$info_json_output" != *'"command":"info"'* || "$logs_json_output" != *'"command":"logs"'* || "$reports_json_output" != *'"command":"report"'* ]]; then
+	echo "Expected inspection commands to emit parseable versioned JSON envelopes." >&2
+	exit 1
+fi
+
+"$MUZZLE_BIN" run hello >/dev/null
+sleep 0.02
+"$MUZZLE_BIN" run hello >/dev/null
+retention_preview="$($MUZZLE_BIN clean --workflow hello --keep 1 --dry-run --json)"
+if [[ "$retention_preview" != *'"dry_run":true'* || "$retention_preview" == *'"selected":0'* ]]; then
+	echo "Expected retention cleanup to preview older recognized artifacts." >&2
+	exit 1
+fi
+"$MUZZLE_BIN" clean --workflow hello --keep 1 >/dev/null
+retained_logs="$(find .muzzle/logs -maxdepth 1 -type f -name 'hello-*.log' | grep -c '/hello-[0-9]')"
+retained_reports="$(find .muzzle/reports -maxdepth 1 -type f -name 'hello-*.md' | grep -c '/hello-[0-9]')"
+if [[ "$retained_logs" -ne 1 || "$retained_reports" -ne 1 ]]; then
+	echo "Expected retention cleanup to keep exactly one run per artifact type." >&2
+	echo "Retained logs: $retained_logs; retained Markdown reports: $retained_reports" >&2
+	exit 1
+fi
 
 cat > .muzzle/workflows/prefix.sh <<'EOF'
 #!/usr/bin/env bash
@@ -751,8 +947,8 @@ set +e
 "$MUZZLE_BIN" clean >"$invalid_option_stdout" 2>"$invalid_option_stderr"
 clean_failure_code=$?
 set -e
-if [[ "$clean_failure_code" -ne 1 || ! -d .muzzle/logs/undeletable-entry ]]; then
-	echo "Expected clean to report a deletion failure instead of false success." >&2
+if [[ "$clean_failure_code" -ne 0 || ! -d .muzzle/logs/undeletable-entry ]]; then
+	echo "Expected clean to preserve and report unrecognized artifact entries." >&2
 	exit 1
 fi
 rmdir .muzzle/logs/undeletable-entry
