@@ -104,6 +104,15 @@ Alternatively, run Muzzle directly with its full path:
 /path/to/muzzle/muzzle <command>
 ```
 
+For a versioned filesystem installation, use an absolute prefix:
+
+```bash
+bash scripts/install.sh --prefix "$HOME/.local"
+source completions/muzzle.bash   # Bash; copy completions/_muzzle into a Zsh fpath for Zsh
+```
+
+The installer places immutable runtime files under `lib/muzzle/1.0.0` and links `bin/muzzle`. Use `--dry-run` to preview and `--force` only when intentionally replacing the launcher.
+
 ### How the wrapper works
 
 The `muzzle` script is a thin Bash wrapper. It:

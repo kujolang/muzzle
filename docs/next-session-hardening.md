@@ -1,5 +1,14 @@
 # Muzzle: Next-Session Hardening Backlog
 
+> Completed August 2026. All eleven priorities below are implemented and covered by the local quality gate. The next bounded work list is [`next-session-roadmap.md`](next-session-roadmap.md).
+
+## Completion Evidence
+
+- Full output is spooled by `src/muzzle_exec.sh`; quiet capture stays bounded and `scripts/benchmark.sh` reports memory, compression, startup, throughput, and concurrency signals.
+- Timeout, cancel-file, and forwarded-signal process trees are covered by `tests/muzzle_process_regression.sh` with exits 124/130.
+- Strict manifests, operational arguments, enforce policy, signed policy bundles, checksum pins, Doctor, retention, and versioned JSON errors are covered by wrapper regressions.
+- Versioned installation, Bash/Zsh completions, Linux/macOS CI, schema fixtures, and portability limits are documented.
+
 This backlog follows the August 2026 production-readiness review. Muzzle 1.0 is a strong, tested local workflow-compression tool, but it should not be presented as an enterprise isolation boundary. The items below are the highest-value ways to expand its production utility while preserving the stable trusted-local CLI contract.
 
 ## Repository Layout Decision

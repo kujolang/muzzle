@@ -61,6 +61,8 @@ Returns:
 }
 ```
 
+Inspection and error commands also emit versioned JSON. Prefer `muzzle doctor --json` before automation, `--policy enforce --approve` for declared risky work, and `--validate-args` when a manifest defines an argument contract.
+
 ### Loop Mode for Multi-Step Tasks
 
 When the user asks for repeated iterations:
@@ -105,6 +107,7 @@ For a real task comparison, use [Compare Agent Context With And Without Muzzle](
 - Dry-run mode lets agents preview before executing
 - Secret redaction prevents accidental token leakage into context
 - Safety flags in manifests help agents identify dangerous workflows
+- Enforce mode turns safety metadata into checks; signed bundles can supply reviewable workflow authorization
 - Muzzle itself sends nothing to external services; any network access comes from the workflow scripts you create
 
 ## Recommended Agent Prompt Pattern

@@ -19,7 +19,7 @@ Muzzle is a **local workflow runner**. It executes scripts that exist on your fi
 
 ## Argument Safety
 
-Muzzle shell-quotes each workflow argument before invoking the runner command, so every argument is passed as a literal shell word.
+Muzzle invokes its execution helper and supported runners with structured argument arrays, so every workflow argument remains a literal value.
 
 This means:
 - Arguments are individual strings, not concatenated into a command fragment
@@ -98,6 +98,16 @@ The `--timeout <ms>` flag bounds workflow execution time:
 
 Workflows exceeding the timeout are terminated. This prevents runaway processes from blocking agent workflows indefinitely.
 
+On macOS and Linux, Kujo starts the helper in its own process group and terminates that group on timeout, cancellation-file detection, SIGINT, or SIGTERM. Muzzle uses exit 124 for timeout and 130 for cancellation/interruption, and writes a failure report for runtime cancellation paths. Native Windows process-tree behavior is not supported.
+
+## Opt-In Policy and Provenance
+
+The default `--policy trusted` mode preserves the 1.0 trusted-local contract. `--policy enforce` evaluates `require_git_repo`, `allow_dirty_tree`, `requires_network`, and `human_approval_recommended`; network- or approval-marked workflows require `--approve`. `--validate-args` separately enforces positional requirements, allowlists, arity, and dry-run redaction.
+
+Teams can checksum-pin scripts with `script_sha256`. They can also sign a `muzzle.policy/v1` JSON bundle using `scripts/sign-policy.sh` and pass its bundle, public key, and detached signature to `muzzle run`. A verified bundle authorizes only listed workflows and forces enforce mode. Key custody, issuer trust, rotation, and expiry policy belong to the operator.
+
+These checks establish integrity and reviewable authorization; they do not isolate a workflow or restrict its operating-system capabilities.
+
 Muzzle does NOT:
 - Print environment variables in default output
 - Include `env` output in summaries or reports
@@ -140,10 +150,8 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 6. **Keep Muzzle updated** as security improvements are released
 7. **Trust but verify** — Muzzle provides guardrails, not a sandbox
 
-## Future Security Enhancements
+## Out of Scope
 
-- Kujo native runner with capability-based security (`--untrusted`, `--allow-shell-exec`)
-- Leash integration for mobile approval of dangerous workflows
-- Checksum verification of workflow scripts
-- Manifest signature verification
-- Workflow script sandboxing (process isolation)
+- Workflow sandboxing or operating-system capability isolation
+- Automatic key distribution, certificate authority, or remote approval service
+- Native Windows process management

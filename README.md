@@ -40,7 +40,7 @@ Muzzle is designed to keep the signal in context and leave the full run on disk 
 
 ## Readiness
 
-Muzzle is ready for trusted local workflow compression in real projects: it initializes predictable workflow folders, runs Kujo/Bash/Python/Node scripts, preserves full logs, emits compact summaries, and keeps machine-readable reports stable enough for agents and shell automation.
+Muzzle is production-ready for trusted local workflow compression in real projects: it spools complete logs with bounded in-process capture, terminates Unix process trees on timeout/cancellation, validates manifests strictly, supports opt-in execution policy, and emits versioned machine-readable results for automation.
 
 It is not a sandbox for untrusted code or an enterprise isolation boundary. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The 1.0 CLI, JSON summary, and manifest contracts are stable within that trusted-local scope.
 
@@ -52,6 +52,9 @@ muzzle (Bash wrapper)
        ├─ src/common.kujo      CLI parsing, timestamps, helpers
        ├─ src/runner.kujo      Modular dispatch (kujo/bash/python/node)
        ├─ src/workflow.kujo    Discovery, manifest loading, validation
+       ├─ src/policy.kujo      Safety, argument, and signed-bundle policy
+       ├─ src/doctor.kujo      Runtime and project diagnostics
+       ├─ src/retention.kujo   Bounded artifact cleanup
        ├─ src/report.kujo      Markdown + JSON report generation
        ├─ src/redact.kujo      Multi-line secret redaction
        └─ src/loops.kujo       Stateful agent loop management
@@ -80,7 +83,9 @@ muzzle info hello                     # show workflow details
 muzzle run hello-bash                 # use the Bash runner example
 muzzle run deploy production --dry-run
 muzzle run build --verbose
-muzzle run long-task --timeout 60000
+muzzle run long-task --timeout 60000 --cancel-file .cancel-muzzle
+muzzle run deploy production --policy enforce --approve --validate-args
+muzzle doctor --json
 muzzle run lint -- --fix              # pass a literal leading-dash arg to the workflow
 ```
 
@@ -104,6 +109,8 @@ For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](exam
 | `muzzle loop status` | Show loop progress |
 | `muzzle loop summary` | Show all loop entries in table |
 | `muzzle clean` | Remove all logs and reports |
+| `muzzle doctor [--json]` | Validate manifests, runners, boundaries, and writable state |
+| `muzzle integrity <name> [--json]` | Verify an optional script SHA-256 pin |
 | `muzzle help` / `muzzle --help` | Show usage information |
 | `muzzle version` / `muzzle --version` | Print version |
 
@@ -116,6 +123,11 @@ For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](exam
 | `--json` | Output machine-readable JSON summary |
 | `--runner <name>` | Force runner: `kujo` (default), `bash`, `python`, `node` |
 | `--timeout <ms>` | Max execution time in ms (default: 300000, min: 1000, max: 3600000) |
+| `--cancel-file <path>` | Cancel when a safe project-relative marker file appears |
+| `--policy trusted\|enforce` | Preserve trusted-local behavior or enforce manifest safety metadata |
+| `--approve` | Confirm network/approval-marked work in enforce mode |
+| `--validate-args` | Enforce required arguments, allowlists, and arity |
+| signed policy flags | Verify a detached OpenSSL signature and authorize the workflow |
 | `--` | End Muzzle option parsing; remaining values are passed as workflow args |
 
 ## Runners
@@ -137,10 +149,10 @@ The runner is determined by: CLI `--runner` flag → manifest `runner` field →
 Compact summary. Full output is written to `.muzzle/logs/`; the terminal shows status, timing, artifact paths, and one follow-up hint.
 
 ### Verbose (`--verbose`)
-Full captured output is printed to the terminal after execution and is also retained in the log file.
+Bounded captured output is printed after execution and retained in full in the log file. If the terminal display limit is reached, Muzzle points to the complete log.
 
 ### JSON (`--json`)
-Single JSON object on stdout with status, exit code, duration, and file paths. Everything else on stderr.
+Single versioned JSON object on stdout. Inspection commands use `muzzle.command/v1`; failures use `muzzle.error/v1`; workflow reports include timeout, cancellation, and display-truncation fields. Schemas live in [`schemas/`](schemas/).
 
 ### Dry Run (`--dry-run`)
 Prints the resolved runner, script path, and arguments without executing.
@@ -202,6 +214,7 @@ Create `.muzzle/manifests/<name>.json`:
 
 ```json
 {
+  "schema_version": "muzzle.manifest/v1",
   "name": "deploy",
   "summary": "Build and deploy a static site.",
   "runner": "bash",
@@ -219,7 +232,7 @@ Create `.muzzle/manifests/<name>.json`:
 }
 ```
 
-Manifests power `muzzle info`, safety metadata, stable aliases, and future Leash approval integration. The `script` path is relative to `.muzzle/`, must resolve under `.muzzle/workflows/`, and may point to a differently named implementation script.
+Manifests power `muzzle info`, strict argument validation, opt-in policy enforcement, stable aliases, and checksum verification. Unknown fields and invalid types are rejected. The `script` path is relative to `.muzzle/`, must resolve under `.muzzle/workflows/`, and may point to a differently named implementation script.
 
 ## Loop Mode
 
@@ -239,11 +252,12 @@ muzzle loop summary       # Full table of all iterations
 
 - **Path confinement**: Scripts must reside under `.muzzle/workflows/`. Path traversal (`..`) and slashes in workflow names are rejected.
 - **Canonical script checks**: Manifest script paths and symlinks are resolved before execution; scripts that escape `.muzzle/workflows/` are rejected.
-- **Argument safety**: Workflow arguments are shell-quoted as literal strings before execution, so shell metacharacters stay literal.
+- **Argument safety**: Workflow and helper execution use structured argument arrays; shell metacharacters stay literal.
 - **Secret redaction**: Case-insensitive single-line patterns (tokens, keys, credentials) + 9 multi-line block patterns (PEM keys, certificates) are redacted from summaries.
 - **Full logs preserved**: Redaction applies only to summaries. Complete output is always available in `.muzzle/logs/`.
 - **Input validation**: Workflow names are validated for length (≤128 chars) and forbidden characters (`/`, `\`, `..`).
-- **Timeout protection**: Configurable per-run timeout (default: 5 minutes, max: 1 hour).
+- **Process lifecycle**: Timeout exits 124; cancellation or forwarded interruption exits 130 and terminates the Unix process group.
+- **Policy and provenance**: Enforce mode, script checksums, and optional signed policy bundles fail closed without claiming sandbox isolation.
 - **Example workflows are safe**: The built-in `hello` and `hello-bash` workflows are read-only in the reviewed paths.
 - Read [`docs/security.md`](docs/security.md) for the full security model.
 
@@ -251,6 +265,7 @@ muzzle loop summary       # Full table of all iterations
 
 - **Kujo language runtime** — available via `KUJO_BIN` env var or auto-discovered from common paths
 - **Bash 3.2+** — for the launcher wrapper and Bash-runner workflows
+- **Unix tools** — `tail`; optional `openssl` for signed policy bundles
 - The built-in example workflows shown here require no external dependencies, API keys, or network access
 
 ## Ecosystem
@@ -272,7 +287,9 @@ Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a s
 
 **Stable 1.0** — The reviewed CLI surface is stable for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. Muzzle remains local automation rather than a security sandbox. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for future enhancements.
 
-The current hardening backlog and acceptance criteria are tracked in [`docs/next-session-hardening.md`](docs/next-session-hardening.md).
+Linux and macOS are supported and exercised in CI. Native Windows launch is not supported; use WSL. For a versioned installation, run `bash scripts/install.sh --prefix /absolute/prefix`; Bash and Zsh completions are in [`completions/`](completions/).
+
+The completed hardening review is recorded in [`docs/next-session-hardening.md`](docs/next-session-hardening.md), performance methodology in [`docs/performance.md`](docs/performance.md), and the next bounded roadmap in [`docs/next-session-roadmap.md`](docs/next-session-roadmap.md).
 
 ## License
 

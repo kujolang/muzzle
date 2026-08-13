@@ -4,6 +4,11 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Spool full workflow output to disk with bounded in-process capture and explicit terminal truncation metadata.
+- Terminate Unix workflow process groups on timeout, cancel-file requests, and forwarded interruption; standardize exits 124 and 130.
+- Add strict manifest schemas, operational argument validation, enforce-mode safety policy, script checksum pins, and signed policy bundles.
+- Add versioned JSON command/error contracts, `doctor`, `integrity`, and bounded artifact-retention commands.
+- Add a versioned installer, Bash/Zsh completions, pinned Linux/macOS CI, repeatable performance signals, and process/install regressions.
 - Restore the documented `muzzle version` command path.
 - Align README version badge with `kennel.toml` and CLI output.
 - Add deterministic Eval suite for prelaunch review evidence.

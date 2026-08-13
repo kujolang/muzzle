@@ -54,6 +54,7 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 
 ```json
 {
+  "schema_version": "muzzle.manifest/v1",
   "name": "my-workflow",
   "summary": "Brief one-line description of what this workflow does.",
   "runner": "bash",
@@ -85,6 +86,7 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Workflow name (must match filename without extension) |
+| `schema_version` | No | When present, must be `muzzle.manifest/v1` |
 | `summary` | No | One-line description shown in `muzzle list` |
 | `runner` | No | Override runner: `kujo`, `bash`, `python`, or `node` |
 | `script` | Yes | Path relative to `.muzzle/` directory |
@@ -92,12 +94,16 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 | `args[].name` | Yes | Argument name |
 | `args[].required` | No | Whether the argument is required (default: false) |
 | `args[].description` | No | Human-readable description |
+| `args[].allowed_values` | No | String allowlist enforced by `--validate-args` |
+| `args[].sensitive` | No | Redact the value in dry-run output |
+| `allow_extra_args` | No | Allow positional values beyond declared args (default: true) |
+| `script_sha256` | No | Optional 64-character SHA-256 script integrity pin |
 | `quiet_by_default` | No | Hint that this workflow should be quiet (default: true) |
 | `safety` | No | Safety metadata object |
-| `safety.require_git_repo` | No | Whether workflow needs a git repo (informational) |
-| `safety.allow_dirty_tree` | No | Whether uncommitted changes are OK (informational) |
-| `safety.requires_network` | No | Whether workflow needs network access (informational) |
-| `safety.human_approval_recommended` | No | Whether a human should approve before running |
+| `safety.require_git_repo` | No | Require a Git work tree in enforce mode |
+| `safety.allow_dirty_tree` | No | Permit uncommitted changes in enforce mode |
+| `safety.requires_network` | No | Require `--approve` in enforce mode |
+| `safety.human_approval_recommended` | No | Require `--approve` in enforce mode |
 
 The `script` value can name a shared implementation, such as `workflows/shared-verify.sh`, even when the manifest is named `project-verify.json`. Muzzle resolves the path under `.muzzle/workflows/` and rejects traversal or symlink escapes before execution.
 
@@ -121,19 +127,20 @@ muzzle run deploy staging develop
 muzzle run lint -- --fix
 ```
 
-Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle run flags such as `--json`, `--timeout`, and `--runner` are interpreted by Muzzle.
+Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle run flags are interpreted by Muzzle. Use `--validate-args` to activate manifest checks; this remains opt-in for 1.0 compatibility.
 
 ## Output Conventions
 
 ### Standard Output
 - Muzzle captures all stdout/stderr to `.muzzle/logs/<name>-<timestamp>.log`
 - The compact summary only shows status, exit code, duration, and file paths
-- Use `--verbose` to print the full captured output after execution
+- Use `--verbose` to print bounded captured output after execution; the complete output always remains in the log
 
 ### Exit Codes
 - Exit 0 for success
 - Exit non-zero for failure (propagated by Muzzle)
 - Muzzle exits 1 if the workflow script is not found
+- Muzzle exits 124 on timeout, 130 on cancellation/interruption, 2 on usage/schema errors, and 3 on policy/integrity denial
 
 ### Secrets
 - Never `echo` tokens, keys, or credentials
