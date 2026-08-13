@@ -1,0 +1,30 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout Kujo runtime
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: kujolang/kujo
+          path: .ci/kujo
+      - name: Build Kujo runtime
+        run: cargo build --release --manifest-path .ci/kujo/Cargo.toml
+      - name: Run quality gate
+        env:
+          KUJO_BIN: ${{ github.workspace }}/.ci/kujo/target/release/kujo
+          KUJO_MODULE_PATH: ${{ github.workspace }}/.ci/kujo/modules
+        run: make quality

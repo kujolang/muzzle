@@ -1,0 +1,22 @@
+#compdef muzzle
+
+_muzzle() {
+	local -a commands
+	commands=(
+		'init:initialize .muzzle in the current project'
+		'list:list workflows'
+		'info:show workflow metadata'
+		'run:execute a workflow'
+		'logs:list workflow logs'
+		'report:list workflow reports'
+		'loop:manage an agent loop'
+		'clean:apply artifact retention'
+		'doctor:validate the local installation and project'
+		'integrity:verify a workflow checksum'
+		'help:show help'
+		'version:show version'
+	)
+	_describe 'command' commands
+}
+
+_muzzle "$@"
