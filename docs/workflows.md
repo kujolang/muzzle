@@ -131,6 +131,34 @@ Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle r
 
 ## Output Conventions
 
+### Readable Kujo output
+
+Keep a tiny first workflow direct. Once static output becomes a menu, report,
+or multi-step explanation, collect the lines locally so the workflow remains
+easy to scan and copy:
+
+```kujo
+func print_lines(lines) {
+	mut idx := 0
+	while idx < len(lines) {
+		print(lines[idx])
+		idx = idx + 1
+	}
+}
+
+print_lines(array(
+	"=== Build Check ===",
+	"",
+	"1. Validate configuration",
+	"2. Compile the project",
+	"3. Run tests"
+))
+```
+
+Use similarly small local helpers for repeated label/value or status lines, but
+keep the workflow operation itself visible. Avoid generic rendering layers in
+examples.
+
 ### Standard Output
 - Muzzle captures all stdout/stderr to `.muzzle/logs/<name>-<timestamp>.log`
 - The compact summary only shows status, exit code, duration, and file paths
