@@ -42,13 +42,17 @@ func print_kv(prefix, value) {
 	print(prefix + to_string(value))
 }
 
+func print_json(payload) {
+	print(to_json(payload))
+}
+
 func command_json(argv) {
 	return is_trueish(has_flag(argv, "--json"))
 }
 
 func fail_command(command_name, code, message, details, json_out, exit_code) {
 	if json_out {
-		print(to_json({"schema_version": "muzzle.error/v1", "command": command_name, "code": code, "message": message, "details": details}))
+		print_json({"schema_version": "muzzle.error/v1", "command": command_name, "code": code, "message": message, "details": details})
 	} else {
 		print("Error [" + code + "]: " + message)
 	}
@@ -460,7 +464,7 @@ func cmd_list(json_out) {
 
 	workflows := discover_workflows()
 	if json_out {
-		print(to_json({"schema_version": "muzzle.command/v1", "command": "list", "workflows": workflows, "count": len(workflows)}))
+		print_json({"schema_version": "muzzle.command/v1", "command": "list", "workflows": workflows, "count": len(workflows)})
 		exit(0)
 	}
 
@@ -538,7 +542,7 @@ func cmd_info(name, json_out) {
 		mut payload := info
 		payload["schema_version"] = "muzzle.command/v1"
 		payload["command"] = "info"
-		print(to_json(payload))
+		print_json(payload)
 		exit(0)
 	}
 
@@ -737,7 +741,7 @@ func cmd_run(argv) {
 	# Dry run
 	if dry_run {
 		if json_out {
-			print(to_json({"schema_version": "muzzle.command/v1", "command": "run", "dry_run": true, "workflow": workflow_name, "runner": runner, "script_path": script_path, "args": display_args(manifest, workflow_args), "policy": policy_mode}))
+			print_json({"schema_version": "muzzle.command/v1", "command": "run", "dry_run": true, "workflow": workflow_name, "runner": runner, "script_path": script_path, "args": display_args(manifest, workflow_args), "policy": policy_mode})
 			exit(0)
 		}
 		print_lines(array(
@@ -867,11 +871,7 @@ func cmd_run(argv) {
 				""
 			))
 		}
-		if status == "success" {
-			print("Status:     success")
-		} else {
-			print("Status:     failed")
-		}
+		print_kv("Status:     ", status)
 		print_lines(array(
 			"Exit code:  " + to_string(exit_code),
 			"Duration:   " + format_duration_ms(duration_ms),
@@ -930,7 +930,7 @@ func cmd_logs(filter, json_out) {
 
 	if is_falseish(file_exists(".muzzle/logs")) {
 		if json_out {
-			print(to_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": array(), "count": 0}))
+			print_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": array(), "count": 0})
 			exit(0)
 		}
 		print("No logs directory found.")
@@ -1000,7 +1000,7 @@ func cmd_logs(filter, json_out) {
 		}
 	}
 	if json_out {
-		print(to_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)}))
+		print_json({"schema_version": "muzzle.command/v1", "command": "logs", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)})
 	}
 }
 
@@ -1017,7 +1017,7 @@ func cmd_report(filter, json_out) {
 
 	if is_falseish(file_exists(".muzzle/reports")) {
 		if json_out {
-			print(to_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": array(), "count": 0}))
+			print_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": array(), "count": 0})
 			exit(0)
 		}
 		print("No reports directory found.")
@@ -1084,7 +1084,7 @@ func cmd_report(filter, json_out) {
 		}
 	}
 	if json_out {
-		print(to_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)}))
+		print_json({"schema_version": "muzzle.command/v1", "command": "report", "workflow": filter, "artifacts": artifacts, "count": len(artifacts)})
 	}
 }
 
@@ -1121,7 +1121,7 @@ func cmd_clean(argv) {
 	dry_run := is_trueish(has_flag(argv, "--dry-run")) || is_trueish(has_flag(argv, "-n"))
 	result := clean_artifacts(workflow_filter, older_than_ms, keep_count, dry_run)
 	if json_out {
-		print(to_json(result))
+		print_json(result)
 	} else if dry_run {
 		print("Muzzle: Cleanup preview selected " + to_string(result["selected"]) + " recognized artifacts.")
 	} else {
@@ -1142,7 +1142,7 @@ func cmd_doctor(argv) {
 	json_out := is_trueish(has_flag(argv, "--json"))
 	result := run_doctor()
 	if json_out {
-		print(to_json(result))
+		print_json(result)
 	} else {
 		print_lines(array(
 			"Muzzle Doctor",
@@ -1185,7 +1185,7 @@ func cmd_integrity(name, json_out) {
 	result := verify_manifest_integrity(manifest, script_path)
 	payload := {"schema_version": "muzzle.integrity/v1", "command": "integrity", "workflow": name, "script_path": script_path, "ok": result["ok"], "status": result["code"], "message": result["message"], "expected_sha256": result["expected"], "actual_sha256": result["actual"]}
 	if json_out {
-		print(to_json(payload))
+		print_json(payload)
 	} else {
 		print_lines(array(
 			"Workflow: " + name,
@@ -1279,7 +1279,7 @@ func cmd_loop(argv) {
 		}
 		create_loop(wf_name, limit, ts)
 		if json_out {
-			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "start", "workflow": wf_name, "status": "active", "current": 0, "limit": limit, "state_path": loop_state_path}))
+			print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "start", "workflow": wf_name, "status": "active", "current": 0, "limit": limit, "state_path": loop_state_path})
 			exit(0)
 		}
 		print_lines(array(
@@ -1306,10 +1306,12 @@ func cmd_loop(argv) {
 				current := to_int(existing["current"])
 				limit := to_int(existing["limit"])
 				if json_out {
-					print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": existing["workflow"], "status": "completed", "current": current, "limit": limit}))
+					print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": existing["workflow"], "status": "completed", "current": current, "limit": limit})
 				} else {
-					print("Loop '" + to_string(existing["workflow"]) + "' is complete (" + to_string(current) + "/" + to_string(limit) + ").")
-					print("Run 'muzzle loop summary' to see all entries.")
+					print_lines(array(
+						"Loop '" + to_string(existing["workflow"]) + "' is complete (" + to_string(current) + "/" + to_string(limit) + ").",
+						"Run 'muzzle loop summary' to see all entries."
+					))
 				}
 			}
 			exit(0)
@@ -1317,7 +1319,7 @@ func cmd_loop(argv) {
 		current := to_int(loop_data["current"])
 		limit := to_int(loop_data["limit"])
 		if json_out {
-			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": limit}))
+			print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "next", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": limit})
 			exit(0)
 		}
 		print_lines(array(
@@ -1346,7 +1348,7 @@ func cmd_loop(argv) {
 			current = to_int(loop_data["current"])
 		}
 		if json_out {
-			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "done", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": loop_data["limit"], "note": note}))
+			print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "done", "workflow": loop_data["workflow"], "status": loop_data["status"], "current": current, "limit": loop_data["limit"], "note": note})
 			exit(0)
 		}
 		print("OK Loop " + to_string(current) + ": " + to_string(loop_data["workflow"]) + " — recorded.")
@@ -1376,7 +1378,7 @@ func cmd_loop(argv) {
 				}
 			}
 			if json_out {
-				print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loops": all_loops, "count": len(all_loops)}))
+				print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loops": all_loops, "count": len(all_loops)})
 			}
 			exit(0)
 		}
@@ -1385,15 +1387,15 @@ func cmd_loop(argv) {
 			exit(0)
 		}
 		if json_out {
-			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loop": loop_data}))
+			print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "status", "loop": loop_data})
 			exit(0)
 		}
 		print_kv("Loop:       ", loop_data["workflow"])
-		print("Progress:   " + to_string(loop_data["current"]) + "/" + to_string(loop_data["limit"]))
+		print_kv("Progress:   ", to_string(loop_data["current"]) + "/" + to_string(loop_data["limit"]))
 		print_kv("Status:     ", loop_data["status"])
 		print_kv("Started:    ", loop_data["started_at"])
 		entries := loop_data["entries"]
-		print("Completed:  " + to_string(len(entries)) + " iterations")
+		print_kv("Completed:  ", to_string(len(entries)) + " iterations")
 		if len(entries) > 0 {
 			print("")
 			mut status_entry_idx := 0
@@ -1412,14 +1414,14 @@ func cmd_loop(argv) {
 		all_loops := list_all_loops()
 		if len(all_loops) == 0 {
 			if json_out {
-				print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": 0}))
+				print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": 0})
 			} else {
 				print("No loops found.")
 			}
 			exit(0)
 		}
 		if json_out {
-			print(to_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": len(all_loops)}))
+			print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "summary", "loops": all_loops, "count": len(all_loops)})
 			exit(0)
 		}
 		mut summary_loop_idx := 0
