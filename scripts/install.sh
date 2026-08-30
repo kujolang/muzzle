@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 PREFIX="${PREFIX:-/usr/local}"
 DRY_RUN=0
 FORCE=0
@@ -10,7 +10,7 @@ usage() {
 	cat <<'EOF'
 Usage: scripts/install.sh [--prefix <path>] [--dry-run] [--force]
 
-Installs Muzzle into <prefix>/lib/muzzle/1.0.0 and creates
+Installs Muzzle into <prefix>/lib/muzzle/1.1.0 and creates
 <prefix>/bin/muzzle. The default prefix is /usr/local.
 EOF
 }

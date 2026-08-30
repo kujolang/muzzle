@@ -4,6 +4,8 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+## [1.1.0] - 2026-08-30
+
 - Spool full workflow output to disk with bounded in-process capture and explicit terminal truncation metadata.
 - Terminate Unix workflow process groups on timeout, cancel-file requests, and forwarded interruption; standardize exits 124 and 130.
 - Add strict manifest schemas, operational argument validation, enforce-mode safety policy, script checksum pins, and signed policy bundles.
@@ -20,6 +22,9 @@ All notable changes to Muzzle are documented here.
 - Apply workflow-name validation consistently to inspection commands and reject malformed safety metadata cleanly.
 - Include redacted failure excerpts in Markdown reports and correct stale output/version documentation.
 - Add a canonical local quality gate and a copyable manifest-backed build-check example.
+- Create logs and reports with owner-only permissions and bind signed-policy parsing to the bytes verified by OpenSSL.
+- Bind validated workflow bytes to digest-verified private execution snapshots while preserving supported runner identity and import behavior.
+- Pin the Kujo CI revision, reject unsafe forced-install paths, and publish the additive `muzzle.run/v1` JSON Schema contract.
 
 ## [1.0.0] - 2026-08-08
 

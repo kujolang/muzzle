@@ -20,7 +20,7 @@ from src.policy import valid_policy_mode, evaluate_safety_policy, validate_manif
 from src.doctor import run_doctor
 from src.retention import clean_artifacts
 
-MUZZLE_VERSION := "1.0.0"
+MUZZLE_VERSION := "1.1.0"
 
 WORKFLOWS_DIR := ".muzzle/workflows"
 MANIFESTS_DIR := ".muzzle/manifests"

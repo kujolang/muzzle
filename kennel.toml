@@ -1,6 +1,6 @@
 [package]
 name = "muzzle"
-version = "1.0.0"
+version = "1.1.0"
 description = "Quiet workflow runner for AI-assisted development. Kujo-native CLI with modular runner support (Kujo default, Bash, Python, Node). Captures noisy logs to files, prints compact agent-friendly summaries."
 license = "MIT"
 authors = ["Kujolang <contact@kujolang.ai>"]

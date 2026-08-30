@@ -2,7 +2,7 @@
 # =============================================================================
 # Muzzle — Quiet Workflow Runner for AI-Assisted Development
 # =============================================================================
-# Version: 1.0.0
+# Version: 1.1.0
 # This is a thin Bash wrapper that delegates to the Kujo-native muzzle.kujo.
 # =============================================================================
 set -euo pipefail
