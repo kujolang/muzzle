@@ -5,7 +5,7 @@
 - Name: Muzzle
 - Branch: `main`
 - Starting SHA: `75c2e1d20ed060b22df01c44d28221cd672a02fa`
-- Ending implementation SHA: `1de8e9a2b2847ca00e7ae5d7297842c8fadc3af2`
+- Ending implementation SHA: `5f5d792363385149bd8cfd2389b28fc121d2970c`
 - Purpose: trusted-local Kujo CLI that runs project workflows while preserving full evidence and emitting compact agent-facing receipts.
 - Important dependencies and integrations: Kujo runtime, Bash, optional Python/Node runners, OpenSSL for signed policy bundles, Git for enforce-mode checks, and Kujo ecosystem consumers using the CLI and JSON contracts.
 - Broad-search exclusions: `.dogfood/`, `.muzzle/`, and `.kujo_cache/` were excluded as historical or generated output per repository policy.
@@ -32,7 +32,7 @@ An explicit artifact check under the host's `022` umask found workflow logs and 
 | -- | -- | -- | -- | -- | -- | -- |
 | MZ-HARD-001 | P1 | Security | Raw logs and reports can contain secrets but inherited a permissive host umask. | Baseline artifacts were mode `0644`; documentation confirms raw logs are unredacted. | Create logs and reports as owner-only `0600` files without changing workflow-created file semantics; add a cross-platform mode regression. | Fixed |
 | MZ-HARD-002 | P0 | Security | Signed policy verification checked one pathname read, then parsed a second read, allowing a local replacement race to authorize unverified bytes. | `src/policy.kujo` passed the source path to OpenSSL and later reopened it. | Read once, create an owner-only immutable snapshot, verify the snapshot, and parse the same in-memory bytes. | Fixed |
-| MZ-HARD-003 | P1 | Security/runtime | Script path and checksum validation are not bound to the file object later opened by the selected interpreter. | Path canonicalization and hashing precede a later pathname-based interpreter open. | Preserve behavior locally; request a Kujo runtime primitive for descriptor- or immutable-snapshot execution before changing `$0` and relative-import semantics. | Cross-repository follow-up |
+| MZ-HARD-003 | P1 | Security/runtime | Script path and checksum validation were not bound to the file object later opened by the selected interpreter. | Path canonicalization and hashing preceded a later pathname-based interpreter open. | Pass the validated digest into the helper, copy into private transient state, verify the snapshot, execute only that snapshot, and preserve runner identity/import behavior. | Fixed |
 | MZ-HARD-004 | P1 | Installer | Forced installation followed pre-existing symlinked managed directories. | `scripts/install.sh --force` reused the version root and subdirectories without type checks. | Reject symlinked/non-directory managed roots before writes and add an external-write regression. | Fixed |
 | MZ-HARD-005 | P1 | Supply chain | CI built and executed the mutable default branch of `kujolang/kujo`. | `.github/workflows/quality.yml` omitted `ref`. | Pin the runtime checkout to reviewed commit `b8a44653ad9c225e3d31d96c5c1a0d61f9c8d835`. | Fixed |
 | MZ-HARD-006 | P1 | Contract | `muzzle run --json` was documented as versioned but emitted no schema discriminator and had no run-result schema. | Baseline JSON lacked `schema_version`; only command/error schemas existed. | Add `muzzle.run/v1`, `command: run`, a strict schema, and regression coverage. | Fixed |
@@ -56,6 +56,13 @@ An explicit artifact check under the host's `022` umask found workflow logs and 
 - Tests: existing valid-signature and tamper-denial regressions exercise the revised path; the full wrapper suite passes.
 - Compatibility: accepted bundle schema and flags are unchanged. A new `POLICY_BUNDLE_READ` or `POLICY_SNAPSHOT_FAILED` denial provides a controlled fail-closed result for new failure boundaries.
 
+### Workflow byte binding
+
+- Problem/root cause: path confinement and checksum verification selected workflow bytes, but each interpreter later reopened the mutable source pathname.
+- Implementation: every run now passes the already-observed digest into the helper, creates an owner-only shadow snapshot, verifies the copied bytes, and executes only the verified snapshot. Mutations before the snapshot fail closed with exit 3; mutations after it cannot alter the selected program.
+- Files: `muzzle`, `muzzle.kujo`, `src/runner.kujo`, `src/muzzle_exec.sh`, `tests/muzzle_process_regression.sh`, `tests/muzzle_wrapper_regression.sh`, `README.md`, `docs/security.md`, `docs/workflows.md`.
+- Compatibility: Bash keeps `$0` and sibling `BASH_SOURCE` loading, Python keeps `__file__`, `sys.argv`, and sibling imports, and Node keeps `__filename`, `process.argv`, `require.main`, and sibling `require`. Kujo retains the project working directory and module resolution. Transient snapshots are cleaned after success, failure, timeout, cancellation, and wrapper-forwarded interruption.
+
 ### Installer and CI supply-chain hardening
 
 - Problem/root cause: forced installation trusted existing managed directory types, and CI selected a mutable external revision.
@@ -76,41 +83,37 @@ The matching post-change benchmark reported:
 
 | Signal | Before | After | Interpretation |
 | -- | --: | --: | -- |
-| Startup average | 426 ms | 437 ms | 11 ms local variance; no supported improvement claim |
+| Startup average | 426 ms | 381 ms | Version-only startup variance; workflow snapshotting is not exercised by this signal |
 | Full log size | 4,000,000 bytes | 4,000,000 bytes | Complete evidence preserved |
 | JSON summary size | 482 bytes | 531 bytes | +49 bytes for stable schema/command discriminators |
-| Peak RSS | 34,648,064 bytes | 34,217,984 bytes | Lower in this sample, but no portable improvement claim |
-| Five concurrent runs | 2,614 ms | 2,902 ms | Local variance/permission durability cost; no threshold regression established |
+| Peak RSS | 34,648,064 bytes | 34,025,472 bytes | Lower in this sample, but no portable improvement claim |
+| Five concurrent runs | 2,614 ms | 3,245 ms | Includes private snapshot construction and verification; security cost is bounded per run |
 
-Large-output capture remains bounded and the complete four-megabyte log is preserved. No dependency was added. The run-result discriminator adds a small fixed payload that improves machine routing and compatibility checks.
+Large-output capture remains bounded and the complete four-megabyte log is preserved. No dependency was added. The run-result discriminator adds a small fixed payload that improves machine routing and compatibility checks. Snapshot construction mirrors only directory entries along the script path and symlinks siblings instead of copying the project, keeping work proportional to relevant directory entries plus the selected script size.
 
 ## Security
 
 Reviewed boundaries included CLI/workflow arguments, manifest parsing, workflow path confinement, runner selection, subprocess argv, timeout/cancellation handoff, raw output/logging, redaction, report/state writes, cleanup deletion, signed policy verification, installer paths, and executable CI dependencies.
 
-Fixed: permissive artifact files, signed-bundle verification/parsing race, forced-install symlink traversal, and mutable CI runtime execution. Regression coverage now verifies private modes and installer confinement. Static traversal, ordinary symlink escape, argument injection, malformed manifest, secret redaction, timeout, cancellation, and process-tree controls continue to pass.
-
-Remaining concern: interpreter execution still reopens a pathname after validation. A compatibility-safe fix needs runtime support that binds the validated file object while preserving script location semantics.
+Fixed: permissive artifact files, signed-bundle verification/parsing race, workflow validation/execution race, forced-install symlink traversal, and mutable CI runtime execution. Regression coverage verifies private modes, pre-snapshot mutation denial, post-snapshot mutation isolation, runner identity/import compatibility, lifecycle cleanup, and installer confinement. Static traversal, ordinary symlink escape, argument injection, malformed manifest, secret redaction, timeout, cancellation, and process-tree controls continue to pass.
 
 ## Compatibility
 
 - Public APIs: no removals or incompatible field changes.
 - CLI behavior: existing commands, flags, output fields, exit codes, and artifact naming remain; unsafe forced installation layouts now fail closed.
 - File formats/schemas: run JSON gains two additive fields and a new `muzzle.run/v1` schema.
-- Config/environment variables: unchanged.
+- Config/environment variables: public configuration is unchanged; race hooks are accepted only when the test-mode environment is explicitly enabled.
 - Runtime dependency: documented minimum Kujo version is now 1.0.0.
 - External consumers: tolerant JSON consumers are unaffected; strict consumers must allow the two additive fields. CI now builds the pinned Kujo revision.
 
 ## Cross-Repository Follow-Ups
 
-| Repository | Contract | Evidence and impact | Recommended change | Required now | Compatibility concern |
-| -- | -- | -- | -- | -- | -- |
-| `kujolang/kujo` | Process execution API | Muzzle validates/hashes a script pathname, but Bash/Python/Node/Kujo later reopen it. A concurrent local mutation can defeat checksum/path binding. | Add a descriptor-based or immutable-snapshot interpreter execution primitive with explicit original-path/working-directory semantics. | No; current trusted-local behavior remains, but checksum pins cannot claim race-free binding. | `$0`, relative imports, shebang handling, and platform portability must remain stable. |
+None required. The remaining workflow byte-binding issue was resolved within Muzzle without modifying sibling repositories.
 
 ## Remaining Work
 
 - P0: none.
-- P1: bind validated workflow bytes to interpreter execution after Kujo exposes compatibility-safe support.
+- P1: none.
 - P2: none identified that is both high-confidence and currently worth changing.
 - P3: none pursued.
 - Needs more evidence: establish stable multi-platform benchmark distributions before adding latency/RSS/concurrency thresholds.
@@ -129,6 +132,10 @@ Remaining concern: interpreter execution still reopens a pathname after validati
 | `bash tests/muzzle_install_regression.sh` | Passed |
 | JSON parsing and schema-discriminator assertion for a real run | Passed |
 | Private artifact mode check for a real run | Passed: log, Markdown, and JSON were `0600` |
+| Deterministic pre-snapshot mutation regression | Passed: denied with exit 3; mutated bytes were not executed |
+| Deterministic post-snapshot mutation regression | Passed: validated bytes executed; later source mutation was ignored |
+| Bash/Python/Node identity and sibling-load regressions | Passed |
+| Snapshot cleanup after success, timeout, cancellation, and interruption | Passed |
 | `make quality` (completed implementation) | Passed |
 | `MUZZLE_BENCH_ITERATIONS=5 MUZZLE_BENCH_LINES=50000 bash scripts/benchmark.sh` (completed implementation) | Passed; measurements recorded above |
 | `git diff --check` | Passed |
