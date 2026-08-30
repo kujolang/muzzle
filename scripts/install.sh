@@ -39,6 +39,21 @@ INSTALL_ROOT="${PREFIX%/}/lib/muzzle/${VERSION}"
 BIN_DIR="${PREFIX%/}/bin"
 LINK_PATH="${BIN_DIR}/muzzle"
 
+for managed_path in "$INSTALL_ROOT" "$INSTALL_ROOT/src" "$INSTALL_ROOT/schemas" "$BIN_DIR"; do
+	if [[ -L "$managed_path" ]]; then
+		echo "Error: refusing symlinked installation path: ${managed_path}" >&2
+		exit 3
+	fi
+done
+if [[ -e "$INSTALL_ROOT" && ! -d "$INSTALL_ROOT" ]]; then
+	echo "Error: installation root is not a directory: ${INSTALL_ROOT}" >&2
+	exit 3
+fi
+if [[ -e "$BIN_DIR" && ! -d "$BIN_DIR" ]]; then
+	echo "Error: binary path is not a directory: ${BIN_DIR}" >&2
+	exit 3
+fi
+
 run() {
 	if [[ "$DRY_RUN" -eq 1 ]]; then
 		printf '+'

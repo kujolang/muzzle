@@ -54,6 +54,14 @@ portable_file_size() {
 	fi
 }
 
+portable_file_mode() {
+	if stat -f '%Lp' "$1" >/dev/null 2>&1; then
+		stat -f '%Lp' "$1"
+	else
+		stat -c '%a' "$1"
+	fi
+}
+
 portable_sha256() {
 	if command -v shasum >/dev/null 2>&1; then
 		shasum -a 256 "$1" | awk '{print $1}'
@@ -206,10 +214,19 @@ if [[ -s "$run_json_stderr" ]]; then
 	echo "Expected muzzle run hello --json to be quiet on stderr." >&2
 	exit 1
 fi
-if ! grep -Eq '"status"[[:space:]]*:[[:space:]]*"success"' "$run_json_stdout"; then
-	echo "Expected muzzle run hello --json to emit a success JSON summary." >&2
+if ! grep -Eq '"status"[[:space:]]*:[[:space:]]*"success"' "$run_json_stdout" || ! grep -q '"schema_version":"muzzle.run/v1"' "$run_json_stdout" || ! grep -q '"command":"run"' "$run_json_stdout"; then
+	echo "Expected muzzle run hello --json to emit a versioned success JSON summary." >&2
 	exit 1
 fi
+run_log_path="$(grep -o '"log_path":"[^"]*"' "$run_json_stdout" | cut -d'"' -f4)"
+run_report_path="$(grep -o '"report_path":"[^"]*"' "$run_json_stdout" | cut -d'"' -f4)"
+run_json_report_path="${run_report_path%.md}.json"
+for private_artifact in "$run_log_path" "$run_report_path" "$run_json_report_path"; do
+	if [[ "$(portable_file_mode "$private_artifact")" != "600" ]]; then
+		echo "Expected Muzzle-owned artifact to use private mode 600: $private_artifact" >&2
+		exit 1
+	fi
+done
 log_count="$(find .muzzle/logs -maxdepth 1 -type f -name 'hello-*.log' | wc -l | tr -d ' ')"
 report_count="$(find .muzzle/reports -maxdepth 1 -type f -name 'hello-*.md' | wc -l | tr -d ' ')"
 if [[ "$log_count" -lt 2 || "$report_count" -lt 2 ]]; then

@@ -108,7 +108,7 @@ For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](exam
 | `muzzle loop done --note "..."` | Record completed iteration |
 | `muzzle loop status` | Show loop progress |
 | `muzzle loop summary` | Show all loop entries in table |
-| `muzzle clean` | Remove all logs and reports |
+| `muzzle clean` | Remove recognized Muzzle logs and reports |
 | `muzzle doctor [--json]` | Validate manifests, runners, boundaries, and writable state |
 | `muzzle integrity <name> [--json]` | Verify an optional script SHA-256 pin |
 | `muzzle help` / `muzzle --help` | Show usage information |
@@ -152,7 +152,7 @@ Compact summary. Full output is written to `.muzzle/logs/`; the terminal shows s
 Bounded captured output is printed after execution and retained in full in the log file. If the terminal display limit is reached, Muzzle points to the complete log.
 
 ### JSON (`--json`)
-Single versioned JSON object on stdout. Inspection commands use `muzzle.command/v1`; failures use `muzzle.error/v1`; workflow reports include timeout, cancellation, and display-truncation fields. Schemas live in [`schemas/`](schemas/).
+Single versioned JSON object on stdout. Workflow results use `muzzle.run/v1`, inspection commands use `muzzle.command/v1`, and command failures use `muzzle.error/v1`. Workflow reports include timeout, cancellation, and display-truncation fields. Schemas live in [`schemas/`](schemas/).
 
 ### Dry Run (`--dry-run`)
 Prints the resolved runner, script path, and arguments without executing.
@@ -254,7 +254,7 @@ muzzle loop summary       # Full table of all iterations
 - **Canonical script checks**: Manifest script paths and symlinks are resolved before execution; scripts that escape `.muzzle/workflows/` are rejected.
 - **Argument safety**: Workflow and helper execution use structured argument arrays; shell metacharacters stay literal.
 - **Secret redaction**: Case-insensitive single-line patterns (tokens, keys, credentials) + 9 multi-line block patterns (PEM keys, certificates) are redacted from summaries.
-- **Full logs preserved**: Redaction applies only to summaries. Complete output is always available in `.muzzle/logs/`.
+- **Full logs preserved privately**: Redaction applies only to summaries. Complete output is available in `.muzzle/logs/`; Muzzle-owned logs and reports use owner-only file permissions on supported Unix systems.
 - **Input validation**: Workflow names are validated for length (≤128 chars) and forbidden characters (`/`, `\`, `..`).
 - **Process lifecycle**: Timeout exits 124; cancellation or forwarded interruption exits 130 and terminates the Unix process group.
 - **Policy and provenance**: Enforce mode, script checksums, and optional signed policy bundles fail closed without claiming sandbox isolation.
@@ -263,7 +263,7 @@ muzzle loop summary       # Full table of all iterations
 
 ## Requirements
 
-- **Kujo language runtime** — available via `KUJO_BIN` env var or auto-discovered from common paths
+- **Kujo language runtime 1.0.0+** — available via `KUJO_BIN` env var or auto-discovered from common paths
 - **Bash 3.2+** — for the launcher wrapper and Bash-runner workflows
 - **Unix tools** — `tail`; optional `openssl` for signed policy bundles
 - The built-in example workflows shown here require no external dependencies, API keys, or network access

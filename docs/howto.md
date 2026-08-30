@@ -29,7 +29,7 @@ Before installing Muzzle, you need:
 
 | Requirement | Version | Check Command |
 |---|---|---|
-| **Kujo language runtime** | 0.1.0+ | `$KUJO_BIN --version` |
+| **Kujo language runtime** | 1.0.0+ | `$KUJO_BIN --version` |
 | **Bash** | 3.2+ | `bash --version` |
 | **Git** (optional) | any | `git --version` |
 
@@ -346,13 +346,18 @@ Returns a single JSON object that can be piped to `jq` or parsed programmaticall
 
 ```json
 {
+  "schema_version": "muzzle.run/v1",
+  "command": "run",
   "workflow": "hello",
   "status": "success",
   "exit_code": 0,
   "duration_ms": 245,
-  "log_path": ".muzzle/logs/hello-1717000000.log",
-  "report_path": ".muzzle/reports/hello-1717000000.md",
-  "summary": "Hello from Muzzle!\nRunner: Kujo (default)\nThis is a sample workflow. Replace with your own.",
+  "log_path": ".muzzle/logs/hello-1717000000-0123456789abcdef0123456789abcdef.log",
+  "report_path": ".muzzle/reports/hello-1717000000-0123456789abcdef0123456789abcdef.md",
+  "summary": "The workflow completed successfully.",
+  "timed_out": false,
+  "cancelled": false,
+  "display_truncated": false,
   "error_excerpt": null
 }
 ```

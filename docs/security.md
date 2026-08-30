@@ -63,7 +63,7 @@ Muzzle scans output for common secret patterns and redacts matching lines from *
 ### Redaction Behavior
 
 - **Summaries** (default output): Matching lines replaced with `[REDACTED — secret pattern detected]`
-- **Full logs** (`.muzzle/logs/`): All output preserved unchanged
+- **Full logs** (`.muzzle/logs/`): All output preserved unchanged in Muzzle-owned mode-`0600` files on supported Unix systems
 - **JSON reports**: Error excerpt field is redacted; summary field is your text
 - **Verbose mode**: Terminal output is NOT redacted (you chose to see everything)
 
@@ -121,6 +121,8 @@ Muzzle writes to:
 - `.muzzle/logs/` — workflow output capture
 - `.muzzle/reports/` — markdown and JSON reports
 - `.muzzle/state/` — session and loop state
+
+Muzzle creates its log and report files with owner-only permissions (`0600`) on supported Unix systems. Workflow scripts retain the caller's original umask, so this hardening does not change the permissions of files created by the workflow itself.
 
 Muzzle does NOT write outside `.muzzle/` unless the workflow script does so.
 

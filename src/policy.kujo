@@ -32,18 +32,34 @@ export func verify_signed_policy_bundle(bundle_path, public_key_path, signature_
 	if is_falseish(file_exists(bundle_path)) || is_falseish(file_exists(public_key_path)) || is_falseish(file_exists(signature_path)) {
 		return deny_result("POLICY_BUNDLE_FILE_MISSING", "A signed policy bundle input is missing.", {"bundle": bundle_path, "public_key": public_key_path, "signature": signature_path})
 	}
+	mut bundle_raw := ""
+	try {
+		bundle_raw = read_file(bundle_path)
+	} except _err {
+		return deny_result("POLICY_BUNDLE_READ", "Policy bundle could not be read.", {"bundle": bundle_path})
+	}
+	# Verify an owner-only immutable snapshot, then parse the same in-memory bytes.
+	# This binds authorization to the exact content OpenSSL accepted even if the
+	# caller-controlled source path changes during verification.
+	snapshot_path := ".muzzle/state/.policy-verify-" + replace(uuid_v4(), "-", "") + ".json"
+	snapshot_receipt := io_write_private_file(snapshot_path, bundle_raw, 384)
+	if type(snapshot_receipt) == "Error" || type(snapshot_receipt) != "dict" || snapshot_receipt["verified"] != true {
+		return deny_result("POLICY_SNAPSHOT_FAILED", "Policy bundle could not be secured for verification.", {"bundle": bundle_path})
+	}
 	mut verification := null
 	try {
-		verification = spawn_process(array("openssl", "dgst", "-sha256", "-verify", public_key_path, "-signature", signature_path, bundle_path), {"timeout_ms": 10000, "max_output_bytes": 8192})
+		verification = spawn_process(array("openssl", "dgst", "-sha256", "-verify", public_key_path, "-signature", signature_path, snapshot_path), {"timeout_ms": 10000, "max_output_bytes": 8192})
 	} except _err {
+		try { delete_file(snapshot_path) } except _cleanup_err {}
 		return deny_result("POLICY_VERIFIER_UNAVAILABLE", "OpenSSL is required to verify signed policy bundles.", dict())
 	}
+	try { delete_file(snapshot_path) } except _cleanup_err {}
 	if verification.exitcode != 0 {
 		return deny_result("POLICY_SIGNATURE_INVALID", "Policy bundle signature verification failed.", {"bundle": bundle_path})
 	}
 	mut bundle := null
 	try {
-		bundle = parse_json(read_file(bundle_path))
+		bundle = parse_json(bundle_raw)
 	} except _err {
 		return deny_result("POLICY_BUNDLE_JSON", "Policy bundle contains malformed JSON.", {"bundle": bundle_path})
 	}

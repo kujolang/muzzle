@@ -50,6 +50,8 @@ muzzle run deploy production --json
 Returns:
 ```json
 {
+  "schema_version": "muzzle.run/v1",
+  "command": "run",
   "workflow": "deploy",
   "status": "success",
   "exit_code": 0,
@@ -57,6 +59,9 @@ Returns:
   "log_path": ".muzzle/logs/deploy-2026-05-28T150000.log",
   "report_path": ".muzzle/reports/deploy-2026-05-28T150000.md",
   "summary": "The workflow completed successfully.",
+  "timed_out": false,
+  "cancelled": false,
+  "display_truncated": false,
   "error_excerpt": null
 }
 ```

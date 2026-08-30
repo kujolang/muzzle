@@ -19,6 +19,13 @@ if [[ "${1:-}" != "--" ]]; then
 fi
 shift
 
+# Create the Muzzle-owned log privately before the workflow starts, then restore
+# the caller's umask so workflow-created files keep their original semantics.
+caller_umask="$(umask)"
+umask 077
+: >"$log_path"
+umask "$caller_umask"
+
 case "$runner" in
 	kujo)
 		command_argv=("$kujo_bin" run "$script_path")

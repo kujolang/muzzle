@@ -21,6 +21,7 @@ jobs:
         with:
           repository: kujolang/kujo
           path: .ci/kujo
+          ref: b8a44653ad9c225e3d31d96c5c1a0d61f9c8d835
       - name: Build Kujo runtime
         run: cargo build --release --manifest-path .ci/kujo/Cargo.toml
       - name: Run quality gate
