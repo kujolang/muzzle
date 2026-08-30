@@ -424,7 +424,8 @@ func cmd_init() {
 		"logs/",
 		"reports/",
 		"state/session.json",
-		"state/session.lock"
+		"state/session.lock",
+		"state/executions/"
 	), "\n") + "\n"
 	if is_falseish(file_exists(".muzzle/.gitignore")) {
 		write_file(".muzzle/.gitignore", gitignore)
@@ -776,7 +777,7 @@ func cmd_run(argv) {
 	mut display_truncated := false
 
 	try {
-		process_result := run_workflow(runner, script_path, workflow_args, log_path, verbose, timeout_ms, cancel_file)
+		process_result := run_workflow(runner, script_path, to_string(integrity["actual"]), workflow_args, log_path, verbose, timeout_ms, cancel_file)
 		exit_code = to_int(process_result.exitcode)
 		timed_out = is_trueish(process_result.timed_out)
 		cancelled = is_trueish(process_result.cancelled)

@@ -440,6 +440,47 @@ if ! grep -q "alias target: ok" .muzzle/logs/alias-check-*.log 2>/dev/null; then
 	exit 1
 fi
 
+if command -v python3 >/dev/null 2>&1; then
+	cat > .muzzle/workflows/identity_helper.py <<'EOF'
+VALUE = "python-relative-ok"
+EOF
+	cat > .muzzle/workflows/identity-python.py <<'EOF'
+import os
+import sys
+from identity_helper import VALUE
+
+print(f"python-file={__file__}")
+print(f"python-arg={sys.argv[1]}")
+print(VALUE)
+EOF
+	"$MUZZLE_BIN" run identity-python literal >/dev/null
+	python_identity_log="$(ls -t .muzzle/logs/identity-python-*.log | head -1)"
+	if ! grep -q '^python-file=.muzzle/workflows/identity-python.py$' "$python_identity_log" || ! grep -q '^python-arg=literal$' "$python_identity_log" || ! grep -q '^python-relative-ok$' "$python_identity_log"; then
+		echo "Expected snapshot execution to preserve Python file, argv, and import behavior." >&2
+		exit 1
+	fi
+fi
+
+if command -v node >/dev/null 2>&1; then
+	cat > .muzzle/workflows/identity-helper.js <<'EOF'
+module.exports = "node-relative-ok";
+EOF
+	cat > .muzzle/workflows/identity-node.js <<'EOF'
+const path = require("path");
+const helper = require("./identity-helper.js");
+console.log(`node-file=${path.relative(process.cwd(), __filename)}`);
+console.log(`node-arg=${process.argv[2]}`);
+console.log(helper);
+console.log(`node-main=${require.main === module}`);
+EOF
+	"$MUZZLE_BIN" run identity-node literal >/dev/null
+	node_identity_log="$(ls -t .muzzle/logs/identity-node-*.log | head -1)"
+	if ! grep -q '^node-file=.muzzle/workflows/identity-node.js$' "$node_identity_log" || ! grep -q '^node-arg=literal$' "$node_identity_log" || ! grep -q '^node-relative-ok$' "$node_identity_log" || ! grep -q '^node-main=true$' "$node_identity_log"; then
+		echo "Expected snapshot execution to preserve Node file, argv, and require behavior." >&2
+		exit 1
+	fi
+fi
+
 cat > .muzzle/workflows/manifest-missing.sh <<'EOF'
 #!/usr/bin/env bash
 echo "should not run"

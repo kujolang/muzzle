@@ -62,9 +62,22 @@ fi
 set +e
 "$KUJO_BIN" run "$MUZZLE_KUJO" -- "$@" 2> >(grep -v '^Compiler optimization:' >&2) &
 kujo_pid=$!
-trap 'kill -INT "$kujo_pid" 2>/dev/null || true; wait "$kujo_pid" 2>/dev/null || true; exit 130' INT
-trap 'kill -TERM "$kujo_pid" 2>/dev/null || true; wait "$kujo_pid" 2>/dev/null || true; exit 130' TERM
+cleanup_owned_executions() {
+	bash "${SCRIPT_DIR}/src/muzzle_exec.sh" --cleanup-owner "$kujo_pid" >/dev/null 2>&1 || true
+}
+forward_interrupt() {
+	local signal_name="$1"
+	kill -"$signal_name" "$kujo_pid" 2>/dev/null || true
+	wait "$kujo_pid" 2>/dev/null || true
+	cleanup_owned_executions
+	exit 130
+}
+trap 'forward_interrupt INT' INT
+trap 'forward_interrupt TERM' TERM
 wait "$kujo_pid"
 status=$?
 trap - INT TERM
+# A forwarded signal can end the Kujo parent before its normal post-process
+# cleanup runs. Remove only execution snapshots owned by that exact process.
+cleanup_owned_executions
 exit "$status"

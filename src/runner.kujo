@@ -69,11 +69,12 @@ export func resolve_runner(manifest, script_path, flag_override) {
 # to the full log instead of accumulating in the Kujo process. The runtime's
 # structured process API supplies timeout/cancellation and Unix process-group
 # termination for the helper and all of its descendants.
-export func run_workflow(runner, script_path, args_arr, log_path, verbose, timeout_ms, cancel_file) {
+export func run_workflow(runner, script_path, expected_sha256, args_arr, log_path, verbose, timeout_ms, cancel_file) {
 	muzzle_root := env_or("MUZZLE_ROOT", path_absolute("."))
 	helper_path := to_string(muzzle_root) + "/src/muzzle_exec.sh"
 	kujo_bin := env_or("KUJO_BIN", "kujo")
-	mut argv := array("bash", helper_path, runner, script_path, log_path, to_string(verbose), kujo_bin, "--")
+	execution_root := ".muzzle/state/executions/" + replace(uuid_v4(), "-", "")
+	mut argv := array("bash", helper_path, runner, script_path, expected_sha256, execution_root, log_path, to_string(verbose), kujo_bin, "--")
 	mut idx := 0
 	while idx < len(args_arr) {
 		argv = push(argv, to_string(args_arr[idx]))
@@ -87,7 +88,12 @@ export func run_workflow(runner, script_path, args_arr, log_path, verbose, timeo
 	if cancel_file != "" {
 		options["cancel_file"] = cancel_file
 	}
-	return spawn_process(argv, options)
+	result := spawn_process(argv, options)
+	# The helper normally removes its private snapshot via an EXIT trap. Repeat
+	# the narrowly validated cleanup after timeout/cancellation for defense in
+	# depth if the runtime had to terminate the helper abruptly.
+	spawn_process(array("bash", helper_path, "--cleanup", execution_root), {"timeout_ms": 5000, "max_output_bytes": 4096})
+	return result
 }
 
 # Read only a bounded log tail for failure summaries. `tail` is part of the

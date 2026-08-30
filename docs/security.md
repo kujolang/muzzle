@@ -36,12 +36,14 @@ Muzzle validates that workflow scripts are inside the expected directory:
 2. Resolves the workflow directory and script's real paths (following symlinks)
 3. Rejects execution if either path escapes the project-local `.muzzle/` tree
 4. Applies the same project-local boundary to log, report, manifest, session, and loop-state access
+5. Copies the selected script into an owner-only execution snapshot and verifies that the snapshot digest matches the bytes validated before policy evaluation
 
 This prevents:
 - Path traversal attacks (`../../etc/passwd`)
 - Symlink escapes to outside directories
 - Accidental execution of system binaries
 - External writes or cleanup through symlinked artifact/state directories
+- Pathname replacement between integrity validation and interpreter startup
 
 ## Secret Redaction
 
@@ -104,7 +106,11 @@ On macOS and Linux, Kujo starts the helper in its own process group and terminat
 
 The default `--policy trusted` mode preserves the 1.0 trusted-local contract. `--policy enforce` evaluates `require_git_repo`, `allow_dirty_tree`, `requires_network`, and `human_approval_recommended`; network- or approval-marked workflows require `--approve`. `--validate-args` separately enforces positional requirements, allowlists, arity, and dry-run redaction.
 
-Teams can checksum-pin scripts with `script_sha256`. They can also sign a `muzzle.policy/v1` JSON bundle using `scripts/sign-policy.sh` and pass its bundle, public key, and detached signature to `muzzle run`. A verified bundle authorizes only listed workflows and forces enforce mode. Key custody, issuer trust, rotation, and expiry policy belong to the operator.
+Teams can checksum-pin scripts with `script_sha256`. Whether pinned or unpinned, Muzzle passes the digest observed during validation to its execution helper. The helper creates a private snapshot, verifies that exact digest again, and executes only the snapshot. A mutation before snapshot completion is denied with exit 3; a later mutation cannot change the bytes already selected for execution. Bash, Python, and Node wrappers preserve the original script identity and normal sibling loading; Kujo runs the snapshot while retaining the project working directory.
+
+Teams can also sign a `muzzle.policy/v1` JSON bundle using `scripts/sign-policy.sh` and pass its bundle, public key, and detached signature to `muzzle run`. A verified bundle authorizes only listed workflows and forces enforce mode. Key custody, issuer trust, rotation, and expiry policy belong to the operator.
+
+The script digest covers the selected workflow file, not mutable helper modules, subprocesses, or other files it loads. Pin or otherwise control those dependencies separately when that distinction matters.
 
 These checks establish integrity and reviewable authorization; they do not isolate a workflow or restrict its operating-system capabilities.
 
@@ -121,8 +127,9 @@ Muzzle writes to:
 - `.muzzle/logs/` — workflow output capture
 - `.muzzle/reports/` — markdown and JSON reports
 - `.muzzle/state/` — session and loop state
+- `.muzzle/state/executions/` — transient owner-only workflow snapshots, removed after normal completion, timeout, cancellation, or wrapper-forwarded interruption
 
-Muzzle creates its log and report files with owner-only permissions (`0600`) on supported Unix systems. Workflow scripts retain the caller's original umask, so this hardening does not change the permissions of files created by the workflow itself.
+Muzzle creates its log and report files with owner-only permissions (`0600`) and its transient execution state with owner-only directory permissions (`0700`) on supported Unix systems. Workflow scripts retain the caller's original umask, so this hardening does not change the permissions of files created by the workflow itself.
 
 Muzzle does NOT write outside `.muzzle/` unless the workflow script does so.
 
@@ -157,3 +164,4 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 - Workflow sandboxing or operating-system capability isolation
 - Automatic key distribution, certificate authority, or remote approval service
 - Native Windows process management
+- Isolation from another process running as the same operating-system user

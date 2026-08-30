@@ -40,7 +40,7 @@ Muzzle is designed to keep the signal in context and leave the full run on disk 
 
 ## Readiness
 
-Muzzle is production-ready for trusted local workflow compression in real projects: it spools complete logs with bounded in-process capture, terminates Unix process trees on timeout/cancellation, validates manifests strictly, supports opt-in execution policy, and emits versioned machine-readable results for automation.
+Muzzle is production-ready for trusted local workflow compression in real projects: it spools complete logs with bounded in-process capture, binds validated workflow bytes to execution, terminates Unix process trees on timeout/cancellation, validates manifests strictly, supports opt-in execution policy, and emits versioned machine-readable results for automation.
 
 It is not a sandbox for untrusted code or an enterprise isolation boundary. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The 1.0 CLI, JSON summary, and manifest contracts are stable within that trusted-local scope.
 
@@ -252,6 +252,7 @@ muzzle loop summary       # Full table of all iterations
 
 - **Path confinement**: Scripts must reside under `.muzzle/workflows/`. Path traversal (`..`) and slashes in workflow names are rejected.
 - **Canonical script checks**: Manifest script paths and symlinks are resolved before execution; scripts that escape `.muzzle/workflows/` are rejected.
+- **Byte-bound execution**: Every run executes a private snapshot whose SHA-256 digest must match the bytes Muzzle validated, closing pathname replacement races for the workflow script.
 - **Argument safety**: Workflow and helper execution use structured argument arrays; shell metacharacters stay literal.
 - **Secret redaction**: Case-insensitive single-line patterns (tokens, keys, credentials) + 9 multi-line block patterns (PEM keys, certificates) are redacted from summaries.
 - **Full logs preserved privately**: Redaction applies only to summaries. Complete output is available in `.muzzle/logs/`; Muzzle-owned logs and reports use owner-only file permissions on supported Unix systems.

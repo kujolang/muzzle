@@ -107,6 +107,8 @@ Create `.muzzle/manifests/my-workflow.json` for rich metadata:
 
 The `script` value can name a shared implementation, such as `workflows/shared-verify.sh`, even when the manifest is named `project-verify.json`. Muzzle resolves the path under `.muzzle/workflows/` and rejects traversal or symlink escapes before execution.
 
+Every run executes a private snapshot whose digest must match the script bytes Muzzle validated. `script_sha256` additionally binds those bytes to a manifest-reviewed value. The digest does not cover sibling helpers or other files loaded by the workflow.
+
 ## Argument Handling
 
 Workflow arguments are passed positionally:
