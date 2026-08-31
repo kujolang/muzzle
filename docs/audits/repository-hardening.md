@@ -79,6 +79,8 @@ An explicit artifact check under the host's `022` umask found workflow logs and 
 
 ## Performance & Efficiency
 
+> Follow-up: the statistically sampled, matched evaluation in [`evaluation/hardening-2026-08/`](../../evaluation/hardening-2026-08/) supersedes the five-iteration performance interpretation below. It confirms the security and reliability gains, but measures a material workflow-latency and system-CPU regression from private snapshot construction. The original figures remain here as contemporaneous audit evidence rather than being deleted.
+
 The matching post-change benchmark reported:
 
 | Signal | Before | After | Interpretation |

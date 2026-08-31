@@ -4,6 +4,8 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Add a reproducible before/after hardening evaluation with matched Kujo Eval outcomes, paired runtime distributions, raw evidence, a machine-readable receipt, and a public technical case study.
+
 ## [1.1.0] - 2026-08-30
 
 - Spool full workflow output to disk with bounded in-process capture and explicit terminal truncation metadata.
