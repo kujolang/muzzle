@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "muzzle.hardening-structure/v1",
+  "baseline": {
+    "sha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+    "trackedFiles": 50,
+    "trackedBytes": 256799,
+    "sourceFiles": 16,
+    "sourceNonblankLoc": 3249,
+    "sourceBytes": 116345,
+    "testFiles": 3,
+    "testNonblankLoc": 1074,
+    "documentationNonblankLoc": 1605,
+    "functionDefinitions": 108,
+    "controlFlowKeywords": 592,
+    "todoFixmeCount": 0,
+    "directPackageDependencies": 0,
+    "runtimeDependencies": [
+      "Kujo >= 0.1.0"
+    ],
+    "largestSourceFiles": [
+      {
+        "file": "muzzle.kujo",
+        "nonblankLoc": 1474,
+        "bytes": 54464
+      },
+      {
+        "file": "src/workflow.kujo",
+        "nonblankLoc": 416,
+        "bytes": 16285
+      },
+      {
+        "file": "src/loops.kujo",
+        "nonblankLoc": 243,
+        "bytes": 6047
+      },
+      {
+        "file": "src/redact.kujo",
+        "nonblankLoc": 146,
+        "bytes": 4288
+      },
+      {
+        "file": "src/retention.kujo",
+        "nonblankLoc": 139,
+        "bytes": 4290
+      }
+    ]
+  },
+  "current": {
+    "sha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca",
+    "trackedFiles": 52,
+    "trackedBytes": 288489,
+    "sourceFiles": 16,
+    "sourceNonblankLoc": 3429,
+    "sourceBytes": 124826,
+    "testFiles": 3,
+    "testNonblankLoc": 1215,
+    "documentationNonblankLoc": 1735,
+    "functionDefinitions": 112,
+    "controlFlowKeywords": 623,
+    "todoFixmeCount": 0,
+    "directPackageDependencies": 0,
+    "runtimeDependencies": [
+      "Kujo >= 1.0.0"
+    ],
+    "largestSourceFiles": [
+      {
+        "file": "muzzle.kujo",
+        "nonblankLoc": 1475,
+        "bytes": 54519
+      },
+      {
+        "file": "src/workflow.kujo",
+        "nonblankLoc": 416,
+        "bytes": 16285
+      },
+      {
+        "file": "src/loops.kujo",
+        "nonblankLoc": 243,
+        "bytes": 6047
+      },
+      {
+        "file": "src/muzzle_exec.sh",
+        "nonblankLoc": 179,
+        "bytes": 6942
+      },
+      {
+        "file": "src/redact.kujo",
+        "nonblankLoc": 146,
+        "bytes": 4288
+      }
+    ]
+  },
+  "deltas": {
+    "trackedFiles": 2,
+    "trackedBytes": 31690,
+    "sourceFiles": 0,
+    "sourceNonblankLoc": 180,
+    "sourceBytes": 8481,
+    "testFiles": 0,
+    "testNonblankLoc": 141,
+    "documentationNonblankLoc": 130,
+    "functionDefinitions": 4,
+    "controlFlowKeywords": 31,
+    "todoFixmeCount": 0,
+    "directPackageDependencies": 0
+  }
+}

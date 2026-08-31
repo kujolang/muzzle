@@ -1,0 +1,1 @@
+{"code":"POLICY_WORKFLOW_DENIED","command":"run","details":{"workflow":"hello-bash"},"message":"Signed policy bundle does not authorize this workflow.","schema_version":"muzzle.error/v1"}

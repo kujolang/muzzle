@@ -1,0 +1,3 @@
+log=600
+markdown=600
+json=600

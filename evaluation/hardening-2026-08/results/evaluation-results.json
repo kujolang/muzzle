@@ -1,0 +1,5217 @@
+{
+  "schemaVersion": "muzzle.hardening-evaluation/v1",
+  "generatedAt": "2026-08-31T03:07:54.021Z",
+  "boundary": {
+    "baseline": {
+      "sha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+      "timestamp": "2026-08-23T16:48:40-04:00",
+      "tag": null,
+      "selection": "Recorded starting SHA of the dedicated repository-hardening audit."
+    },
+    "current": {
+      "sha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca",
+      "timestamp": "2026-08-30T19:28:33-04:00",
+      "tag": "v1.1.0"
+    },
+    "alternativeBaseline": {
+      "sha": "f59db6dea559d3216dfe0ab41645c15ed5e16064",
+      "tag": "v1.0.0",
+      "reasonNotSelected": "Fourteen additional hardening/refactor commits precede the dedicated audit boundary; selecting v1.0.0 would mix two efforts."
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-31T03:07:03Z",
+    "os_product": "macOS",
+    "os_version": "26.3.1",
+    "os_build": "25D771280a",
+    "kernel": "Darwin 25.3.0 Darwin Kernel Version 25.3.0: Wed Jan 28 20:53:28 PST 2026; root:xnu-12377.91.3~2/RELEASE_X86_64",
+    "architecture": "x86_64",
+    "cpu": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+    "physical_cores": "6",
+    "logical_cores": "12",
+    "ram_bytes": "17179869184",
+    "filesystem": "APFS",
+    "kujo": "kujo 1.1.0",
+    "kujo_binary": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo",
+    "kujo_binary_sha256": "3cf109a03bcf40737a6ce22bdebd8c1c5395733418705fd103356fb8a7043d0a",
+    "rust": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "bash": "GNU bash, version 3.2.57(1)-release (x86_64-apple-darwin25)",
+    "node": "v24.20.0",
+    "python": "Python 3.10.5",
+    "openssl": "OpenSSL 3.6.3 9 Jun 2026 (Library: OpenSSL 3.6.3 9 Jun 2026)",
+    "timezone": "EDT",
+    "load_average": "{ 62.33 54.68 40.47 }"
+  },
+  "runtime": {
+    "schemaVersion": "muzzle.hardening-evaluation/v1",
+    "generatedAt": "2026-08-31T03:02:14.221Z",
+    "boundary": {
+      "baselineSha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+      "currentSha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca"
+    },
+    "benchmarkConfiguration": {
+      "warmups": 3,
+      "measuredRuns": 10,
+      "initialLoad": 14.0400390625,
+      "maximumLoad": 20,
+      "kujoBin": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo",
+      "kujoModules": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/modules"
+    },
+    "workloads": {
+      "startup": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 190.698264,
+              "max": 235.206337,
+              "mean": 211.26068773333333,
+              "median": 208.844102,
+              "p95": 235.206337,
+              "p99": 235.206337,
+              "standardDeviation": 12.489939069372221
+            },
+            "userMs": {
+              "n": 15,
+              "min": 110,
+              "max": 130,
+              "mean": 116.66666666666667,
+              "median": 120,
+              "p95": 130,
+              "p99": 130,
+              "standardDeviation": 7.237468644557458
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 60,
+              "max": 80,
+              "mean": 72,
+              "median": 70,
+              "p95": 80,
+              "p99": 80,
+              "standardDeviation": 5.606119105813881
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 19570688,
+              "max": 21188608,
+              "mean": 20480273.066666666,
+              "median": 20500480,
+              "p95": 21188608,
+              "p99": 21188608,
+              "standardDeviation": 388267.4264942853
+            },
+            "stdoutBytes": {
+              "n": 15,
+              "min": 93,
+              "max": 93,
+              "mean": 93,
+              "median": 93,
+              "p95": 93,
+              "p99": 93,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 15,
+              "min": 3,
+              "max": 3,
+              "mean": 3,
+              "median": 3,
+              "p95": 3,
+              "p99": 3,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 194.248514,
+              "max": 253.317967,
+              "mean": 224.40944746666668,
+              "median": 227.007003,
+              "p95": 253.317967,
+              "p99": 253.317967,
+              "standardDeviation": 15.623772577603166
+            },
+            "userMs": {
+              "n": 15,
+              "min": 100,
+              "max": 140,
+              "mean": 122.66666666666667,
+              "median": 120,
+              "p95": 140,
+              "p99": 140,
+              "standardDeviation": 10.327955589886443
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 70,
+              "max": 90,
+              "mean": 77.33333333333333,
+              "median": 80,
+              "p95": 90,
+              "p99": 90,
+              "standardDeviation": 7.0373155054899685
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 19714048,
+              "max": 21454848,
+              "mean": 20519048.533333335,
+              "median": 20447232,
+              "p95": 21454848,
+              "p99": 21454848,
+              "standardDeviation": 442638.45559583575
+            },
+            "stdoutBytes": {
+              "n": 15,
+              "min": 93,
+              "max": 93,
+              "mean": 93,
+              "median": 93,
+              "p95": 93,
+              "p99": 93,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 15,
+              "min": 3,
+              "max": 3,
+              "mean": 3,
+              "median": 3,
+              "p95": 3,
+              "p99": 3,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 18.162901000000005,
+            "medianPercent": 8.696870453157448,
+            "pairedDifference": {
+              "n": 15,
+              "min": -17.049669999999992,
+              "max": 43.976845,
+              "mean": 13.148759733333334,
+              "median": 14.93883599999998,
+              "p95": 43.976845,
+              "p99": 43.976845,
+              "standardDeviation": 20.385972090031853
+            },
+            "pairedCurrentSlowerCount": 11
+          },
+          "userMs": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 15,
+              "min": -20,
+              "max": 30,
+              "mean": 6,
+              "median": 10,
+              "p95": 30,
+              "p99": 30,
+              "standardDeviation": 13.522468075656265
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 10,
+            "medianPercent": 14.285714285714285,
+            "pairedDifference": {
+              "n": 15,
+              "min": -10,
+              "max": 20,
+              "mean": 5.333333333333333,
+              "median": 10,
+              "p95": 20,
+              "p99": 20,
+              "standardDeviation": 9.15475416434127
+            },
+            "pairedCurrentSlowerCount": 8
+          },
+          "peakRssBytes": {
+            "medianAbsolute": -53248,
+            "medianPercent": -0.2597402597402597,
+            "pairedDifference": {
+              "n": 15,
+              "min": -798720,
+              "max": 884736,
+              "mean": 38775.46666666667,
+              "median": -8192,
+              "p95": 884736,
+              "p99": 884736,
+              "standardDeviation": 548793.8365956834
+            },
+            "pairedCurrentSlowerCount": 7
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 15,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 15,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          }
+        }
+      },
+      "output-10": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 709.713183,
+              "max": 1073.119089,
+              "mean": 832.7644324999999,
+              "median": 760.2086449999999,
+              "p95": 1073.119089,
+              "p99": 1073.119089,
+              "standardDeviation": 136.49240172670284
+            },
+            "userMs": {
+              "n": 10,
+              "min": 540,
+              "max": 750,
+              "mean": 617,
+              "median": 575,
+              "p95": 750,
+              "p99": 750,
+              "standardDeviation": 88.57514073122071
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 100,
+              "max": 160,
+              "mean": 117,
+              "median": 105,
+              "p95": 160,
+              "p99": 160,
+              "standardDeviation": 22.135943621178654
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 23150592,
+              "max": 26214400,
+              "mean": 24628838.4,
+              "median": 24557568,
+              "p95": 26214400,
+              "p99": 26214400,
+              "standardDeviation": 1094609.8812444753
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 459,
+              "max": 459,
+              "mean": 459,
+              "median": 459,
+              "p95": 459,
+              "p99": 459,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 750,
+              "max": 750,
+              "mean": 750,
+              "median": 750,
+              "p95": 750,
+              "p99": 750,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 57,
+              "max": 82,
+              "mean": 64.8,
+              "median": 61,
+              "p95": 82,
+              "p99": 82,
+              "standardDeviation": 8.58681159297986
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1168.878058,
+              "max": 1686.869623,
+              "mean": 1344.0483497999999,
+              "median": 1222.4927415000002,
+              "p95": 1686.869623,
+              "p99": 1686.869623,
+              "standardDeviation": 197.29354852805344
+            },
+            "userMs": {
+              "n": 10,
+              "min": 710,
+              "max": 970,
+              "mean": 790,
+              "median": 755,
+              "p95": 970,
+              "p99": 970,
+              "standardDeviation": 77.45966692414834
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 320,
+              "max": 440,
+              "mean": 358,
+              "median": 340,
+              "p95": 440,
+              "p99": 440,
+              "standardDeviation": 45.89843860815601
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 23638016,
+              "max": 26132480,
+              "mean": 24958976,
+              "median": 24614912,
+              "p95": 26132480,
+              "p99": 26132480,
+              "standardDeviation": 831644.3596826711
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 509,
+              "max": 509,
+              "mean": 509,
+              "median": 509,
+              "p95": 509,
+              "p99": 509,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 750,
+              "max": 750,
+              "mean": 750,
+              "median": 750,
+              "p95": 750,
+              "p99": 750,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 396,
+              "max": 864,
+              "mean": 501.5,
+              "median": 452,
+              "p95": 864,
+              "p99": 864,
+              "standardDeviation": 136.77983119678947
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 462.28409650000026,
+            "medianPercent": 60.81016041326396,
+            "pairedDifference": {
+              "n": 10,
+              "min": 154.49426500000004,
+              "max": 977.1564400000001,
+              "mean": 511.2839172999999,
+              "median": 454.078253,
+              "p95": 977.1564400000001,
+              "p99": 977.1564400000001,
+              "standardDeviation": 224.12103531649106
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 180,
+            "medianPercent": 31.30434782608696,
+            "pairedDifference": {
+              "n": 10,
+              "min": 30,
+              "max": 310,
+              "mean": 173,
+              "median": 175,
+              "p95": 310,
+              "p99": 310,
+              "standardDeviation": 79.86794656737388
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 235,
+            "medianPercent": 223.80952380952382,
+            "pairedDifference": {
+              "n": 10,
+              "min": 200,
+              "max": 330,
+              "mean": 241,
+              "median": 220,
+              "p95": 330,
+              "p99": 330,
+              "standardDeviation": 40.4007700696685
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 57344,
+            "medianPercent": 0.23350846468184472,
+            "pairedDifference": {
+              "n": 10,
+              "min": -1314816,
+              "max": 1675264,
+              "mean": 330137.6,
+              "median": 323584,
+              "p95": 1675264,
+              "p99": 1675264,
+              "standardDeviation": 840424.9417488751
+            },
+            "pairedCurrentSlowerCount": 6
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.893246187363834,
+            "pairedDifference": {
+              "n": 10,
+              "min": 50,
+              "max": 50,
+              "mean": 50,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 391,
+            "medianPercent": 640.983606557377,
+            "pairedDifference": {
+              "n": 10,
+              "min": 339,
+              "max": 804,
+              "mean": 436.7,
+              "median": 391.5,
+              "p95": 804,
+              "p99": 804,
+              "standardDeviation": 136.99963503601023
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "output-100": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 763.805742,
+              "max": 877.412727,
+              "mean": 824.5195286000001,
+              "median": 825.5983755,
+              "p95": 877.412727,
+              "p99": 877.412727,
+              "standardDeviation": 31.775301506491033
+            },
+            "userMs": {
+              "n": 10,
+              "min": 580,
+              "max": 660,
+              "mean": 625,
+              "median": 630,
+              "p95": 660,
+              "p99": 660,
+              "standardDeviation": 22.23610677354389
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 110,
+              "max": 130,
+              "mean": 122,
+              "median": 120,
+              "p95": 130,
+              "p99": 130,
+              "standardDeviation": 6.324555320336759
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24158208,
+              "max": 25460736,
+              "mean": 24823398.4,
+              "median": 24743936,
+              "p95": 25460736,
+              "p99": 25460736,
+              "standardDeviation": 444458.25830834656
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 462,
+              "max": 462,
+              "mean": 462,
+              "median": 462,
+              "p95": 462,
+              "p99": 462,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 7500,
+              "max": 7500,
+              "mean": 7500,
+              "median": 7500,
+              "p95": 7500,
+              "p99": 7500,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 60,
+              "max": 79,
+              "mean": 69.3,
+              "median": 70.5,
+              "p95": 79,
+              "p99": 79,
+              "standardDeviation": 6.290204024248075
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1240.466487,
+              "max": 1512.983115,
+              "mean": 1340.3232782999999,
+              "median": 1314.5667575,
+              "p95": 1512.983115,
+              "p99": 1512.983115,
+              "standardDeviation": 93.13268889321068
+            },
+            "userMs": {
+              "n": 10,
+              "min": 750,
+              "max": 900,
+              "mean": 807,
+              "median": 800,
+              "p95": 900,
+              "p99": 900,
+              "standardDeviation": 44.23422506008969
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 350,
+              "max": 420,
+              "mean": 373,
+              "median": 370,
+              "p95": 420,
+              "p99": 420,
+              "standardDeviation": 23.118054512532936
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24125440,
+              "max": 25612288,
+              "mean": 24988057.6,
+              "median": 24983552,
+              "p95": 25612288,
+              "p99": 25612288,
+              "standardDeviation": 453583.378583181
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 512,
+              "max": 512,
+              "mean": 512,
+              "median": 512,
+              "p95": 512,
+              "p99": 512,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 7500,
+              "max": 7500,
+              "mean": 7500,
+              "median": 7500,
+              "p95": 7500,
+              "p99": 7500,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 458,
+              "max": 665,
+              "mean": 518.4,
+              "median": 497,
+              "p95": 665,
+              "p99": 665,
+              "standardDeviation": 64.32590630704104
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 488.968382,
+            "medianPercent": 59.225937999680575,
+            "pairedDifference": {
+              "n": 10,
+              "min": 416.08881599999995,
+              "max": 660.168264,
+              "mean": 515.8037496999999,
+              "median": 500.1089465,
+              "p95": 660.168264,
+              "p99": 660.168264,
+              "standardDeviation": 73.12639716775782
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 170,
+            "medianPercent": 26.984126984126984,
+            "pairedDifference": {
+              "n": 10,
+              "min": 130,
+              "max": 260,
+              "mean": 182,
+              "median": 185,
+              "p95": 260,
+              "p99": 260,
+              "standardDeviation": 40.22160834399562
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 250,
+            "medianPercent": 208.33333333333334,
+            "pairedDifference": {
+              "n": 10,
+              "min": 230,
+              "max": 290,
+              "mean": 251,
+              "median": 240,
+              "p95": 290,
+              "p99": 290,
+              "standardDeviation": 20.789954839350234
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 239616,
+            "medianPercent": 0.968382718093031,
+            "pairedDifference": {
+              "n": 10,
+              "min": -1171456,
+              "max": 1093632,
+              "mean": 164659.2,
+              "median": 327680,
+              "p95": 1093632,
+              "p99": 1093632,
+              "standardDeviation": 709891.4086066341
+            },
+            "pairedCurrentSlowerCount": 6
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.822510822510822,
+            "pairedDifference": {
+              "n": 10,
+              "min": 50,
+              "max": 50,
+              "mean": 50,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 426.5,
+            "medianPercent": 604.9645390070922,
+            "pairedDifference": {
+              "n": 10,
+              "min": 390,
+              "max": 593,
+              "mean": 449.1,
+              "median": 430,
+              "p95": 593,
+              "p99": 593,
+              "standardDeviation": 62.9452142740018
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "output-1000": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 806.401693,
+              "max": 1380.720837,
+              "mean": 942.3610854000001,
+              "median": 907.1483900000001,
+              "p95": 1380.720837,
+              "p99": 1380.720837,
+              "standardDeviation": 168.34862560632334
+            },
+            "userMs": {
+              "n": 10,
+              "min": 600,
+              "max": 890,
+              "mean": 694,
+              "median": 670,
+              "p95": 890,
+              "p99": 890,
+              "standardDeviation": 88.09086218218096
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 120,
+              "max": 170,
+              "mean": 141,
+              "median": 140,
+              "p95": 170,
+              "p99": 170,
+              "standardDeviation": 16.6332999331662
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24285184,
+              "max": 26099712,
+              "mean": 24929075.2,
+              "median": 24748032,
+              "p95": 26099712,
+              "p99": 26099712,
+              "standardDeviation": 630464.1590272642
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 465,
+              "max": 466,
+              "mean": 465.7,
+              "median": 466,
+              "p95": 466,
+              "p99": 466,
+              "standardDeviation": 0.4830458915396479
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 75000,
+              "max": 75000,
+              "mean": 75000,
+              "median": 75000,
+              "p95": 75000,
+              "p99": 75000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 95,
+              "max": 127,
+              "mean": 108.9,
+              "median": 107,
+              "p95": 127,
+              "p99": 127,
+              "standardDeviation": 11.376877134492283
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1232.55931,
+              "max": 1536.87867,
+              "mean": 1376.7553589000001,
+              "median": 1387.6027545,
+              "p95": 1536.87867,
+              "p99": 1536.87867,
+              "standardDeviation": 80.38675478651135
+            },
+            "userMs": {
+              "n": 10,
+              "min": 750,
+              "max": 940,
+              "mean": 846,
+              "median": 850,
+              "p95": 940,
+              "p99": 940,
+              "standardDeviation": 51.033757890679034
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 350,
+              "max": 430,
+              "mean": 387,
+              "median": 390,
+              "p95": 430,
+              "p99": 430,
+              "standardDeviation": 22.63232692902394
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24154112,
+              "max": 25460736,
+              "mean": 24848793.6,
+              "median": 24969216,
+              "p95": 25460736,
+              "p99": 25460736,
+              "standardDeviation": 438513.10003875603
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 515,
+              "max": 515,
+              "mean": 515,
+              "median": 515,
+              "p95": 515,
+              "p99": 515,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 75000,
+              "max": 75000,
+              "mean": 75000,
+              "median": 75000,
+              "p95": 75000,
+              "p99": 75000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 480,
+              "max": 584,
+              "mean": 535.5,
+              "median": 541.5,
+              "p95": 584,
+              "p99": 584,
+              "standardDeviation": 35.93899151494253
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 480.4543644999999,
+            "medianPercent": 52.963150218455425,
+            "pairedDifference": {
+              "n": 10,
+              "min": -15.417552999999998,
+              "max": 528.497228,
+              "mean": 434.39427350000005,
+              "median": 481.7579015,
+              "p95": 528.497228,
+              "p99": 528.497228,
+              "standardDeviation": 161.618366735408
+            },
+            "pairedCurrentSlowerCount": 9
+          },
+          "userMs": {
+            "medianAbsolute": 180,
+            "medianPercent": 26.865671641791046,
+            "pairedDifference": {
+              "n": 10,
+              "min": -40,
+              "max": 240,
+              "mean": 152,
+              "median": 165,
+              "p95": 240,
+              "p99": 240,
+              "standardDeviation": 73.90684827688312
+            },
+            "pairedCurrentSlowerCount": 9
+          },
+          "sysMs": {
+            "medianAbsolute": 250,
+            "medianPercent": 178.57142857142858,
+            "pairedDifference": {
+              "n": 10,
+              "min": 220,
+              "max": 270,
+              "mean": 246,
+              "median": 250,
+              "p95": 270,
+              "p99": 270,
+              "standardDeviation": 16.46545204697129
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 221184,
+            "medianPercent": 0.893743793445879,
+            "pairedDifference": {
+              "n": 10,
+              "min": -1105920,
+              "max": 712704,
+              "mean": -80281.6,
+              "median": 79872,
+              "p95": 712704,
+              "p99": 712704,
+              "standardDeviation": 535775.3103156417
+            },
+            "pairedCurrentSlowerCount": 6
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 49,
+            "medianPercent": 10.515021459227468,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 50,
+              "mean": 49.3,
+              "median": 49,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0.48304589153964794
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 434.5,
+            "medianPercent": 406.0747663551401,
+            "pairedDifference": {
+              "n": 10,
+              "min": 373,
+              "max": 458,
+              "mean": 426.6,
+              "median": 439,
+              "p95": 458,
+              "p99": 458,
+              "standardDeviation": 31.145536509176473
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "output-10000": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1525.965582,
+              "max": 1885.013083,
+              "mean": 1671.3445036,
+              "median": 1668.2486205,
+              "p95": 1885.013083,
+              "p99": 1885.013083,
+              "standardDeviation": 98.66864102414395
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1100,
+              "max": 1200,
+              "mean": 1162,
+              "median": 1180,
+              "p95": 1200,
+              "p99": 1200,
+              "standardDeviation": 37.94733192202055
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 310,
+              "max": 360,
+              "mean": 330,
+              "median": 330,
+              "p95": 360,
+              "p99": 360,
+              "standardDeviation": 14.142135623730951
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 25714688,
+              "max": 26304512,
+              "mean": 26048102.4,
+              "median": 26114048,
+              "p95": 26304512,
+              "p99": 26304512,
+              "standardDeviation": 190738.58152583838
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 469,
+              "max": 469,
+              "mean": 469,
+              "median": 469,
+              "p95": 469,
+              "p99": 469,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 750000,
+              "max": 750000,
+              "mean": 750000,
+              "median": 750000,
+              "p95": 750000,
+              "p99": 750000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 557,
+              "max": 695,
+              "mean": 621.3,
+              "median": 624,
+              "p95": 695,
+              "p99": 695,
+              "standardDeviation": 42.76823847462299
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 2034.790194,
+              "max": 2925.385423,
+              "mean": 2277.5994928,
+              "median": 2178.2601425000003,
+              "p95": 2925.385423,
+              "p99": 2925.385423,
+              "standardDeviation": 281.74529732765336
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1180,
+              "max": 1420,
+              "mean": 1338,
+              "median": 1345,
+              "p95": 1420,
+              "p99": 1420,
+              "standardDeviation": 74.95183638696105
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 550,
+              "max": 650,
+              "mean": 612,
+              "median": 615,
+              "p95": 650,
+              "p99": 650,
+              "standardDeviation": 30.477678535099894
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 25645056,
+              "max": 26468352,
+              "mean": 25989529.6,
+              "median": 25956352,
+              "p95": 26468352,
+              "p99": 26468352,
+              "standardDeviation": 295621.94054313505
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 519,
+              "max": 519,
+              "mean": 519,
+              "median": 519,
+              "p95": 519,
+              "p99": 519,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 750000,
+              "max": 750000,
+              "mean": 750000,
+              "median": 750000,
+              "p95": 750000,
+              "p99": 750000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 1036,
+              "max": 1403,
+              "mean": 1160.5,
+              "median": 1126.5,
+              "p95": 1403,
+              "p99": 1403,
+              "standardDeviation": 114.60778526978194
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 510.01152200000024,
+            "medianPercent": 30.571673534316595,
+            "pairedDifference": {
+              "n": 10,
+              "min": 332.4433589999999,
+              "max": 1299.2229880000002,
+              "mean": 606.2549892,
+              "median": 482.1265920000001,
+              "p95": 1299.2229880000002,
+              "p99": 1299.2229880000002,
+              "standardDeviation": 317.9800172537125
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 165,
+            "medianPercent": 13.983050847457626,
+            "pairedDifference": {
+              "n": 10,
+              "min": 80,
+              "max": 320,
+              "mean": 176,
+              "median": 170,
+              "p95": 320,
+              "p99": 320,
+              "standardDeviation": 72.29568912920512
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 285,
+            "medianPercent": 86.36363636363636,
+            "pairedDifference": {
+              "n": 10,
+              "min": 220,
+              "max": 340,
+              "mean": 282,
+              "median": 285,
+              "p95": 340,
+              "p99": 340,
+              "standardDeviation": 38.81580434135903
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": -157696,
+            "medianPercent": -0.6038742059446318,
+            "pairedDifference": {
+              "n": 10,
+              "min": -614400,
+              "max": 458752,
+              "mean": -58572.8,
+              "median": -55296,
+              "p95": 458752,
+              "p99": 458752,
+              "standardDeviation": 350202.2777960062
+            },
+            "pairedCurrentSlowerCount": 4
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.660980810234541,
+            "pairedDifference": {
+              "n": 10,
+              "min": 50,
+              "max": 50,
+              "mean": 50,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 502.5,
+            "medianPercent": 80.52884615384616,
+            "pairedDifference": {
+              "n": 10,
+              "min": 376,
+              "max": 808,
+              "mean": 539.2,
+              "median": 502.5,
+              "p95": 808,
+              "p99": 808,
+              "standardDeviation": 121.8074984008237
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "output-50000": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 3479.398402,
+              "max": 4222.338024,
+              "mean": 3843.2371479000003,
+              "median": 3850.3790525,
+              "p95": 4222.338024,
+              "p99": 4222.338024,
+              "standardDeviation": 235.40755554367553
+            },
+            "userMs": {
+              "n": 10,
+              "min": 2400,
+              "max": 2690,
+              "mean": 2564,
+              "median": 2600,
+              "p95": 2690,
+              "p99": 2690,
+              "standardDeviation": 97.54770912510224
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 940,
+              "max": 1110,
+              "mean": 1028,
+              "median": 1025,
+              "p95": 1110,
+              "p99": 1110,
+              "standardDeviation": 53.707024162994216
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 25493504,
+              "max": 26177536,
+              "mean": 25875660.8,
+              "median": 25919488,
+              "p95": 26177536,
+              "p99": 26177536,
+              "standardDeviation": 239428.63101642625
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 470,
+              "max": 470,
+              "mean": 470,
+              "median": 470,
+              "p95": 470,
+              "p99": 470,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 3750000,
+              "max": 3750000,
+              "mean": 3750000,
+              "median": 3750000,
+              "p95": 3750000,
+              "p99": 3750000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 2545,
+              "max": 3121,
+              "mean": 2820.8,
+              "median": 2777.5,
+              "p95": 3121,
+              "p99": 3121,
+              "standardDeviation": 199.45525814076697
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 3949.688882,
+              "max": 5311.850274,
+              "mean": 4588.9329757,
+              "median": 4588.5321465,
+              "p95": 5311.850274,
+              "p99": 5311.850274,
+              "standardDeviation": 435.01387004648365
+            },
+            "userMs": {
+              "n": 10,
+              "min": 2540,
+              "max": 3020,
+              "mean": 2802,
+              "median": 2760,
+              "p95": 3020,
+              "p99": 3020,
+              "standardDeviation": 165.9852737778599
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 1220,
+              "max": 1530,
+              "mean": 1353,
+              "median": 1355,
+              "p95": 1530,
+              "p99": 1530,
+              "standardDeviation": 96.95932709704164
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24694784,
+              "max": 26337280,
+              "mean": 25808076.8,
+              "median": 25931776,
+              "p95": 26337280,
+              "p99": 26337280,
+              "standardDeviation": 468712.3909825963
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 519,
+              "max": 519,
+              "mean": 519,
+              "median": 519,
+              "p95": 519,
+              "p99": 519,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 3750000,
+              "max": 3750000,
+              "mean": 3750000,
+              "median": 3750000,
+              "p95": 3750000,
+              "p99": 3750000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 2994,
+              "max": 4088,
+              "mean": 3485.5,
+              "median": 3516,
+              "p95": 4088,
+              "p99": 4088,
+              "standardDeviation": 367.0943717598756
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 738.1530939999998,
+            "medianPercent": 19.170920159684716,
+            "pairedDifference": {
+              "n": 10,
+              "min": 106.31656199999998,
+              "max": 1135.4730529999997,
+              "mean": 745.6958278,
+              "median": 726.1011129999997,
+              "p95": 1135.4730529999997,
+              "p99": 1135.4730529999997,
+              "standardDeviation": 360.3203174502833
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 160,
+            "medianPercent": 6.153846153846154,
+            "pairedDifference": {
+              "n": 10,
+              "min": 50,
+              "max": 380,
+              "mean": 238,
+              "median": 240,
+              "p95": 380,
+              "p99": 380,
+              "standardDeviation": 118.67790208983493
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 330,
+            "medianPercent": 32.19512195121951,
+            "pairedDifference": {
+              "n": 10,
+              "min": 150,
+              "max": 420,
+              "mean": 325,
+              "median": 350,
+              "p95": 420,
+              "p99": 420,
+              "standardDeviation": 88.72554436137443
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 12288,
+            "medianPercent": 0.04740834386852086,
+            "pairedDifference": {
+              "n": 10,
+              "min": -827392,
+              "max": 606208,
+              "mean": -67584,
+              "median": 2048,
+              "p95": 606208,
+              "p99": 606208,
+              "standardDeviation": 466673.4498859395
+            },
+            "pairedCurrentSlowerCount": 5
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 49,
+            "medianPercent": 10.425531914893616,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 49,
+              "mean": 49,
+              "median": 49,
+              "p95": 49,
+              "p99": 49,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 738.5,
+            "medianPercent": 26.58865886588659,
+            "pairedDifference": {
+              "n": 10,
+              "min": -12,
+              "max": 1076,
+              "mean": 664.7,
+              "median": 660,
+              "p95": 1076,
+              "p99": 1076,
+              "standardDeviation": 344.29736824114383
+            },
+            "pairedCurrentSlowerCount": 9
+          }
+        }
+      },
+      "failure-5000": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 4304.747491,
+              "max": 7454.158237,
+              "mean": 5876.3732839,
+              "median": 5857.819387,
+              "p95": 7454.158237,
+              "p99": 7454.158237,
+              "standardDeviation": 944.4555363950527
+            },
+            "userMs": {
+              "n": 10,
+              "min": 3690,
+              "max": 4500,
+              "mean": 4207,
+              "median": 4270,
+              "p95": 4500,
+              "p99": 4500,
+              "standardDeviation": 251.44250502517139
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 320,
+              "max": 400,
+              "mean": 375,
+              "median": 380,
+              "p95": 400,
+              "p99": 400,
+              "standardDeviation": 25.05549396395485
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24895488,
+              "max": 26124288,
+              "mean": 25291161.6,
+              "median": 25276416,
+              "p95": 26124288,
+              "p99": 26124288,
+              "standardDeviation": 390343.04540470836
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 845,
+              "max": 845,
+              "mean": 845,
+              "median": 845,
+              "p95": 845,
+              "p99": 845,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 375000,
+              "max": 375000,
+              "mean": 375000,
+              "median": 375000,
+              "p95": 375000,
+              "p99": 375000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 364,
+              "max": 509,
+              "mean": 442.8,
+              "median": 449.5,
+              "p95": 509,
+              "p99": 509,
+              "standardDeviation": 45.805870560199786
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 5326.149011,
+              "max": 7116.079873,
+              "mean": 6236.086130900001,
+              "median": 6377.953984,
+              "p95": 7116.079873,
+              "p99": 7116.079873,
+              "standardDeviation": 674.0039713926301
+            },
+            "userMs": {
+              "n": 10,
+              "min": 4100,
+              "max": 4650,
+              "mean": 4398,
+              "median": 4420,
+              "p95": 4650,
+              "p99": 4650,
+              "standardDeviation": 192.51551164054865
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 640,
+              "max": 750,
+              "mean": 702,
+              "median": 700,
+              "p95": 750,
+              "p99": 750,
+              "standardDeviation": 30.840089349921005
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24686592,
+              "max": 26132480,
+              "mean": 25479987.2,
+              "median": 25554944,
+              "p95": 26132480,
+              "p99": 26132480,
+              "standardDeviation": 484706.98647437163
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 894,
+              "max": 895,
+              "mean": 894.9,
+              "median": 895,
+              "p95": 895,
+              "p99": 895,
+              "standardDeviation": 0.31622776601683794
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 375000,
+              "max": 375000,
+              "mean": 375000,
+              "median": 375000,
+              "p95": 375000,
+              "p99": 375000,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 967,
+              "max": 1328,
+              "mean": 1098.8,
+              "median": 1080,
+              "p95": 1328,
+              "p99": 1328,
+              "standardDeviation": 105.67854822789512
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 520.1345970000002,
+            "medianPercent": 8.87932117119063,
+            "pairedDifference": {
+              "n": 10,
+              "min": -338.07836399999997,
+              "max": 1038.4624219999996,
+              "mean": 359.71284700000007,
+              "median": 361.3408690000001,
+              "p95": 1038.4624219999996,
+              "p99": 1038.4624219999996,
+              "standardDeviation": 489.7986471082074
+            },
+            "pairedCurrentSlowerCount": 7
+          },
+          "userMs": {
+            "medianAbsolute": 150,
+            "medianPercent": 3.51288056206089,
+            "pairedDifference": {
+              "n": 10,
+              "min": 70,
+              "max": 410,
+              "mean": 191,
+              "median": 150,
+              "p95": 410,
+              "p99": 410,
+              "standardDeviation": 100.38260141412289
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 320,
+            "medianPercent": 84.21052631578947,
+            "pairedDifference": {
+              "n": 10,
+              "min": 250,
+              "max": 400,
+              "mean": 327,
+              "median": 330,
+              "p95": 400,
+              "p99": 400,
+              "standardDeviation": 38.600518131237564
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 278528,
+            "medianPercent": 1.1019283746556474,
+            "pairedDifference": {
+              "n": 10,
+              "min": -208896,
+              "max": 921600,
+              "mean": 188825.6,
+              "median": 73728,
+              "p95": 921600,
+              "p99": 921600,
+              "standardDeviation": 367122.11354661454
+            },
+            "pairedCurrentSlowerCount": 7
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 5.9171597633136095,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 50,
+              "mean": 49.9,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0.31622776601683783
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 630.5,
+            "medianPercent": 140.26696329254727,
+            "pairedDifference": {
+              "n": 10,
+              "min": 526,
+              "max": 948,
+              "mean": 656,
+              "median": 640,
+              "p95": 948,
+              "p99": 948,
+              "standardDeviation": 123.4611949831471
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "script-1024": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1283.433519,
+              "max": 1990.090085,
+              "mean": 1600.3116643999997,
+              "median": 1537.321138,
+              "p95": 1990.090085,
+              "p99": 1990.090085,
+              "standardDeviation": 240.1172063279985
+            },
+            "userMs": {
+              "n": 10,
+              "min": 890,
+              "max": 930,
+              "mean": 912,
+              "median": 910,
+              "p95": 930,
+              "p99": 930,
+              "standardDeviation": 12.292725943057183
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 160,
+              "max": 180,
+              "mean": 167,
+              "median": 170,
+              "p95": 180,
+              "p99": 180,
+              "standardDeviation": 6.749485577105529
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 23982080,
+              "max": 25149440,
+              "mean": 24539136,
+              "median": 24403968,
+              "p95": 25149440,
+              "p99": 25149440,
+              "standardDeviation": 420744.25330782065
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 465,
+              "max": 466,
+              "mean": 465.4,
+              "median": 465,
+              "p95": 466,
+              "p99": 466,
+              "standardDeviation": 0.5163977794943223
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 81,
+              "max": 112,
+              "mean": 96.4,
+              "median": 95.5,
+              "p95": 112,
+              "p99": 112,
+              "standardDeviation": 9.709102258533829
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 2071.869871,
+              "max": 2671.52366,
+              "mean": 2322.3000617999996,
+              "median": 2305.7254475,
+              "p95": 2671.52366,
+              "p99": 2671.52366,
+              "standardDeviation": 176.46839565432722
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1120,
+              "max": 1160,
+              "mean": 1140,
+              "median": 1140,
+              "p95": 1160,
+              "p99": 1160,
+              "standardDeviation": 13.333333333333334
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 480,
+              "max": 510,
+              "mean": 491,
+              "median": 490,
+              "p95": 510,
+              "p99": 510,
+              "standardDeviation": 11.00504934614612
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24272896,
+              "max": 25427968,
+              "mean": 24813158.4,
+              "median": 24713216,
+              "p95": 25427968,
+              "p99": 25427968,
+              "standardDeviation": 405020.7886382569
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 515,
+              "max": 515,
+              "mean": 515,
+              "median": 515,
+              "p95": 515,
+              "p99": 515,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 700,
+              "max": 763,
+              "mean": 728.9,
+              "median": 726,
+              "p95": 763,
+              "p99": 763,
+              "standardDeviation": 22.30819480719037
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 768.4043095,
+            "medianPercent": 49.98333077626621,
+            "pairedDifference": {
+              "n": 10,
+              "min": 356.0486659999999,
+              "max": 1131.0493979999999,
+              "mean": 721.9883973999999,
+              "median": 704.7180709999999,
+              "p95": 1131.0493979999999,
+              "p99": 1131.0493979999999,
+              "standardDeviation": 231.16141586223358
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 230,
+            "medianPercent": 25.274725274725274,
+            "pairedDifference": {
+              "n": 10,
+              "min": 210,
+              "max": 250,
+              "mean": 228,
+              "median": 230,
+              "p95": 250,
+              "p99": 250,
+              "standardDeviation": 13.98411797560202
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 320,
+            "medianPercent": 188.23529411764704,
+            "pairedDifference": {
+              "n": 10,
+              "min": 310,
+              "max": 340,
+              "mean": 324,
+              "median": 325,
+              "p95": 340,
+              "p99": 340,
+              "standardDeviation": 9.66091783079296
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 309248,
+            "medianPercent": 1.2672037596508896,
+            "pairedDifference": {
+              "n": 10,
+              "min": -499712,
+              "max": 790528,
+              "mean": 274022.4,
+              "median": 360448,
+              "p95": 790528,
+              "p99": 790528,
+              "standardDeviation": 437386.19018467725
+            },
+            "pairedCurrentSlowerCount": 7
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.75268817204301,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 50,
+              "mean": 49.6,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0.5163977794943222
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 630.5,
+            "medianPercent": 660.2094240837697,
+            "pairedDifference": {
+              "n": 10,
+              "min": 597,
+              "max": 672,
+              "mean": 632.5,
+              "median": 631,
+              "p95": 672,
+              "p99": 672,
+              "standardDeviation": 24.775660098841634
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "script-65536": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1174.907827,
+              "max": 1670.941812,
+              "mean": 1391.9638335000004,
+              "median": 1399.4921365,
+              "p95": 1670.941812,
+              "p99": 1670.941812,
+              "standardDeviation": 166.63384353518072
+            },
+            "userMs": {
+              "n": 10,
+              "min": 880,
+              "max": 930,
+              "mean": 910,
+              "median": 910,
+              "p95": 930,
+              "p99": 930,
+              "standardDeviation": 14.142135623730951
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 160,
+              "max": 180,
+              "mean": 168,
+              "median": 170,
+              "p95": 180,
+              "p99": 180,
+              "standardDeviation": 7.888106377466155
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24043520,
+              "max": 26374144,
+              "mean": 24972902.4,
+              "median": 24852480,
+              "p95": 26374144,
+              "p99": 26374144,
+              "standardDeviation": 835473.4497675487
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 468,
+              "max": 469,
+              "mean": 468.4,
+              "median": 468,
+              "p95": 469,
+              "p99": 469,
+              "standardDeviation": 0.5163977794943223
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 80,
+              "max": 128,
+              "mean": 96.4,
+              "median": 95,
+              "p95": 128,
+              "p99": 128,
+              "standardDeviation": 13.945927322659074
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1765.189251,
+              "max": 2638.361566,
+              "mean": 2261.9872053,
+              "median": 2290.112931,
+              "p95": 2638.361566,
+              "p99": 2638.361566,
+              "standardDeviation": 292.80246809995816
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1100,
+              "max": 1160,
+              "mean": 1143,
+              "median": 1150,
+              "p95": 1160,
+              "p99": 1160,
+              "standardDeviation": 19.46506842754191
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 470,
+              "max": 530,
+              "mean": 497,
+              "median": 495,
+              "p95": 530,
+              "p99": 530,
+              "standardDeviation": 17.669811040931428
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 24449024,
+              "max": 25759744,
+              "mean": 25115443.2,
+              "median": 24979456,
+              "p95": 25759744,
+              "p99": 25759744,
+              "standardDeviation": 441592.15585947875
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 518,
+              "max": 518,
+              "mean": 518,
+              "median": 518,
+              "p95": 518,
+              "p99": 518,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 621,
+              "max": 999,
+              "mean": 781.7,
+              "median": 754.5,
+              "p95": 999,
+              "p99": 999,
+              "standardDeviation": 123.83416329914779
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 890.6207945000001,
+            "medianPercent": 63.638856644622535,
+            "pairedDifference": {
+              "n": 10,
+              "min": 460.43922599999996,
+              "max": 1157.690615,
+              "mean": 870.0233718000002,
+              "median": 940.3188230000002,
+              "p95": 1157.690615,
+              "p99": 1157.690615,
+              "standardDeviation": 267.61495821202374
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 240,
+            "medianPercent": 26.373626373626376,
+            "pairedDifference": {
+              "n": 10,
+              "min": 200,
+              "max": 260,
+              "mean": 233,
+              "median": 240,
+              "p95": 260,
+              "p99": 260,
+              "standardDeviation": 18.287822299126937
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 325,
+            "medianPercent": 191.1764705882353,
+            "pairedDifference": {
+              "n": 10,
+              "min": 310,
+              "max": 370,
+              "mean": 329,
+              "median": 325,
+              "p95": 370,
+              "p99": 370,
+              "standardDeviation": 19.692073983655906
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 126976,
+            "medianPercent": 0.5109188298310672,
+            "pairedDifference": {
+              "n": 10,
+              "min": -864256,
+              "max": 1486848,
+              "mean": 142540.8,
+              "median": -4096,
+              "p95": 1486848,
+              "p99": 1486848,
+              "standardDeviation": 789577.826667841
+            },
+            "pairedCurrentSlowerCount": 5
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.683760683760683,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 50,
+              "mean": 49.6,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0.5163977794943222
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 659.5,
+            "medianPercent": 694.2105263157895,
+            "pairedDifference": {
+              "n": 10,
+              "min": 541,
+              "max": 909,
+              "mean": 685.3,
+              "median": 662,
+              "p95": 909,
+              "p99": 909,
+              "standardDeviation": 123.8879870420588
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "script-1048576": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1115.919044,
+              "max": 1590.37522,
+              "mean": 1380.3316989,
+              "median": 1360.485093,
+              "p95": 1590.37522,
+              "p99": 1590.37522,
+              "standardDeviation": 133.8712465241288
+            },
+            "userMs": {
+              "n": 10,
+              "min": 860,
+              "max": 990,
+              "mean": 954,
+              "median": 960,
+              "p95": 990,
+              "p99": 990,
+              "standardDeviation": 35.652645218989164
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 150,
+              "max": 180,
+              "mean": 168,
+              "median": 170,
+              "p95": 180,
+              "p99": 180,
+              "standardDeviation": 7.888106377466155
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 26058752,
+              "max": 27541504,
+              "mean": 26741145.6,
+              "median": 26808320,
+              "p95": 27541504,
+              "p99": 27541504,
+              "standardDeviation": 492797.20283188834
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 475,
+              "max": 475,
+              "mean": 475,
+              "median": 475,
+              "p95": 475,
+              "p99": 475,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 150,
+              "max": 196,
+              "mean": 168.9,
+              "median": 168,
+              "p95": 196,
+              "p99": 196,
+              "standardDeviation": 12.431590583849054
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1714.914591,
+              "max": 2493.128498,
+              "mean": 2064.7655498,
+              "median": 2040.4013129999998,
+              "p95": 2493.128498,
+              "p99": 2493.128498,
+              "standardDeviation": 193.18175738382084
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1080,
+              "max": 1200,
+              "mean": 1179,
+              "median": 1190,
+              "p95": 1200,
+              "p99": 1200,
+              "standardDeviation": 36.04010112206802
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 440,
+              "max": 510,
+              "mean": 487,
+              "median": 490,
+              "p95": 510,
+              "p99": 510,
+              "standardDeviation": 18.88562063228706
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 26243072,
+              "max": 27021312,
+              "mean": 26826752,
+              "median": 26857472,
+              "p95": 27021312,
+              "p99": 27021312,
+              "standardDeviation": 223758.51465760532
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 524,
+              "max": 524,
+              "mean": 524,
+              "median": 524,
+              "p95": 524,
+              "p99": 524,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 674,
+              "max": 828,
+              "mean": 779.4,
+              "median": 797,
+              "p95": 828,
+              "p99": 828,
+              "standardDeviation": 46.88804633260901
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 679.9162199999998,
+            "medianPercent": 49.97601395989716,
+            "pairedDifference": {
+              "n": 10,
+              "min": 426.80275300000017,
+              "max": 956.325388,
+              "mean": 684.4338509,
+              "median": 709.825459,
+              "p95": 956.325388,
+              "p99": 956.325388,
+              "standardDeviation": 151.53458430039836
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 230,
+            "medianPercent": 23.958333333333336,
+            "pairedDifference": {
+              "n": 10,
+              "min": 200,
+              "max": 240,
+              "mean": 225,
+              "median": 225,
+              "p95": 240,
+              "p99": 240,
+              "standardDeviation": 13.5400640077266
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 320,
+            "medianPercent": 188.23529411764704,
+            "pairedDifference": {
+              "n": 10,
+              "min": 290,
+              "max": 340,
+              "mean": 319,
+              "median": 320,
+              "p95": 340,
+              "p99": 340,
+              "standardDeviation": 15.238839267549947
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 49152,
+            "medianPercent": 0.18334606569900688,
+            "pairedDifference": {
+              "n": 10,
+              "min": -815104,
+              "max": 962560,
+              "mean": 85606.4,
+              "median": 20480,
+              "p95": 962560,
+              "p99": 962560,
+              "standardDeviation": 498204.3150112434
+            },
+            "pairedCurrentSlowerCount": 6
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 49,
+            "medianPercent": 10.31578947368421,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 49,
+              "mean": 49,
+              "median": 49,
+              "p95": 49,
+              "p99": 49,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 629,
+            "medianPercent": 374.4047619047619,
+            "pairedDifference": {
+              "n": 10,
+              "min": 524,
+              "max": 660,
+              "mean": 610.5,
+              "median": 623,
+              "p95": 660,
+              "p99": 660,
+              "standardDeviation": 41.8840993430416
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "script-4194304": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 1577.393039,
+              "max": 1982.098475,
+              "mean": 1740.8552103999998,
+              "median": 1741.6324275000002,
+              "p95": 1982.098475,
+              "p99": 1982.098475,
+              "standardDeviation": 126.33446101305636
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1180,
+              "max": 1280,
+              "mean": 1227,
+              "median": 1225,
+              "p95": 1280,
+              "p99": 1280,
+              "standardDeviation": 29.078437983419185
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 180,
+              "max": 200,
+              "mean": 192,
+              "median": 190,
+              "p95": 200,
+              "p99": 200,
+              "standardDeviation": 7.888106377466155
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 29122560,
+              "max": 30543872,
+              "mean": 29970022.4,
+              "median": 30103552,
+              "p95": 30543872,
+              "p99": 30543872,
+              "standardDeviation": 404804.4102140083
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 475,
+              "max": 475,
+              "mean": 475,
+              "median": 475,
+              "p95": 475,
+              "p99": 475,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 401,
+              "max": 623,
+              "mean": 453.9,
+              "median": 442.5,
+              "p95": 623,
+              "p99": 623,
+              "standardDeviation": 62.768445717396716
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 2306.456307,
+              "max": 2833.297531,
+              "mean": 2533.2172313,
+              "median": 2487.0810035000004,
+              "p95": 2833.297531,
+              "p99": 2833.297531,
+              "standardDeviation": 209.2884294538699
+            },
+            "userMs": {
+              "n": 10,
+              "min": 1440,
+              "max": 1540,
+              "mean": 1491,
+              "median": 1490,
+              "p95": 1540,
+              "p99": 1540,
+              "standardDeviation": 41.486276177925525
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 510,
+              "max": 550,
+              "mean": 528,
+              "median": 530,
+              "p95": 550,
+              "p99": 550,
+              "standardDeviation": 10.327955589886445
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 28966912,
+              "max": 30412800,
+              "mean": 29890150.4,
+              "median": 30007296,
+              "p95": 30412800,
+              "p99": 30412800,
+              "standardDeviation": 428202.142898577
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 525,
+              "max": 525,
+              "mean": 525,
+              "median": 525,
+              "p95": 525,
+              "p99": 525,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 1071,
+              "max": 1438,
+              "mean": 1169.6,
+              "median": 1146.5,
+              "p95": 1438,
+              "p99": 1438,
+              "standardDeviation": 103.51403554859388
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 745.4485760000002,
+            "medianPercent": 42.801716609631754,
+            "pairedDifference": {
+              "n": 10,
+              "min": 533.314695,
+              "max": 1060.979809,
+              "mean": 792.3620209000001,
+              "median": 816.8709000000001,
+              "p95": 1060.979809,
+              "p99": 1060.979809,
+              "standardDeviation": 151.9272321189181
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 265,
+            "medianPercent": 21.63265306122449,
+            "pairedDifference": {
+              "n": 10,
+              "min": 230,
+              "max": 310,
+              "mean": 264,
+              "median": 260,
+              "p95": 310,
+              "p99": 310,
+              "standardDeviation": 24.585451886114367
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 340,
+            "medianPercent": 178.94736842105263,
+            "pairedDifference": {
+              "n": 10,
+              "min": 320,
+              "max": 360,
+              "mean": 336,
+              "median": 335,
+              "p95": 360,
+              "p99": 360,
+              "standardDeviation": 14.298407059684811
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": -96256,
+            "medianPercent": -0.31974964283284574,
+            "pairedDifference": {
+              "n": 10,
+              "min": -937984,
+              "max": 823296,
+              "mean": -79872,
+              "median": -47104,
+              "p95": 823296,
+              "p99": 823296,
+              "standardDeviation": 487201.1740909042
+            },
+            "pairedCurrentSlowerCount": 4
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 50,
+            "medianPercent": 10.526315789473683,
+            "pairedDifference": {
+              "n": 10,
+              "min": 50,
+              "max": 50,
+              "mean": 50,
+              "median": 50,
+              "p95": 50,
+              "p99": 50,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 704,
+            "medianPercent": 159.09604519774012,
+            "pairedDifference": {
+              "n": 10,
+              "min": 482,
+              "max": 977,
+              "mean": 715.7,
+              "median": 724,
+              "p95": 977,
+              "p99": 977,
+              "standardDeviation": 121.75207048205245
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      },
+      "script-16777216": {
+        "baseline": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 2678.025337,
+              "max": 3078.504397,
+              "mean": 2919.1558648,
+              "median": 2937.64511,
+              "p95": 3078.504397,
+              "p99": 3078.504397,
+              "standardDeviation": 127.94297865875454
+            },
+            "userMs": {
+              "n": 10,
+              "min": 2150,
+              "max": 2350,
+              "mean": 2275,
+              "median": 2265,
+              "p95": 2350,
+              "p99": 2350,
+              "standardDeviation": 60.23103666530884
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 270,
+              "max": 320,
+              "mean": 302,
+              "median": 310,
+              "p95": 320,
+              "p99": 320,
+              "standardDeviation": 14.757295747452437
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 42115072,
+              "max": 43081728,
+              "mean": 42675814.4,
+              "median": 42690560,
+              "p95": 43081728,
+              "p99": 43081728,
+              "standardDeviation": 291347.2256104961
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 479,
+              "max": 479,
+              "mean": 479,
+              "median": 479,
+              "p95": 479,
+              "p99": 479,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 1377,
+              "max": 1701,
+              "mean": 1505.9,
+              "median": 1500.5,
+              "p95": 1701,
+              "p99": 1701,
+              "standardDeviation": 98.8381954959159
+            }
+          },
+          "artifactModes": [
+            "644"
+          ],
+          "schemaVersions": [],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "current": {
+          "sampleCount": 10,
+          "successCount": 10,
+          "metrics": {
+            "wallMs": {
+              "n": 10,
+              "min": 3303.084729,
+              "max": 4141.921903,
+              "mean": 3734.9142110000003,
+              "median": 3726.825352,
+              "p95": 4141.921903,
+              "p99": 4141.921903,
+              "standardDeviation": 219.53334017239828
+            },
+            "userMs": {
+              "n": 10,
+              "min": 2420,
+              "max": 2710,
+              "mean": 2613,
+              "median": 2620,
+              "p95": 2710,
+              "p99": 2710,
+              "standardDeviation": 90.68259663978162
+            },
+            "sysMs": {
+              "n": 10,
+              "min": 640,
+              "max": 720,
+              "mean": 676,
+              "median": 670,
+              "p95": 720,
+              "p99": 720,
+              "standardDeviation": 21.70509412813294
+            },
+            "peakRssBytes": {
+              "n": 10,
+              "min": 55513088,
+              "max": 62873600,
+              "mean": 58016563.2,
+              "median": 56547328,
+              "p95": 62873600,
+              "p99": 62873600,
+              "standardDeviation": 2684837.514332532
+            },
+            "stdoutBytes": {
+              "n": 10,
+              "min": 528,
+              "max": 528,
+              "mean": 528,
+              "median": 528,
+              "p95": 528,
+              "p99": 528,
+              "standardDeviation": 0
+            },
+            "stdoutLines": {
+              "n": 10,
+              "min": 1,
+              "max": 1,
+              "mean": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "standardDeviation": 0
+            },
+            "logBytes": {
+              "n": 10,
+              "min": 18,
+              "max": 18,
+              "mean": 18,
+              "median": 18,
+              "p95": 18,
+              "p99": 18,
+              "standardDeviation": 0
+            },
+            "reportedDurationMs": {
+              "n": 10,
+              "min": 2074,
+              "max": 2490,
+              "mean": 2308.8,
+              "median": 2305,
+              "p95": 2490,
+              "p99": 2490,
+              "standardDeviation": 128.5671463131663
+            }
+          },
+          "artifactModes": [
+            "600"
+          ],
+          "schemaVersions": [
+            "muzzle.run/v1"
+          ],
+          "displayTruncatedValues": [
+            false
+          ]
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 789.1802419999999,
+            "medianPercent": 26.86438328828631,
+            "pairedDifference": {
+              "n": 10,
+              "min": 385.0156350000002,
+              "max": 1104.740358,
+              "mean": 815.7583462,
+              "median": 853.4848700000002,
+              "p95": 1104.740358,
+              "p99": 1104.740358,
+              "standardDeviation": 239.49019663961695
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "userMs": {
+            "medianAbsolute": 355,
+            "medianPercent": 15.673289183222957,
+            "pairedDifference": {
+              "n": 10,
+              "min": 80,
+              "max": 440,
+              "mean": 338,
+              "median": 355,
+              "p95": 440,
+              "p99": 440,
+              "standardDeviation": 102.9347150166335
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "sysMs": {
+            "medianAbsolute": 360,
+            "medianPercent": 116.12903225806453,
+            "pairedDifference": {
+              "n": 10,
+              "min": 330,
+              "max": 430,
+              "mean": 374,
+              "median": 365,
+              "p95": 430,
+              "p99": 430,
+              "standardDeviation": 30.258148581093913
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 13856768,
+            "medianPercent": 32.45862317102423,
+            "pairedDifference": {
+              "n": 10,
+              "min": 13049856,
+              "max": 20758528,
+              "mean": 15340748.8,
+              "median": 13889536,
+              "p95": 20758528,
+              "p99": 20758528,
+              "standardDeviation": 2738630.001222136
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutBytes": {
+            "medianAbsolute": 49,
+            "medianPercent": 10.22964509394572,
+            "pairedDifference": {
+              "n": 10,
+              "min": 49,
+              "max": 49,
+              "mean": 49,
+              "median": 49,
+              "p95": 49,
+              "p99": 49,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 10
+          },
+          "stdoutLines": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0,
+            "pairedDifference": {
+              "n": 10,
+              "min": 0,
+              "max": 0,
+              "mean": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "standardDeviation": 0
+            },
+            "pairedCurrentSlowerCount": 0
+          },
+          "reportedDurationMs": {
+            "medianAbsolute": 804.5,
+            "medianPercent": 53.61546151282906,
+            "pairedDifference": {
+              "n": 10,
+              "min": 467,
+              "max": 1082,
+              "mean": 802.9,
+              "median": 811.5,
+              "p95": 1082,
+              "p99": 1082,
+              "standardDeviation": 189.86454235703002
+            },
+            "pairedCurrentSlowerCount": 10
+          }
+        }
+      }
+    },
+    "limitations": [
+      "No provider tokenizer was installed; exact LLM billing-token counts are not claimed.",
+      "Latency and resource results are host-specific and should be reproduced on release CI hardware.",
+      "p99 equals the maximum for n=10 or n=15 and is reported only as an observed tail, not a stable population estimate."
+    ]
+  },
+  "helperIsolationDiagnostic": {
+    "schemaVersion": "muzzle.hardening-evaluation/v1",
+    "generatedAt": "2026-08-31T02:50:20.251Z",
+    "boundary": {
+      "baselineSha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+      "currentSha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca"
+    },
+    "benchmarkConfiguration": {
+      "warmups": 3,
+      "runs": 15,
+      "maximumLoad": 1000,
+      "initialLoad": 783.32373046875
+    },
+    "workloads": {
+      "script-1024": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 55.289092,
+              "max": 68.000033,
+              "mean": 61.6567548,
+              "median": 61.58802,
+              "p95": 68.000033,
+              "p99": 68.000033,
+              "standardDeviation": 3.4438032932167384
+            },
+            "userMs": {
+              "n": 15,
+              "min": 0,
+              "max": 10,
+              "mean": 9.333333333333334,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 2.581988897471611
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 10,
+              "max": 20,
+              "mean": 16,
+              "median": 20,
+              "p95": 20,
+              "p99": 20,
+              "standardDeviation": 5.0709255283711
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 1077248,
+              "max": 1142784,
+              "mean": 1114931.2,
+              "median": 1118208,
+              "p95": 1142784,
+              "p99": 1142784,
+              "standardDeviation": 23843.40470414648
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 484.291172,
+              "max": 1422.715512,
+              "mean": 624.2999197333335,
+              "median": 555.300482,
+              "p95": 1422.715512,
+              "p99": 1422.715512,
+              "standardDeviation": 232.29838733665065
+            },
+            "userMs": {
+              "n": 15,
+              "min": 170,
+              "max": 190,
+              "mean": 180,
+              "median": 180,
+              "p95": 190,
+              "p99": 190,
+              "standardDeviation": 3.779644730092272
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 210,
+              "max": 250,
+              "mean": 222,
+              "median": 220,
+              "p95": 250,
+              "p99": 250,
+              "standardDeviation": 10.82325538564332
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 4956160,
+              "max": 5132288,
+              "mean": 5044087.466666667,
+              "median": 5050368,
+              "p95": 5132288,
+              "p99": 5132288,
+              "standardDeviation": 54468.80686079048
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 493.71246199999996,
+            "medianPercent": 801.6371722942221
+          },
+          "userMs": {
+            "medianAbsolute": 170,
+            "medianPercent": 1700
+          },
+          "sysMs": {
+            "medianAbsolute": 200,
+            "medianPercent": 1000
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 3932160,
+            "medianPercent": 351.64835164835165
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0
+          }
+        }
+      },
+      "script-65536": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 61.819059,
+              "max": 78.138948,
+              "mean": 66.78839100000002,
+              "median": 65.402665,
+              "p95": 78.138948,
+              "p99": 78.138948,
+              "standardDeviation": 3.9714201756490266
+            },
+            "userMs": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 10,
+              "max": 20,
+              "mean": 14.666666666666666,
+              "median": 10,
+              "p95": 20,
+              "p99": 20,
+              "standardDeviation": 5.163977794943222
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 1138688,
+              "max": 1212416,
+              "mean": 1168725.3333333333,
+              "median": 1163264,
+              "p95": 1212416,
+              "p99": 1212416,
+              "standardDeviation": 20518.972442479622
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 486.944265,
+              "max": 841.257973,
+              "mean": 556.4265389999999,
+              "median": 523.135292,
+              "p95": 841.257973,
+              "p99": 841.257973,
+              "standardDeviation": 92.9575521942341
+            },
+            "userMs": {
+              "n": 15,
+              "min": 180,
+              "max": 190,
+              "mean": 186.66666666666666,
+              "median": 190,
+              "p95": 190,
+              "p99": 190,
+              "standardDeviation": 4.879500364742667
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 220,
+              "max": 230,
+              "mean": 227.33333333333334,
+              "median": 230,
+              "p95": 230,
+              "p99": 230,
+              "standardDeviation": 4.577377082170635
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 4861952,
+              "max": 5132288,
+              "mean": 5033437.866666666,
+              "median": 5042176,
+              "p95": 5132288,
+              "p99": 5132288,
+              "standardDeviation": 75951.60296424358
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 457.73262700000004,
+            "medianPercent": 699.8684640755847
+          },
+          "userMs": {
+            "medianAbsolute": 180,
+            "medianPercent": 1800
+          },
+          "sysMs": {
+            "medianAbsolute": 220,
+            "medianPercent": 2200
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 3878912,
+            "medianPercent": 333.4507042253521
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0
+          }
+        }
+      },
+      "script-1048576": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 175.662976,
+              "max": 320.864586,
+              "mean": 244.04634360000003,
+              "median": 237.493011,
+              "p95": 320.864586,
+              "p99": 320.864586,
+              "standardDeviation": 50.74007767528029
+            },
+            "userMs": {
+              "n": 15,
+              "min": 110,
+              "max": 110,
+              "mean": 110,
+              "median": 110,
+              "p95": 110,
+              "p99": 110,
+              "standardDeviation": 0
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 20,
+              "max": 30,
+              "mean": 23.333333333333332,
+              "median": 20,
+              "p95": 30,
+              "p99": 30,
+              "standardDeviation": 4.879500364742666
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 3104768,
+              "max": 4145152,
+              "mean": 3904580.2666666666,
+              "median": 4087808,
+              "p95": 4145152,
+              "p99": 4145152,
+              "standardDeviation": 408235.7103984109
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 642.208596,
+              "max": 1153.85232,
+              "mean": 843.3074546666667,
+              "median": 820.946769,
+              "p95": 1153.85232,
+              "p99": 1153.85232,
+              "standardDeviation": 166.47612411682394
+            },
+            "userMs": {
+              "n": 15,
+              "min": 290,
+              "max": 310,
+              "mean": 299.3333333333333,
+              "median": 300,
+              "p95": 310,
+              "p99": 310,
+              "standardDeviation": 4.577377082170633
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 230,
+              "max": 350,
+              "mean": 262,
+              "median": 250,
+              "p95": 350,
+              "p99": 350,
+              "standardDeviation": 30.047581314594073
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 4984832,
+              "max": 6307840,
+              "mean": 5594589.866666666,
+              "median": 5193728,
+              "p95": 6307840,
+              "p99": 6307840,
+              "standardDeviation": 558769.7828211373
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 583.453758,
+            "medianPercent": 245.67196969008913
+          },
+          "userMs": {
+            "medianAbsolute": 190,
+            "medianPercent": 172.72727272727272
+          },
+          "sysMs": {
+            "medianAbsolute": 230,
+            "medianPercent": 1150
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 1105920,
+            "medianPercent": 27.054108216432866
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0
+          }
+        }
+      },
+      "script-4194304": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 974.574462,
+              "max": 1678.179201,
+              "mean": 1296.5934745999998,
+              "median": 1289.468525,
+              "p95": 1678.179201,
+              "p99": 1678.179201,
+              "standardDeviation": 173.32680894719942
+            },
+            "userMs": {
+              "n": 15,
+              "min": 430,
+              "max": 460,
+              "mean": 455.3333333333333,
+              "median": 460,
+              "p95": 460,
+              "p99": 460,
+              "standardDeviation": 9.154754164341272
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 40,
+              "max": 60,
+              "mean": 49.333333333333336,
+              "median": 50,
+              "p95": 60,
+              "p99": 60,
+              "standardDeviation": 4.577377082170633
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 9396224,
+              "max": 10399744,
+              "mean": 10050491.733333332,
+              "median": 10358784,
+              "p95": 10399744,
+              "p99": 10399744,
+              "standardDeviation": 473112.61251169164
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 1474.869439,
+              "max": 2490.384024,
+              "mean": 1879.1135552666665,
+              "median": 1730.9544,
+              "p95": 2490.384024,
+              "p99": 2490.384024,
+              "standardDeviation": 339.19822589013
+            },
+            "userMs": {
+              "n": 15,
+              "min": 630,
+              "max": 700,
+              "mean": 682.6666666666666,
+              "median": 690,
+              "p95": 700,
+              "p99": 700,
+              "standardDeviation": 20.517124090680475
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 260,
+              "max": 350,
+              "mean": 288,
+              "median": 280,
+              "p95": 350,
+              "p99": 350,
+              "standardDeviation": 26.511453050656105
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 13619200,
+              "max": 20926464,
+              "mean": 15799910.4,
+              "median": 15659008,
+              "p95": 20926464,
+              "p99": 20926464,
+              "standardDeviation": 1673630.6695119361
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 441.4858750000001,
+            "medianPercent": 34.23781708824573
+          },
+          "userMs": {
+            "medianAbsolute": 230,
+            "medianPercent": 50
+          },
+          "sysMs": {
+            "medianAbsolute": 230,
+            "medianPercent": 459.99999999999994
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 5300224,
+            "medianPercent": 51.16646896006327
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0
+          }
+        }
+      },
+      "script-16777216": {
+        "baseline": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 1869.455718,
+              "max": 6043.561968,
+              "mean": 2928.5400966,
+              "median": 2528.038211,
+              "p95": 6043.561968,
+              "p99": 6043.561968,
+              "standardDeviation": 1119.8675806991878
+            },
+            "userMs": {
+              "n": 15,
+              "min": 1460,
+              "max": 1800,
+              "mean": 1586,
+              "median": 1520,
+              "p95": 1800,
+              "p99": 1800,
+              "standardDeviation": 131.3011804973588
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 100,
+              "max": 220,
+              "mean": 136.66666666666666,
+              "median": 130,
+              "p95": 220,
+              "p99": 220,
+              "standardDeviation": 27.68874620972692
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 34562048,
+              "max": 41824256,
+              "mean": 37466385.06666667,
+              "median": 36646912,
+              "p95": 41824256,
+              "p99": 41824256,
+              "standardDeviation": 2830524.182235597
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "current": {
+          "sampleCount": 15,
+          "successCount": 15,
+          "metrics": {
+            "wallMs": {
+              "n": 15,
+              "min": 2762.57562,
+              "max": 6743.383612,
+              "mean": 4088.993506933333,
+              "median": 3700.214498,
+              "p95": 6743.383612,
+              "p99": 6743.383612,
+              "standardDeviation": 1102.3271687464944
+            },
+            "userMs": {
+              "n": 15,
+              "min": 1790,
+              "max": 2200,
+              "mean": 1927.3333333333333,
+              "median": 1830,
+              "p95": 2200,
+              "p99": 2200,
+              "standardDeviation": 164.5542319057618
+            },
+            "sysMs": {
+              "n": 15,
+              "min": 390,
+              "max": 500,
+              "mean": 435.3333333333333,
+              "median": 420,
+              "p95": 500,
+              "p99": 500,
+              "standardDeviation": 37.00707783010987
+            },
+            "peakRssBytes": {
+              "n": 15,
+              "min": 53452800,
+              "max": 62881792,
+              "mean": 57972053.333333336,
+              "median": 57597952,
+              "p95": 62881792,
+              "p99": 62881792,
+              "standardDeviation": 3063672.1416274915
+            },
+            "logBytes": {
+              "n": 15,
+              "min": 10,
+              "max": 10,
+              "mean": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "standardDeviation": 0
+            }
+          },
+          "artifactModes": [],
+          "schemaVersions": [],
+          "displayTruncatedValues": []
+        },
+        "change": {
+          "wallMs": {
+            "medianAbsolute": 1172.1762869999998,
+            "medianPercent": 46.36703202901072
+          },
+          "userMs": {
+            "medianAbsolute": 310,
+            "medianPercent": 20.394736842105264
+          },
+          "sysMs": {
+            "medianAbsolute": 290,
+            "medianPercent": 223.0769230769231
+          },
+          "peakRssBytes": {
+            "medianAbsolute": 20951040,
+            "medianPercent": 57.17000111769308
+          },
+          "logBytes": {
+            "medianAbsolute": 0,
+            "medianPercent": 0
+          }
+        }
+      }
+    },
+    "limitations": [
+      "No provider tokenizer was installed; exact LLM billing-token counts are not claimed.",
+      "Latency and resource results are host-specific and should be reproduced on release CI hardware.",
+      "p99 equals the maximum for n=10 or n=15 and is reported only as an observed tail, not a stable population estimate."
+    ]
+  },
+  "structure": {
+    "schemaVersion": "muzzle.hardening-structure/v1",
+    "baseline": {
+      "sha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+      "trackedFiles": 50,
+      "trackedBytes": 256799,
+      "sourceFiles": 16,
+      "sourceNonblankLoc": 3249,
+      "sourceBytes": 116345,
+      "testFiles": 3,
+      "testNonblankLoc": 1074,
+      "documentationNonblankLoc": 1605,
+      "functionDefinitions": 108,
+      "controlFlowKeywords": 592,
+      "todoFixmeCount": 0,
+      "directPackageDependencies": 0,
+      "runtimeDependencies": [
+        "Kujo >= 0.1.0"
+      ],
+      "largestSourceFiles": [
+        {
+          "file": "muzzle.kujo",
+          "nonblankLoc": 1474,
+          "bytes": 54464
+        },
+        {
+          "file": "src/workflow.kujo",
+          "nonblankLoc": 416,
+          "bytes": 16285
+        },
+        {
+          "file": "src/loops.kujo",
+          "nonblankLoc": 243,
+          "bytes": 6047
+        },
+        {
+          "file": "src/redact.kujo",
+          "nonblankLoc": 146,
+          "bytes": 4288
+        },
+        {
+          "file": "src/retention.kujo",
+          "nonblankLoc": 139,
+          "bytes": 4290
+        }
+      ]
+    },
+    "current": {
+      "sha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca",
+      "trackedFiles": 52,
+      "trackedBytes": 288489,
+      "sourceFiles": 16,
+      "sourceNonblankLoc": 3429,
+      "sourceBytes": 124826,
+      "testFiles": 3,
+      "testNonblankLoc": 1215,
+      "documentationNonblankLoc": 1735,
+      "functionDefinitions": 112,
+      "controlFlowKeywords": 623,
+      "todoFixmeCount": 0,
+      "directPackageDependencies": 0,
+      "runtimeDependencies": [
+        "Kujo >= 1.0.0"
+      ],
+      "largestSourceFiles": [
+        {
+          "file": "muzzle.kujo",
+          "nonblankLoc": 1475,
+          "bytes": 54519
+        },
+        {
+          "file": "src/workflow.kujo",
+          "nonblankLoc": 416,
+          "bytes": 16285
+        },
+        {
+          "file": "src/loops.kujo",
+          "nonblankLoc": 243,
+          "bytes": 6047
+        },
+        {
+          "file": "src/muzzle_exec.sh",
+          "nonblankLoc": 179,
+          "bytes": 6942
+        },
+        {
+          "file": "src/redact.kujo",
+          "nonblankLoc": 146,
+          "bytes": 4288
+        }
+      ]
+    },
+    "deltas": {
+      "trackedFiles": 2,
+      "trackedBytes": 31690,
+      "sourceFiles": 0,
+      "sourceNonblankLoc": 180,
+      "sourceBytes": 8481,
+      "testFiles": 0,
+      "testNonblankLoc": 141,
+      "documentationNonblankLoc": 130,
+      "functionDefinitions": 4,
+      "controlFlowKeywords": 31,
+      "todoFixmeCount": 0,
+      "directPackageDependencies": 0
+    }
+  },
+  "installFootprint": {
+    "schemaVersion": "muzzle.install-footprint/v1",
+    "baseline": {
+      "fileCount": 17,
+      "installedBytes": 114356,
+      "files": [
+        {
+          "path": "lib/muzzle/1.0.0/muzzle",
+          "bytes": 2757
+        },
+        {
+          "path": "lib/muzzle/1.0.0/muzzle.kujo",
+          "bytes": 54464
+        },
+        {
+          "path": "lib/muzzle/1.0.0/schemas/muzzle-command.schema.json",
+          "bytes": 390
+        },
+        {
+          "path": "lib/muzzle/1.0.0/schemas/muzzle-error.schema.json",
+          "bytes": 555
+        },
+        {
+          "path": "lib/muzzle/1.0.0/schemas/muzzle-manifest.schema.json",
+          "bytes": 1491
+        },
+        {
+          "path": "lib/muzzle/1.0.0/schemas/muzzle-policy.schema.json",
+          "bytes": 607
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/cli.kujo",
+          "bytes": 1362
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/common.kujo",
+          "bytes": 3050
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/doctor.kujo",
+          "bytes": 4534
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/loops.kujo",
+          "bytes": 6047
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/muzzle_exec.sh",
+          "bytes": 905
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/policy.kujo",
+          "bytes": 6619
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/redact.kujo",
+          "bytes": 4288
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/report.kujo",
+          "bytes": 2827
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/retention.kujo",
+          "bytes": 4290
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/runner.kujo",
+          "bytes": 3885
+        },
+        {
+          "path": "lib/muzzle/1.0.0/src/workflow.kujo",
+          "bytes": 16285
+        }
+      ]
+    },
+    "current": {
+      "fileCount": 18,
+      "installedBytes": 123914,
+      "files": [
+        {
+          "path": "lib/muzzle/1.1.0/muzzle",
+          "bytes": 3099
+        },
+        {
+          "path": "lib/muzzle/1.1.0/muzzle.kujo",
+          "bytes": 54519
+        },
+        {
+          "path": "lib/muzzle/1.1.0/schemas/muzzle-command.schema.json",
+          "bytes": 390
+        },
+        {
+          "path": "lib/muzzle/1.1.0/schemas/muzzle-error.schema.json",
+          "bytes": 555
+        },
+        {
+          "path": "lib/muzzle/1.1.0/schemas/muzzle-manifest.schema.json",
+          "bytes": 1491
+        },
+        {
+          "path": "lib/muzzle/1.1.0/schemas/muzzle-policy.schema.json",
+          "bytes": 607
+        },
+        {
+          "path": "lib/muzzle/1.1.0/schemas/muzzle-run.schema.json",
+          "bytes": 1221
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/cli.kujo",
+          "bytes": 1362
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/common.kujo",
+          "bytes": 3050
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/doctor.kujo",
+          "bytes": 4534
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/loops.kujo",
+          "bytes": 6047
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/muzzle_exec.sh",
+          "bytes": 6942
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/policy.kujo",
+          "bytes": 7552
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/redact.kujo",
+          "bytes": 4288
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/report.kujo",
+          "bytes": 3317
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/retention.kujo",
+          "bytes": 4290
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/runner.kujo",
+          "bytes": 4365
+        },
+        {
+          "path": "lib/muzzle/1.1.0/src/workflow.kujo",
+          "bytes": 16285
+        }
+      ]
+    },
+    "change": {
+      "fileCount": 1,
+      "installedBytes": 9558
+    }
+  },
+  "eval": {
+    "definition": "eval-suite.json",
+    "baseline": {
+      "summary": {
+        "active_policy_stage": "",
+        "duration_ms": 11300,
+        "failed": 9,
+        "generated_at_ms": 1788137756067,
+        "pass_rate": 18,
+        "passed": 2,
+        "skipped": 0,
+        "status": "FAIL",
+        "suite_name": "Muzzle hardening before-after outcome evaluation",
+        "suite_version": "0.0.0",
+        "total": 11
+      },
+      "details": {
+        "data": {
+          "active_policy_stage": "",
+          "cache_metric_bytes_reused": 0,
+          "cache_metric_candidates": 9,
+          "cache_metric_hits": 0,
+          "cache_metric_misses": 9,
+          "cache_metric_unique_files": 0,
+          "duration_ms": 11300,
+          "failed": 9,
+          "parallel_fallback_reason": "",
+          "parallel_mode": "serial",
+          "parallel_prefetch_duration_ms": 0,
+          "parallel_prefetched_files": 0,
+          "parallel_requested": false,
+          "parallel_used": false,
+          "parallel_workers": 1,
+          "passed": 2,
+          "skipped": 0,
+          "suite_description": "",
+          "suite_name": "Muzzle hardening before-after outcome evaluation",
+          "suite_version": "0.0.0",
+          "test_results": [
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 463,
+                "expected": "\"status\":\"success\"",
+                "found": true,
+                "path": "evidence/run.json"
+              },
+              "message": "File contains expected text",
+              "name": "workflow completed and emitted JSON",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_size_greater_than",
+              "description": "",
+              "details": {
+                "path": "evidence/run.json",
+                "size": 463,
+                "threshold": 100
+              },
+              "message": "File size 463 > 100",
+              "name": "raw workflow evidence was retained",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 30,
+                "expected": "log=600\nmarkdown=600\njson=600",
+                "found": false,
+                "path": "evidence/artifact-modes.txt"
+              },
+              "message": "File does not contain expected text",
+              "name": "Muzzle artifacts are owner-only",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 463,
+                "expected": "\"schema_version\":\"muzzle.run/v1\"",
+                "found": false,
+                "path": "evidence/run.json"
+              },
+              "message": "File does not contain expected text",
+              "name": "run result has stable schema discriminator",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 463,
+                "expected": "\"command\":\"run\"",
+                "found": false,
+                "path": "evidence/run.json"
+              },
+              "message": "File does not contain expected text",
+              "name": "run result has command discriminator",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": false,
+                "path": "evidence/install.exit"
+              },
+              "message": "File does not contain expected text",
+              "name": "forced installer rejects symlinked managed root",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_size_less_than",
+              "description": "",
+              "details": {
+                "path": "evidence/install-external-files.txt",
+                "size": 1238,
+                "threshold": 1
+              },
+              "message": "File size 1238 >= 1",
+              "name": "forced installer does not write through managed symlink",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": false,
+                "path": "evidence/race.exit"
+              },
+              "message": "File does not contain expected text",
+              "name": "post-validation workflow mutation is denied",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_does_not_contain",
+              "description": "",
+              "details": {
+                "content_length": 14,
+                "expected": "mutated-bytes",
+                "found": true,
+                "path": "evidence/race.log"
+              },
+              "message": "File contains unexpected text",
+              "name": "mutated workflow bytes never execute",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": false,
+                "path": "evidence/policy.exit"
+              },
+              "message": "File does not contain expected text",
+              "name": "signed policy parsing remains bound to verified bytes",
+              "passed": false,
+              "skipped": false
+            },
+            {
+              "check": "file_does_not_contain",
+              "description": "",
+              "details": {
+                "content_length": 463,
+                "expected": "\"status\":\"success\"",
+                "found": true,
+                "path": "evidence/policy.json"
+              },
+              "message": "File contains unexpected text",
+              "name": "policy swap cannot authorize denied workflow",
+              "passed": false,
+              "skipped": false
+            }
+          ],
+          "timestamp": "",
+          "total": 11
+        },
+        "error": "",
+        "ok": true
+      }
+    },
+    "current": {
+      "summary": {
+        "active_policy_stage": "",
+        "duration_ms": 8574,
+        "failed": 0,
+        "generated_at_ms": 1788137781818,
+        "pass_rate": 100,
+        "passed": 11,
+        "skipped": 0,
+        "status": "PASS",
+        "suite_name": "Muzzle hardening before-after outcome evaluation",
+        "suite_version": "0.0.0",
+        "total": 11
+      },
+      "details": {
+        "data": {
+          "active_policy_stage": "",
+          "cache_metric_bytes_reused": 0,
+          "cache_metric_candidates": 9,
+          "cache_metric_hits": 0,
+          "cache_metric_misses": 9,
+          "cache_metric_unique_files": 0,
+          "duration_ms": 8574,
+          "failed": 0,
+          "parallel_fallback_reason": "",
+          "parallel_mode": "serial",
+          "parallel_prefetch_duration_ms": 0,
+          "parallel_prefetched_files": 0,
+          "parallel_requested": false,
+          "parallel_used": false,
+          "parallel_workers": 1,
+          "passed": 11,
+          "skipped": 0,
+          "suite_description": "",
+          "suite_name": "Muzzle hardening before-after outcome evaluation",
+          "suite_version": "0.0.0",
+          "test_results": [
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 512,
+                "expected": "\"status\":\"success\"",
+                "found": true,
+                "path": "evidence/run.json"
+              },
+              "message": "File contains expected text",
+              "name": "workflow completed and emitted JSON",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_size_greater_than",
+              "description": "",
+              "details": {
+                "path": "evidence/run.json",
+                "size": 512,
+                "threshold": 100
+              },
+              "message": "File size 512 > 100",
+              "name": "raw workflow evidence was retained",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 30,
+                "expected": "log=600\nmarkdown=600\njson=600",
+                "found": true,
+                "path": "evidence/artifact-modes.txt"
+              },
+              "message": "File contains expected text",
+              "name": "Muzzle artifacts are owner-only",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 512,
+                "expected": "\"schema_version\":\"muzzle.run/v1\"",
+                "found": true,
+                "path": "evidence/run.json"
+              },
+              "message": "File contains expected text",
+              "name": "run result has stable schema discriminator",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 512,
+                "expected": "\"command\":\"run\"",
+                "found": true,
+                "path": "evidence/run.json"
+              },
+              "message": "File contains expected text",
+              "name": "run result has command discriminator",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": true,
+                "path": "evidence/install.exit"
+              },
+              "message": "File contains expected text",
+              "name": "forced installer rejects symlinked managed root",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_size_less_than",
+              "description": "",
+              "details": {
+                "path": "evidence/install-external-files.txt",
+                "size": 0,
+                "threshold": 1
+              },
+              "message": "File size 0 < 1",
+              "name": "forced installer does not write through managed symlink",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": true,
+                "path": "evidence/race.exit"
+              },
+              "message": "File contains expected text",
+              "name": "post-validation workflow mutation is denied",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_does_not_contain",
+              "description": "",
+              "details": {
+                "content_length": 65,
+                "expected": "mutated-bytes",
+                "found": false,
+                "path": "evidence/race.log"
+              },
+              "message": "File does not contain unexpected text (as expected)",
+              "name": "mutated workflow bytes never execute",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_contains",
+              "description": "",
+              "details": {
+                "content_length": 2,
+                "expected": "3",
+                "found": true,
+                "path": "evidence/policy.exit"
+              },
+              "message": "File contains expected text",
+              "name": "signed policy parsing remains bound to verified bytes",
+              "passed": true,
+              "skipped": false
+            },
+            {
+              "check": "file_does_not_contain",
+              "description": "",
+              "details": {
+                "content_length": 188,
+                "expected": "\"status\":\"success\"",
+                "found": false,
+                "path": "evidence/policy.json"
+              },
+              "message": "File does not contain unexpected text (as expected)",
+              "name": "policy swap cannot authorize denied workflow",
+              "passed": true,
+              "skipped": false
+            }
+          ],
+          "timestamp": "",
+          "total": 11
+        },
+        "error": "",
+        "ok": true
+      }
+    }
+  },
+  "capabilities": {
+    "baseline": {
+      "runJson": {
+        "cancelled": false,
+        "display_truncated": false,
+        "duration_ms": 121,
+        "error_excerpt": null,
+        "exit_code": 0,
+        "finished_at": "2026-08-31T00:49:13Z",
+        "log_path": ".muzzle/logs/hello-bash-1788137353672-ba974b5ee20746ca830f5c21182a7907.log",
+        "report_path": ".muzzle/reports/hello-bash-1788137353672-ba974b5ee20746ca830f5c21182a7907.md",
+        "started_at": "2026-08-31T00:49:13Z",
+        "status": "success",
+        "summary": "The workflow completed successfully.",
+        "timed_out": false,
+        "workflow": "hello-bash"
+      },
+      "artifactModes": {
+        "log": "644",
+        "markdown": "644",
+        "json": "644"
+      },
+      "installerExit": 0,
+      "installerExternalFileListBytes": 1238,
+      "workflowRaceExit": 0,
+      "workflowRaceLog": "mutated-bytes",
+      "policyRaceExit": 0
+    },
+    "current": {
+      "runJson": {
+        "cancelled": false,
+        "command": "run",
+        "display_truncated": false,
+        "duration_ms": 507,
+        "error_excerpt": null,
+        "exit_code": 0,
+        "finished_at": "2026-08-31T00:49:22Z",
+        "log_path": ".muzzle/logs/hello-bash-1788137362024-fe83a34b4d204bb680b5ce68e9ca07cb.log",
+        "report_path": ".muzzle/reports/hello-bash-1788137362024-fe83a34b4d204bb680b5ce68e9ca07cb.md",
+        "schema_version": "muzzle.run/v1",
+        "started_at": "2026-08-31T00:49:22Z",
+        "status": "success",
+        "summary": "The workflow completed successfully.",
+        "timed_out": false,
+        "workflow": "hello-bash"
+      },
+      "artifactModes": {
+        "log": "600",
+        "markdown": "600",
+        "json": "600"
+      },
+      "installerExit": 3,
+      "installerExternalFileListBytes": 0,
+      "workflowRaceExit": 3,
+      "workflowRaceLog": "muzzle-exec: workflow changed after validation; execution denied",
+      "policyRaceExit": 3
+    }
+  },
+  "priorAuditSignal": {
+    "classification": "Observed; insufficient sample count for a statistical claim",
+    "startupAverageMs": {
+      "baseline": 426,
+      "current": 381,
+      "samples": 5
+    },
+    "fullLogBytes": {
+      "baseline": 4000000,
+      "current": 4000000
+    },
+    "jsonSummaryBytes": {
+      "baseline": 482,
+      "current": 531
+    },
+    "peakRssBytes": {
+      "baseline": 34648064,
+      "current": 34025472
+    },
+    "fiveConcurrentRunsMs": {
+      "baseline": 2614,
+      "current": 3245
+    }
+  },
+  "tokenMeasurement": {
+    "status": "Not demonstrated",
+    "reason": "No provider tokenizer, model invocation, or provider usage receipt was available. Exact output bytes and lines are reported instead."
+  },
+  "verdict": {
+    "answer": "PARTIALLY",
+    "rationale": "Current independently passes all 11 matched outcome checks versus 2 for baseline, but it adds runtime, payload, code, and install-footprint costs and does not demonstrate token or build-speed gains."
+  }
+}

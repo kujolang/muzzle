@@ -1,0 +1,731 @@
+{
+  "schemaVersion": "muzzle.hardening-evaluation/v1",
+  "generatedAt": "2026-08-31T02:50:20.251Z",
+  "boundary": {
+    "baselineSha": "75c2e1d20ed060b22df01c44d28221cd672a02fa",
+    "currentSha": "55c149271e3c6b81b993879d5bdd7f79e96a0cca"
+  },
+  "benchmarkConfiguration": {
+    "warmups": 3,
+    "runs": 15,
+    "maximumLoad": 1000,
+    "initialLoad": 783.32373046875
+  },
+  "workloads": {
+    "script-1024": {
+      "baseline": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 55.289092,
+            "max": 68.000033,
+            "mean": 61.6567548,
+            "median": 61.58802,
+            "p95": 68.000033,
+            "p99": 68.000033,
+            "standardDeviation": 3.4438032932167384
+          },
+          "userMs": {
+            "n": 15,
+            "min": 0,
+            "max": 10,
+            "mean": 9.333333333333334,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 2.581988897471611
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 10,
+            "max": 20,
+            "mean": 16,
+            "median": 20,
+            "p95": 20,
+            "p99": 20,
+            "standardDeviation": 5.0709255283711
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 1077248,
+            "max": 1142784,
+            "mean": 1114931.2,
+            "median": 1118208,
+            "p95": 1142784,
+            "p99": 1142784,
+            "standardDeviation": 23843.40470414648
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "current": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 484.291172,
+            "max": 1422.715512,
+            "mean": 624.2999197333335,
+            "median": 555.300482,
+            "p95": 1422.715512,
+            "p99": 1422.715512,
+            "standardDeviation": 232.29838733665065
+          },
+          "userMs": {
+            "n": 15,
+            "min": 170,
+            "max": 190,
+            "mean": 180,
+            "median": 180,
+            "p95": 190,
+            "p99": 190,
+            "standardDeviation": 3.779644730092272
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 210,
+            "max": 250,
+            "mean": 222,
+            "median": 220,
+            "p95": 250,
+            "p99": 250,
+            "standardDeviation": 10.82325538564332
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 4956160,
+            "max": 5132288,
+            "mean": 5044087.466666667,
+            "median": 5050368,
+            "p95": 5132288,
+            "p99": 5132288,
+            "standardDeviation": 54468.80686079048
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "change": {
+        "wallMs": {
+          "medianAbsolute": 493.71246199999996,
+          "medianPercent": 801.6371722942221
+        },
+        "userMs": {
+          "medianAbsolute": 170,
+          "medianPercent": 1700
+        },
+        "sysMs": {
+          "medianAbsolute": 200,
+          "medianPercent": 1000
+        },
+        "peakRssBytes": {
+          "medianAbsolute": 3932160,
+          "medianPercent": 351.64835164835165
+        },
+        "logBytes": {
+          "medianAbsolute": 0,
+          "medianPercent": 0
+        }
+      }
+    },
+    "script-65536": {
+      "baseline": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 61.819059,
+            "max": 78.138948,
+            "mean": 66.78839100000002,
+            "median": 65.402665,
+            "p95": 78.138948,
+            "p99": 78.138948,
+            "standardDeviation": 3.9714201756490266
+          },
+          "userMs": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 10,
+            "max": 20,
+            "mean": 14.666666666666666,
+            "median": 10,
+            "p95": 20,
+            "p99": 20,
+            "standardDeviation": 5.163977794943222
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 1138688,
+            "max": 1212416,
+            "mean": 1168725.3333333333,
+            "median": 1163264,
+            "p95": 1212416,
+            "p99": 1212416,
+            "standardDeviation": 20518.972442479622
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "current": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 486.944265,
+            "max": 841.257973,
+            "mean": 556.4265389999999,
+            "median": 523.135292,
+            "p95": 841.257973,
+            "p99": 841.257973,
+            "standardDeviation": 92.9575521942341
+          },
+          "userMs": {
+            "n": 15,
+            "min": 180,
+            "max": 190,
+            "mean": 186.66666666666666,
+            "median": 190,
+            "p95": 190,
+            "p99": 190,
+            "standardDeviation": 4.879500364742667
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 220,
+            "max": 230,
+            "mean": 227.33333333333334,
+            "median": 230,
+            "p95": 230,
+            "p99": 230,
+            "standardDeviation": 4.577377082170635
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 4861952,
+            "max": 5132288,
+            "mean": 5033437.866666666,
+            "median": 5042176,
+            "p95": 5132288,
+            "p99": 5132288,
+            "standardDeviation": 75951.60296424358
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "change": {
+        "wallMs": {
+          "medianAbsolute": 457.73262700000004,
+          "medianPercent": 699.8684640755847
+        },
+        "userMs": {
+          "medianAbsolute": 180,
+          "medianPercent": 1800
+        },
+        "sysMs": {
+          "medianAbsolute": 220,
+          "medianPercent": 2200
+        },
+        "peakRssBytes": {
+          "medianAbsolute": 3878912,
+          "medianPercent": 333.4507042253521
+        },
+        "logBytes": {
+          "medianAbsolute": 0,
+          "medianPercent": 0
+        }
+      }
+    },
+    "script-1048576": {
+      "baseline": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 175.662976,
+            "max": 320.864586,
+            "mean": 244.04634360000003,
+            "median": 237.493011,
+            "p95": 320.864586,
+            "p99": 320.864586,
+            "standardDeviation": 50.74007767528029
+          },
+          "userMs": {
+            "n": 15,
+            "min": 110,
+            "max": 110,
+            "mean": 110,
+            "median": 110,
+            "p95": 110,
+            "p99": 110,
+            "standardDeviation": 0
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 20,
+            "max": 30,
+            "mean": 23.333333333333332,
+            "median": 20,
+            "p95": 30,
+            "p99": 30,
+            "standardDeviation": 4.879500364742666
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 3104768,
+            "max": 4145152,
+            "mean": 3904580.2666666666,
+            "median": 4087808,
+            "p95": 4145152,
+            "p99": 4145152,
+            "standardDeviation": 408235.7103984109
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "current": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 642.208596,
+            "max": 1153.85232,
+            "mean": 843.3074546666667,
+            "median": 820.946769,
+            "p95": 1153.85232,
+            "p99": 1153.85232,
+            "standardDeviation": 166.47612411682394
+          },
+          "userMs": {
+            "n": 15,
+            "min": 290,
+            "max": 310,
+            "mean": 299.3333333333333,
+            "median": 300,
+            "p95": 310,
+            "p99": 310,
+            "standardDeviation": 4.577377082170633
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 230,
+            "max": 350,
+            "mean": 262,
+            "median": 250,
+            "p95": 350,
+            "p99": 350,
+            "standardDeviation": 30.047581314594073
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 4984832,
+            "max": 6307840,
+            "mean": 5594589.866666666,
+            "median": 5193728,
+            "p95": 6307840,
+            "p99": 6307840,
+            "standardDeviation": 558769.7828211373
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "change": {
+        "wallMs": {
+          "medianAbsolute": 583.453758,
+          "medianPercent": 245.67196969008913
+        },
+        "userMs": {
+          "medianAbsolute": 190,
+          "medianPercent": 172.72727272727272
+        },
+        "sysMs": {
+          "medianAbsolute": 230,
+          "medianPercent": 1150
+        },
+        "peakRssBytes": {
+          "medianAbsolute": 1105920,
+          "medianPercent": 27.054108216432866
+        },
+        "logBytes": {
+          "medianAbsolute": 0,
+          "medianPercent": 0
+        }
+      }
+    },
+    "script-4194304": {
+      "baseline": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 974.574462,
+            "max": 1678.179201,
+            "mean": 1296.5934745999998,
+            "median": 1289.468525,
+            "p95": 1678.179201,
+            "p99": 1678.179201,
+            "standardDeviation": 173.32680894719942
+          },
+          "userMs": {
+            "n": 15,
+            "min": 430,
+            "max": 460,
+            "mean": 455.3333333333333,
+            "median": 460,
+            "p95": 460,
+            "p99": 460,
+            "standardDeviation": 9.154754164341272
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 40,
+            "max": 60,
+            "mean": 49.333333333333336,
+            "median": 50,
+            "p95": 60,
+            "p99": 60,
+            "standardDeviation": 4.577377082170633
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 9396224,
+            "max": 10399744,
+            "mean": 10050491.733333332,
+            "median": 10358784,
+            "p95": 10399744,
+            "p99": 10399744,
+            "standardDeviation": 473112.61251169164
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "current": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 1474.869439,
+            "max": 2490.384024,
+            "mean": 1879.1135552666665,
+            "median": 1730.9544,
+            "p95": 2490.384024,
+            "p99": 2490.384024,
+            "standardDeviation": 339.19822589013
+          },
+          "userMs": {
+            "n": 15,
+            "min": 630,
+            "max": 700,
+            "mean": 682.6666666666666,
+            "median": 690,
+            "p95": 700,
+            "p99": 700,
+            "standardDeviation": 20.517124090680475
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 260,
+            "max": 350,
+            "mean": 288,
+            "median": 280,
+            "p95": 350,
+            "p99": 350,
+            "standardDeviation": 26.511453050656105
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 13619200,
+            "max": 20926464,
+            "mean": 15799910.4,
+            "median": 15659008,
+            "p95": 20926464,
+            "p99": 20926464,
+            "standardDeviation": 1673630.6695119361
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "change": {
+        "wallMs": {
+          "medianAbsolute": 441.4858750000001,
+          "medianPercent": 34.23781708824573
+        },
+        "userMs": {
+          "medianAbsolute": 230,
+          "medianPercent": 50
+        },
+        "sysMs": {
+          "medianAbsolute": 230,
+          "medianPercent": 459.99999999999994
+        },
+        "peakRssBytes": {
+          "medianAbsolute": 5300224,
+          "medianPercent": 51.16646896006327
+        },
+        "logBytes": {
+          "medianAbsolute": 0,
+          "medianPercent": 0
+        }
+      }
+    },
+    "script-16777216": {
+      "baseline": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 1869.455718,
+            "max": 6043.561968,
+            "mean": 2928.5400966,
+            "median": 2528.038211,
+            "p95": 6043.561968,
+            "p99": 6043.561968,
+            "standardDeviation": 1119.8675806991878
+          },
+          "userMs": {
+            "n": 15,
+            "min": 1460,
+            "max": 1800,
+            "mean": 1586,
+            "median": 1520,
+            "p95": 1800,
+            "p99": 1800,
+            "standardDeviation": 131.3011804973588
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 100,
+            "max": 220,
+            "mean": 136.66666666666666,
+            "median": 130,
+            "p95": 220,
+            "p99": 220,
+            "standardDeviation": 27.68874620972692
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 34562048,
+            "max": 41824256,
+            "mean": 37466385.06666667,
+            "median": 36646912,
+            "p95": 41824256,
+            "p99": 41824256,
+            "standardDeviation": 2830524.182235597
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "current": {
+        "sampleCount": 15,
+        "successCount": 15,
+        "metrics": {
+          "wallMs": {
+            "n": 15,
+            "min": 2762.57562,
+            "max": 6743.383612,
+            "mean": 4088.993506933333,
+            "median": 3700.214498,
+            "p95": 6743.383612,
+            "p99": 6743.383612,
+            "standardDeviation": 1102.3271687464944
+          },
+          "userMs": {
+            "n": 15,
+            "min": 1790,
+            "max": 2200,
+            "mean": 1927.3333333333333,
+            "median": 1830,
+            "p95": 2200,
+            "p99": 2200,
+            "standardDeviation": 164.5542319057618
+          },
+          "sysMs": {
+            "n": 15,
+            "min": 390,
+            "max": 500,
+            "mean": 435.3333333333333,
+            "median": 420,
+            "p95": 500,
+            "p99": 500,
+            "standardDeviation": 37.00707783010987
+          },
+          "peakRssBytes": {
+            "n": 15,
+            "min": 53452800,
+            "max": 62881792,
+            "mean": 57972053.333333336,
+            "median": 57597952,
+            "p95": 62881792,
+            "p99": 62881792,
+            "standardDeviation": 3063672.1416274915
+          },
+          "logBytes": {
+            "n": 15,
+            "min": 10,
+            "max": 10,
+            "mean": 10,
+            "median": 10,
+            "p95": 10,
+            "p99": 10,
+            "standardDeviation": 0
+          }
+        },
+        "artifactModes": [],
+        "schemaVersions": [],
+        "displayTruncatedValues": []
+      },
+      "change": {
+        "wallMs": {
+          "medianAbsolute": 1172.1762869999998,
+          "medianPercent": 46.36703202901072
+        },
+        "userMs": {
+          "medianAbsolute": 310,
+          "medianPercent": 20.394736842105264
+        },
+        "sysMs": {
+          "medianAbsolute": 290,
+          "medianPercent": 223.0769230769231
+        },
+        "peakRssBytes": {
+          "medianAbsolute": 20951040,
+          "medianPercent": 57.17000111769308
+        },
+        "logBytes": {
+          "medianAbsolute": 0,
+          "medianPercent": 0
+        }
+      }
+    }
+  },
+  "limitations": [
+    "No provider tokenizer was installed; exact LLM billing-token counts are not claimed.",
+    "Latency and resource results are host-specific and should be reproduced on release CI hardware.",
+    "p99 equals the maximum for n=10 or n=15 and is reported only as an observed tail, not a stable population estimate."
+  ]
+}

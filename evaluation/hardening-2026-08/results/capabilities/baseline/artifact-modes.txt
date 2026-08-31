@@ -1,0 +1,3 @@
+log=644
+markdown=644
+json=644

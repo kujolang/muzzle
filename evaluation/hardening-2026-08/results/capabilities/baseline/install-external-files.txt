@@ -1,0 +1,17 @@
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/muzzle
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/muzzle.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/schemas/muzzle-command.schema.json
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/schemas/muzzle-error.schema.json
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/schemas/muzzle-manifest.schema.json
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/schemas/muzzle-policy.schema.json
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/cli.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/common.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/doctor.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/loops.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/muzzle_exec.sh
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/policy.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/redact.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/report.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/retention.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/runner.kujo
+/tmp/muzzle-capability-eval.kmuPnD/baseline-external/src/workflow.kujo

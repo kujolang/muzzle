@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "muzzle.install-footprint/v1",
+  "baseline": {
+    "fileCount": 17,
+    "installedBytes": 114356,
+    "files": [
+      {
+        "path": "lib/muzzle/1.0.0/muzzle",
+        "bytes": 2757
+      },
+      {
+        "path": "lib/muzzle/1.0.0/muzzle.kujo",
+        "bytes": 54464
+      },
+      {
+        "path": "lib/muzzle/1.0.0/schemas/muzzle-command.schema.json",
+        "bytes": 390
+      },
+      {
+        "path": "lib/muzzle/1.0.0/schemas/muzzle-error.schema.json",
+        "bytes": 555
+      },
+      {
+        "path": "lib/muzzle/1.0.0/schemas/muzzle-manifest.schema.json",
+        "bytes": 1491
+      },
+      {
+        "path": "lib/muzzle/1.0.0/schemas/muzzle-policy.schema.json",
+        "bytes": 607
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/cli.kujo",
+        "bytes": 1362
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/common.kujo",
+        "bytes": 3050
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/doctor.kujo",
+        "bytes": 4534
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/loops.kujo",
+        "bytes": 6047
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/muzzle_exec.sh",
+        "bytes": 905
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/policy.kujo",
+        "bytes": 6619
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/redact.kujo",
+        "bytes": 4288
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/report.kujo",
+        "bytes": 2827
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/retention.kujo",
+        "bytes": 4290
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/runner.kujo",
+        "bytes": 3885
+      },
+      {
+        "path": "lib/muzzle/1.0.0/src/workflow.kujo",
+        "bytes": 16285
+      }
+    ]
+  },
+  "current": {
+    "fileCount": 18,
+    "installedBytes": 123914,
+    "files": [
+      {
+        "path": "lib/muzzle/1.1.0/muzzle",
+        "bytes": 3099
+      },
+      {
+        "path": "lib/muzzle/1.1.0/muzzle.kujo",
+        "bytes": 54519
+      },
+      {
+        "path": "lib/muzzle/1.1.0/schemas/muzzle-command.schema.json",
+        "bytes": 390
+      },
+      {
+        "path": "lib/muzzle/1.1.0/schemas/muzzle-error.schema.json",
+        "bytes": 555
+      },
+      {
+        "path": "lib/muzzle/1.1.0/schemas/muzzle-manifest.schema.json",
+        "bytes": 1491
+      },
+      {
+        "path": "lib/muzzle/1.1.0/schemas/muzzle-policy.schema.json",
+        "bytes": 607
+      },
+      {
+        "path": "lib/muzzle/1.1.0/schemas/muzzle-run.schema.json",
+        "bytes": 1221
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/cli.kujo",
+        "bytes": 1362
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/common.kujo",
+        "bytes": 3050
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/doctor.kujo",
+        "bytes": 4534
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/loops.kujo",
+        "bytes": 6047
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/muzzle_exec.sh",
+        "bytes": 6942
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/policy.kujo",
+        "bytes": 7552
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/redact.kujo",
+        "bytes": 4288
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/report.kujo",
+        "bytes": 3317
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/retention.kujo",
+        "bytes": 4290
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/runner.kujo",
+        "bytes": 4365
+      },
+      {
+        "path": "lib/muzzle/1.1.0/src/workflow.kujo",
+        "bytes": 16285
+      }
+    ]
+  },
+  "change": {
+    "fileCount": 1,
+    "installedBytes": 9558
+  }
+}
