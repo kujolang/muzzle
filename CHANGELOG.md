@@ -4,6 +4,12 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Redact failure logs before selecting their excerpts so long and unterminated key blocks cannot leak their tails; retain complete logs and explicit oversized-line diagnostics.
+- Batch snapshot sibling links with bounded argv size while retaining digest validation, runner identity, and lifecycle cleanup.
+- Reuse validated manifests during execution and discovery; preserve repeated filename suffixes and exclude directories/escaping scripts from discovery.
+- Validate loop entries, atomically replace loop state, and preserve JSON output on repeated loop starts.
+- Make Kujo lint failures fail the quality gate, add focused behavioral regressions, and remove machine-specific paths from the Eval adapter.
+
 - Add a reproducible before/after hardening evaluation with matched Kujo Eval outcomes, paired runtime distributions, raw evidence, a machine-readable receipt, and a public technical case study.
 
 ## [1.1.0] - 2026-08-30

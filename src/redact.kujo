@@ -57,6 +57,11 @@ MULTI_LINE_ENDS := array(
 
 REDACTED_MARKER := "[REDACTED — secret pattern detected]"
 
+# Keep the streaming log scanner and in-memory redactor on one pattern catalog.
+export func log_redaction_patterns() {
+	return {"single": join(SINGLE_LINE_PATTERNS, "|"), "starts": join(MULTI_LINE_STARTS, "|"), "ends": join(MULTI_LINE_ENDS, "|"), "marker": REDACTED_MARKER}
+}
+
 # Check if a single line contains a secret pattern.
 export func line_has_secret(line) {
 	line_lower := to_lower(to_string(line))

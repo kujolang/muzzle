@@ -20,6 +20,9 @@ func valid_loop_data(loop_data) {
 	if type(loop_data["entries"]) != "array" {
 		return false
 	}
+	if type(loop_data["workflow"]) != "string" || type(loop_data["started_at"]) != "string" || type(loop_data["limit"]) != "int" || type(loop_data["current"]) != "int" {
+		return false
+	}
 	status := to_string(loop_data["status"])
 	if status != "active" && status != "completed" {
 		return false
@@ -32,6 +35,25 @@ func valid_loop_data(loop_data) {
 		}
 	} except _err {
 		return false
+	}
+	mut entry_idx := 0
+	while entry_idx < len(loop_data["entries"]) {
+		entry := loop_data["entries"][entry_idx]
+		if type(entry) != "dict" {
+			return false
+		}
+		entry_keys := array("loop", "status", "note", "timestamp")
+		mut field_idx := 0
+		while field_idx < len(entry_keys) {
+			if is_falseish(dict_has_key(entry, entry_keys[field_idx])) {
+				return false
+			}
+			field_idx = field_idx + 1
+		}
+		if type(entry["loop"]) != "int" || entry["loop"] != entry_idx + 1 || entry["loop"] > loop_data["current"] || entry["status"] != "done" || type(entry["note"]) != "string" || type(entry["timestamp"]) != "string" {
+			return false
+		}
+		entry_idx = entry_idx + 1
 	}
 	return true
 }
@@ -135,7 +157,7 @@ export func save_loop(loop_file, loop_data) {
 		return false
 	}
 	json_str := to_json(loop_data)
-	write_file(loop_file, json_str, true)
+	write_file_atomic(loop_file, json_str, true)
 	return true
 }
 

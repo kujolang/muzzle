@@ -236,7 +236,7 @@ Manifests power `muzzle info`, strict argument validation, opt-in policy enforce
 
 ## Loop Mode
 
-For multi-step agent workflows with progress tracking:
+For multi-step agent workflows with progress tracking, use one loop writer per project. Serialize `start`, `next`, and `done`; concurrent loop writers are not currently coordinated.
 
 ```bash
 muzzle loop start release-hardening --limit 10
@@ -266,7 +266,7 @@ muzzle loop summary       # Full table of all iterations
 
 - **Kujo language runtime 1.0.0+** — available via `KUJO_BIN` env var or auto-discovered from common paths
 - **Bash 3.2+** — for the launcher wrapper and Bash-runner workflows
-- **Unix tools** — `tail`; optional `openssl` for signed policy bundles
+- **Unix tools** — `awk`, `ln`, and `shasum` or `sha256sum`; optional `openssl` for signed policy bundles
 - The built-in example workflows shown here require no external dependencies, API keys, or network access
 
 ## Ecosystem

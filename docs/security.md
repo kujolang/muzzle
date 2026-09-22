@@ -66,8 +66,10 @@ Muzzle scans output for common secret patterns and redacts matching lines from *
 
 - **Summaries** (default output): Matching lines replaced with `[REDACTED — secret pattern detected]`
 - **Full logs** (`.muzzle/logs/`): All output preserved unchanged in Muzzle-owned mode-`0600` files on supported Unix systems
-- **JSON reports**: Error excerpt field is redacted; summary field is your text
+- **JSON reports**: Error excerpt field is redacted; summary is a generic workflow result
 - **Verbose mode**: Terminal output is NOT redacted (you chose to see everything)
+
+Failure excerpts scan the full log before selecting the last five redacted lines, including closed and unterminated key blocks longer than the excerpt window. Oversized diagnostic lines receive an explicit omission notice; full logs stay unchanged. Scanner failures produce an explicit unavailable-excerpt notice.
 
 ### Limitations
 
@@ -165,3 +167,11 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 - Automatic key distribution, certificate authority, or remote approval service
 - Native Windows process management
 - Isolation from another process running as the same operating-system user
+
+## Loop state coordination
+
+Loop state is validated before use and replaced atomically, preventing readers from
+seeing a partially written JSON document. Loop commands currently require a single
+writer per project: serialize `start`, `next`, and `done` in the caller. Atomic file
+replacement does not serialize read/modify/write operations or simultaneous starts.
+Concurrent workflow runs use separate artifacts and are covered by the existing suite.

@@ -6,14 +6,14 @@
       "name": "Muzzle help succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo ./muzzle --help"
+        "command": "KUJO_BIN=kujo ./muzzle --help"
       }
     },
     {
       "name": "Muzzle named version succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo ./muzzle version"
+        "command": "KUJO_BIN=kujo ./muzzle version"
       }
     },
     {
@@ -21,14 +21,14 @@
       "check": "command_succeeds",
       "timeout_seconds": 90,
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/muzzle && KUJO_BIN=kujo bash tests/muzzle_wrapper_regression.sh"
+        "command": "KUJO_BIN=kujo bash tests/muzzle_wrapper_regression.sh"
       }
     },
     {
       "name": "Muzzle package metadata exists",
       "check": "file_exists",
       "params": {
-        "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/muzzle/kennel.toml"
+        "path": "kennel.toml"
       }
     }
   ]

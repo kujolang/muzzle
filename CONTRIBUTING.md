@@ -92,10 +92,22 @@ Follow stricter runtime notes in the local repo when they exist.
 Before opening a pull request, run the strongest local validation available for
 the repo.
 
-For Muzzle, the canonical local gate is:
+For Muzzle, the canonical local gate requires Kujo, Bash, and Python 3 (standard library only):
 
 ```bash
 make quality
+```
+
+Run the focused hardening tests without repeating the full suite:
+
+```bash
+KUJO_BIN=kujo python3 tests/muzzle_hardening_regression.py
+```
+
+The optional Kujo Eval adapter is portable when invoked from the Muzzle repository root with a runtime supporting isolated imports (verified on Kujo 1.4.0). Isolation prevents the two tools' `src.*` modules from colliding:
+
+```bash
+KUJO_ISOLATED_IMPORTS=1 kujo run /path/to/eval/main.kujo -- run tests/muzzle_eval.json --output-dir .muzzle/state/eval --json
 ```
 
 Prefer repo-owned commands, for example:

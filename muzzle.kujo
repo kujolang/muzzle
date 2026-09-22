@@ -12,7 +12,7 @@ from src.common import is_trueish, is_falseish, str_starts_with, str_ends_with
 from src.common import dict_has_key, has_muzzle_dir, format_duration_ms, path_is_within_muzzle
 from src.common import timestamp_compact, timestamp_iso, ensure_dir
 from src.runner import resolve_runner, valid_runner, run_workflow, read_log_tail, runner_label
-from src.workflow import load_manifest, inspect_manifest, first_manifest_issue, verify_manifest_integrity, resolve_workflow_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
+from src.workflow import load_manifest, inspect_manifest, first_manifest_issue, verify_manifest_integrity, resolve_workflow_script, resolve_manifest_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
 from src.report import write_markdown_report, write_json_report, make_paths
 from src.redact import error_excerpt
 from src.loops import find_active_loop, find_invalid_loop_state, load_loop, create_loop, advance_loop, record_loop_done, current_iteration_recorded, list_all_loops
@@ -703,7 +703,8 @@ func cmd_run(argv) {
 	}
 
 	# Resolve script
-	script_path := resolve_workflow_script(workflow_name)
+	manifest := manifest_inspection["manifest"]
+	script_path := resolve_manifest_script(workflow_name, manifest)
 	if script_path == "" {
 		fail_command("run", "WORKFLOW_NOT_FOUND", "Workflow '" + workflow_name + "' not found.", {"workflow": workflow_name}, json_out, 1)
 	}
@@ -716,7 +717,6 @@ func cmd_run(argv) {
 	}
 
 	# Load manifest for metadata
-	manifest := load_manifest(workflow_name)
 	if runner_override == "" && manifest != null && dict_has_key(manifest, "runner") && is_falseish(valid_runner(manifest["runner"])) {
 		manifest_runner := to_string(manifest["runner"])
 		fail_command("run", "RUNNER_UNSUPPORTED", "Unsupported runner '" + manifest_runner + "' in manifest.", {"runner": manifest_runner}, json_out, 2)
@@ -820,7 +820,7 @@ func cmd_run(argv) {
 		} else {
 			summary_line = "The workflow failed with exit code " + to_string(exit_code) + "."
 		}
-		tail_output := read_log_tail(log_path, 40)
+		tail_output := read_log_tail(log_path, 5)
 		err_text = error_excerpt(tail_output, 5)
 	}
 
@@ -1268,7 +1268,11 @@ func cmd_loop(argv) {
 		if existing != "" {
 			existing_data := load_loop(existing)
 			if existing_data != null && to_string(existing_data["workflow"]) == wf_name {
-				print("Muzzle: Loop '" + wf_name + "' already exists. Use 'muzzle loop status' to check progress.")
+				if json_out {
+					print_json({"schema_version": "muzzle.loop/v1", "command": "loop", "action": "start", "workflow": wf_name, "status": existing_data["status"], "current": existing_data["current"], "limit": existing_data["limit"], "state_path": existing})
+				} else {
+					print("Muzzle: Loop '" + wf_name + "' already exists. Use 'muzzle loop status' to check progress.")
+				}
 				exit(0)
 			}
 			fail_command("loop", "LOOP_ALREADY_ACTIVE", "Another active loop already exists.", {"workflow": wf_name, "active_path": existing}, json_out, 1)

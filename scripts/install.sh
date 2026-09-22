@@ -83,6 +83,7 @@ for source_file in "$SOURCE_ROOT"/src/*.kujo; do
 	run install -m 0644 "$source_file" "$INSTALL_ROOT/src/$(basename "$source_file")"
 done
 run install -m 0755 "$SOURCE_ROOT/src/muzzle_exec.sh" "$INSTALL_ROOT/src/muzzle_exec.sh"
+run install -m 0644 "$SOURCE_ROOT/src/redact_log.awk" "$INSTALL_ROOT/src/redact_log.awk"
 for schema_file in "$SOURCE_ROOT"/schemas/*.json; do
 	run install -m 0644 "$schema_file" "$INSTALL_ROOT/schemas/$(basename "$schema_file")"
 done

@@ -19,6 +19,19 @@ bash "$repo_root/scripts/install.sh" --prefix "$install_root" >/dev/null
 version_output="$(KUJO_BIN="${KUJO_BIN:-kujo}" "$install_root/bin/muzzle" --version)"
 [[ "$version_output" == *"Muzzle v1.1.0"* ]] || { echo "Expected installed launcher to resolve its versioned runtime." >&2; exit 1; }
 
+# Installed failures must include the streaming scanner, not just launch help.
+mkdir "$install_root/project"
+(
+	cd "$install_root/project"
+	"$install_root/bin/muzzle" init >/dev/null
+	printf 'echo "TOKEN=private-value"; exit 4\n' > .muzzle/workflows/fail.sh
+	set +e
+	failure_output="$("$install_root/bin/muzzle" run fail --json)"
+	failure_code=$?
+	set -e
+	[[ "$failure_code" -eq 4 && "$failure_output" == *'[REDACTED'* && "$failure_output" != *'private-value'* ]] || exit 1
+)
+
 set +e
 bash "$repo_root/scripts/install.sh" --prefix "$install_root" >/dev/null 2>&1
 repeat_code=$?

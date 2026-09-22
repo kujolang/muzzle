@@ -12,7 +12,7 @@ help:
 
 lint:
 	$(KUJO_BIN) check muzzle.kujo
-	@for file in src/*.kujo; do $(KUJO_BIN) check "$$file"; done
+	@for file in src/*.kujo; do $(KUJO_BIN) check "$$file" || exit $$?; done
 	bash -n muzzle tests/muzzle_wrapper_regression.sh
 	bash -n src/muzzle_exec.sh tests/muzzle_process_regression.sh
 	bash -n tests/muzzle_install_regression.sh
@@ -25,6 +25,7 @@ test:
 	KUJO_BIN="$(KUJO_BIN)" bash tests/muzzle_wrapper_regression.sh
 	KUJO_BIN="$(KUJO_BIN)" bash tests/muzzle_process_regression.sh
 	KUJO_BIN="$(KUJO_BIN)" bash tests/muzzle_install_regression.sh
+	KUJO_BIN="$(KUJO_BIN)" python3 tests/muzzle_hardening_regression.py
 
 benchmark:
 	KUJO_BIN="$(KUJO_BIN)" bash scripts/benchmark.sh

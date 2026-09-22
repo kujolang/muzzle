@@ -162,7 +162,12 @@ export func inspect_manifest(name) {
 	if is_falseish(path_is_within_muzzle(manifest_path)) {
 		return {"status": "unsafe", "manifest": null, "code": "MANIFEST_PATH_UNSAFE", "message": "manifest resolves outside .muzzle"}
 	}
-	raw := read_file(manifest_path)
+	mut raw := ""
+	try {
+		raw = read_file(manifest_path)
+	} except _err {
+		return {"status": "unreadable", "manifest": null, "code": "MANIFEST_READ", "message": "manifest could not be read"}
+	}
 	mut parsed := null
 	try {
 		parsed = parse_json(raw)
@@ -243,7 +248,11 @@ export func normalize_manifest_script_path(script_path) {
 
 # Resolve the executable script for a workflow, honoring manifest script mappings.
 export func resolve_workflow_script(name) {
-	manifest := load_manifest(name)
+	return resolve_manifest_script(name, load_manifest(name))
+}
+
+# Reuse already validated metadata so one operation cannot mix manifest reads.
+export func resolve_manifest_script(name, manifest) {
 	if manifest != null && dict_has_key(manifest, "script") {
 		manifest_script := normalize_manifest_script_path(manifest["script"])
 		if manifest_script != "" && is_trueish(file_exists(manifest_script)) {
@@ -257,6 +266,9 @@ export func resolve_workflow_script(name) {
 # Validate that a script exists and resolves under the expected workflows directory.
 export func validate_script_path(script_path) {
 	if script_path == "" || is_trueish(contains(script_path, "..")) || is_trueish(contains(script_path, "\\")) {
+		return false
+	}
+	if is_falseish(path_is_file(script_path)) {
 		return false
 	}
 
@@ -309,13 +321,13 @@ export func discover_workflows() {
 			entry := entries[idx]
 			entry_str := to_string(entry)
 			if is_trueish(str_ends_with(entry_str, ".json")) {
-				name := replace(entry_str, ".json", "")
+				name := substring(entry_str, 0, len(entry_str) - 5)
 				manifest := load_manifest(name)
 				if manifest != null {
 					script := ""
 					runner := "kujo"
 					summary := ""
-					script = resolve_workflow_script(name)
+					script = resolve_manifest_script(name, manifest)
 					if dict_has_key(manifest, "runner") {
 						runner = to_string(manifest["runner"])
 					} else if script != "" {
@@ -367,10 +379,10 @@ export func discover_workflows() {
 			}
 
 			if ext != "" {
-				name := replace(entry_str, ext, "")
+				name := substring(entry_str, 0, len(entry_str) - len(ext))
 				# Check if already discovered via manifest
 				manifest := load_manifest(name)
-				if manifest == null {
+				if manifest == null && is_trueish(validate_workflow_name(name)) && is_trueish(validate_script_path(WORKFLOWS_DIR + "/" + entry_str)) {
 					runner := "kujo"
 					if ext == ".sh" {
 						runner = "bash"
@@ -400,7 +412,7 @@ export func discover_workflows() {
 # Returns a dict with full details or null if not found.
 export func get_workflow_info(name) {
 	manifest := load_manifest(name)
-	script_path := resolve_workflow_script(name)
+	script_path := resolve_manifest_script(name, manifest)
 	if script_path == "" {
 		return null
 	}
