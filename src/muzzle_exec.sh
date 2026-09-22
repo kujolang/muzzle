@@ -72,12 +72,25 @@ link_directory_except() {
 	local target_dir="$2"
 	local excluded="$3"
 	local entry name
+	local -a batch=()
+	local batch_bytes=0
 	for entry in "$source_dir"/* "$source_dir"/.[!.]* "$source_dir"/..?*; do
 		[[ -e "$entry" || -L "$entry" ]] || continue
 		name="${entry##*/}"
 		[[ "$name" == "$excluded" ]] && continue
-		ln -s "$entry" "$target_dir/$name" || return 2
+		# Bound argv size as well as process count on both BSD and GNU ln.
+		if [[ "${#batch[@]}" -gt 0 && ( "${#batch[@]}" -ge 64 || "$((batch_bytes + ${#entry}))" -gt 16384 ) ]]; then
+			ln -s "${batch[@]}" "$target_dir/" || return 2
+			batch=()
+			batch_bytes=0
+		fi
+		batch+=("$entry")
+		batch_bytes=$((batch_bytes + ${#entry} + 1))
 	done
+	if [[ "${#batch[@]}" -gt 0 ]]; then
+		ln -s "${batch[@]}" "$target_dir/" || return 2
+	fi
+	return 0
 }
 
 caller_umask="$(umask)"

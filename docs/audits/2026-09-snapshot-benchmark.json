@@ -1,0 +1,559 @@
+{
+  "platform": "macOS-26.6.2-x86_64-i386-64bit",
+  "runs": 10,
+  "warmups": 2,
+  "roots": {
+    "baseline": "/Users/robertdevore/2026/Kujolang/kujo-repos/muzzle/.muzzle/state/audit-2026-09/baseline-repo",
+    "current": "/Users/robertdevore/2026/Kujolang/kujo-repos/muzzle"
+  },
+  "summary": [
+    {
+      "entries": 0,
+      "label": "baseline",
+      "median_ms": 238.04,
+      "min_ms": 200.67,
+      "max_ms": 277.12
+    },
+    {
+      "entries": 0,
+      "label": "current",
+      "median_ms": 225.19,
+      "min_ms": 198.89,
+      "max_ms": 526.8
+    },
+    {
+      "entries": 100,
+      "label": "baseline",
+      "median_ms": 1113.81,
+      "min_ms": 1028.21,
+      "max_ms": 1475.36
+    },
+    {
+      "entries": 100,
+      "label": "current",
+      "median_ms": 314.42,
+      "min_ms": 270.61,
+      "max_ms": 387.81
+    },
+    {
+      "entries": 1000,
+      "label": "baseline",
+      "median_ms": 10555.54,
+      "min_ms": 8458.63,
+      "max_ms": 12587.97
+    },
+    {
+      "entries": 1000,
+      "label": "current",
+      "median_ms": 1150.81,
+      "min_ms": 976.31,
+      "max_ms": 2227.18
+    }
+  ],
+  "records": [
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 187.57199303945526
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 222.7387729799375
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 215.7343560247682
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 240.53743202239275
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 526.7988669802435
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 266.34784101042897
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 243.33719798596576
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 227.402557968162
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 210.19093703944236
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 233.63673203857616
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 234.11447199760005
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 235.50765198888257
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 230.89341103332117
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 200.6712660077028
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 224.6565879904665
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 198.89052904909477
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 222.97510702628642
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 220.7695390097797
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 242.66180698759854
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 232.3130740551278
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 207.73411000845954
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 241.97276402264833
+    },
+    {
+      "label": "baseline",
+      "entries": 0,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 277.1161730051972
+    },
+    {
+      "label": "current",
+      "entries": 0,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 208.4075219463557
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 295.45849101850763
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 1188.8881750055589
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 1199.6466270065866
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 574.5343320304528
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 387.8054600208998
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 1132.6158839510754
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 1149.3354910053313
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 278.63886195700616
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 312.59019795106724
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 1028.2078880118206
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 1089.7792920004576
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 270.6146269920282
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 284.4102850067429
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 1043.2271600002423
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 1389.1598039772362
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 316.2465599598363
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 281.68672299943864
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 1093.0078880046494
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 1094.994510000106
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 321.23587699607015
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 341.60228696418926
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 1315.3321000281721
+    },
+    {
+      "label": "baseline",
+      "entries": 100,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 1475.356827955693
+    },
+    {
+      "label": "current",
+      "entries": 100,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 385.4928039945662
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 1522.695736028254
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": -2,
+      "warmup": true,
+      "wall_ms": 10398.194529989269
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 10728.129574039485
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": -1,
+      "warmup": true,
+      "wall_ms": 1332.9824510146864
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 1597.210991953034
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 0,
+      "warmup": false,
+      "wall_ms": 12165.205452009104
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 11213.737946003675
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 1,
+      "warmup": false,
+      "wall_ms": 1139.7351369960234
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 1161.882116983179
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 2,
+      "warmup": false,
+      "wall_ms": 10492.366784019396
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 10618.714602023829
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 3,
+      "warmup": false,
+      "wall_ms": 1291.9057059916668
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 1105.149791983422
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 4,
+      "warmup": false,
+      "wall_ms": 9882.206203998066
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 8458.626573032234
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 5,
+      "warmup": false,
+      "wall_ms": 976.307341014035
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 1098.467901989352
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 6,
+      "warmup": false,
+      "wall_ms": 8825.50464302767
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 10875.891911971848
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 7,
+      "warmup": false,
+      "wall_ms": 2227.1787769859657
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 1459.754495008383
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 8,
+      "warmup": false,
+      "wall_ms": 12587.973353045527
+    },
+    {
+      "label": "baseline",
+      "entries": 1000,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 8741.353421995882
+    },
+    {
+      "label": "current",
+      "entries": 1000,
+      "sample": 9,
+      "warmup": false,
+      "wall_ms": 1029.5285939937457
+    }
+  ]
+}
