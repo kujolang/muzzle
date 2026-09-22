@@ -1,145 +1,149 @@
-# Repository Hardening Audit
+# Repository Hardening Audit — September 2026
 
-## Repository
+## Repository and scope
 
-- Name: Muzzle
-- Branch: `main`
-- Starting SHA: `75c2e1d20ed060b22df01c44d28221cd672a02fa`
-- Ending implementation SHA: `5f5d792363385149bd8cfd2389b28fc121d2970c`
-- Purpose: trusted-local Kujo CLI that runs project workflows while preserving full evidence and emitting compact agent-facing receipts.
-- Important dependencies and integrations: Kujo runtime, Bash, optional Python/Node runners, OpenSSL for signed policy bundles, Git for enforce-mode checks, and Kujo ecosystem consumers using the CLI and JSON contracts.
-- Broad-search exclusions: `.dogfood/`, `.muzzle/`, and `.kujo_cache/` were excluded as historical or generated output per repository policy.
+- Repository: `kujolang/muzzle`; branch: `main`.
+- Starting SHA: `ac40faf465486848509275cdd5f3af8096bbdeea`, clean working tree.
+- Ending implementation SHA: `9733aa48aef90b6ad5d444d1485014ead5b4f398` (the following documentation commit records this receipt).
+- Purpose: trusted-local workflow execution with complete disk evidence and concise human/agent receipts.
+- Dependencies: Kujo (declared minimum 1.0.0), Bash 3.2+, Unix utilities, SHA-256 utility; optional Python/Node workflow runners, Git safety checks, OpenSSL signatures. No package dependency added. Python 3 standard library is now required for the development hardening tests, not Muzzle execution.
+- Integrations: stable CLI/JSON consumers (Dispatch/MCP and other ecosystem tools); optional Kujo Eval adapter; Kennel packaging. No sibling repository was modified.
+- Environment: macOS Darwin x86_64; local Kujo 1.4.0. Linux execution remains the existing CI matrix's responsibility; this session did not run Linux or rebuild the pinned CI runtime.
+- Prior audit: [August report](repository-hardening-2026-08.md), retained unchanged. September observations supersede its statements that no P1 work remains.
+
+Broad searches used `rg`/`rg --files`, excluding `.dogfood/`, `.muzzle/`, `.kujo_cache/`, and `.git/`. Explicit evidence reads under `.muzzle/state/audit-2026-09/` were separate from canonical source review.
 
 ## Baseline
 
-The repository began clean on `main`. `make quality` passed before changes, including Kujo checks, shell syntax, whitespace checks, wrapper regressions, process lifecycle regressions, and installer regressions. Help, version, and workflow discovery passed.
+`make quality` passed before implementation: Kujo source checks, shell syntax, whitespace, wrapper, process lifecycle, and installer suites. Baseline failures were then demonstrated with the newly added targeted tests against an immutable `git archive` of the starting SHA. These reproduced long-key disclosure, oversized excerpts, non-JSON repeated starts, masked lint errors, per-entry snapshot process creation, and discovery name/path errors. Existing green tests did not cover those cases.
 
-The baseline benchmark on Darwin x86_64 with Kujo 1.0.0, five startup/concurrency iterations, and 50,000 output lines reported:
+Baseline logs and the extracted checkout are local ignored artifacts under `.muzzle/state/audit-2026-09/`. The exact long-key reproduction exited 4 and exposed `PRIVATE-BODY-77` through `PRIVATE-BODY-80` in the JSON excerpt. No real credentials were used.
 
-| Signal | Baseline |
-| -- | --: |
-| Startup average | 426 ms |
-| Full log size | 4,000,000 bytes |
-| JSON summary size | 482 bytes |
-| Peak RSS | 34,648,064 bytes |
-| Five concurrent runs | 2,614 ms |
+## Review coverage
 
-An explicit artifact check under the host's `022` umask found workflow logs and both report formats created with mode `0644`. A representative successful JSON result was 463 bytes and had no schema discriminator.
+| Surface | Review and conclusion |
+| -- | -- |
+| Entrypoint/CLI | Read launcher, dispatch, option parsing, exits, help, dry-run, JSON contracts, completions and tests. Existing flags and command aliases retained. |
+| Execution/resources | Read runner/helper, process capture limits, digest snapshots, signal forwarding, cleanup, log spooling and benchmarks. Optimized sibling linking; retained process-tree and integrity protections. |
+| Filesystem/state | Reviewed init, private reports, manifest confinement, retention deletion, installer checks, session bookkeeping and loop transitions. Tightened discovery and loop validation; confirmed unresolved loop writer race. |
+| Security | Reviewed argv boundaries, trusted workflow/environment model, manifests, signed bundles, checksums, permissions, excerpt redaction, timeout/cancellation and symlink tests. Long multiline secret disclosure fixed. No sandbox claim. |
+| API/dependencies | Read schemas, Kennel metadata, signing/install scripts, CI action/runtime pins, package layout and integrations. No new runtime package; scanner shipped by installer and Kennel `src` inclusion. |
+| Agent/context/output | Reviewed README, agent guide, how-to, workflows, security, performance, instructions, examples and historical evaluation. Compact result fields and full evidence remain. No new prompts, model calls or MCP schemas. |
+| Complexity/dead weight | Reused one validated manifest per execution; fixed suffix derivation rather than introducing another discovery abstraction. Historical evaluation and exported helpers retained because removal lacked consumer evidence. |
+| Regression ratchets | Existing Linux/macOS `make quality` now includes targeted Python behavioral tests. Deterministic process-count gate replaces fragile timing thresholds. |
 
 ## Findings
 
-| ID | Priority | Area | Finding | Evidence | Action | Status |
-| -- | -- | -- | -- | -- | -- | -- |
-| MZ-HARD-001 | P1 | Security | Raw logs and reports can contain secrets but inherited a permissive host umask. | Baseline artifacts were mode `0644`; documentation confirms raw logs are unredacted. | Create logs and reports as owner-only `0600` files without changing workflow-created file semantics; add a cross-platform mode regression. | Fixed |
-| MZ-HARD-002 | P0 | Security | Signed policy verification checked one pathname read, then parsed a second read, allowing a local replacement race to authorize unverified bytes. | `src/policy.kujo` passed the source path to OpenSSL and later reopened it. | Read once, create an owner-only immutable snapshot, verify the snapshot, and parse the same in-memory bytes. | Fixed |
-| MZ-HARD-003 | P1 | Security/runtime | Script path and checksum validation were not bound to the file object later opened by the selected interpreter. | Path canonicalization and hashing preceded a later pathname-based interpreter open. | Pass the validated digest into the helper, copy into private transient state, verify the snapshot, execute only that snapshot, and preserve runner identity/import behavior. | Fixed |
-| MZ-HARD-004 | P1 | Installer | Forced installation followed pre-existing symlinked managed directories. | `scripts/install.sh --force` reused the version root and subdirectories without type checks. | Reject symlinked/non-directory managed roots before writes and add an external-write regression. | Fixed |
-| MZ-HARD-005 | P1 | Supply chain | CI built and executed the mutable default branch of `kujolang/kujo`. | `.github/workflows/quality.yml` omitted `ref`. | Pin the runtime checkout to reviewed commit `b8a44653ad9c225e3d31d96c5c1a0d61f9c8d835`. | Fixed |
-| MZ-HARD-006 | P1 | Contract | `muzzle run --json` was documented as versioned but emitted no schema discriminator and had no run-result schema. | Baseline JSON lacked `schema_version`; only command/error schemas existed. | Add `muzzle.run/v1`, `command: run`, a strict schema, and regression coverage. | Fixed |
-| MZ-HARD-007 | P2 | Documentation | JSON and cleanup examples differed from effective behavior. | The how-to showed raw workflow output as `summary`; the README said cleanup removed all entries. | Align examples with generic summaries, UUID artifact names, lifecycle fields, and recognized-artifact cleanup. | Fixed |
-| MZ-HARD-008 | P2 | Dependency contract | The declared Kujo minimum was older than the hardened runtime APIs used by Muzzle. | `kennel.toml` and the how-to claimed 0.1.0 while verification uses Kujo 1.0.0 APIs. | Set the documented and packaged minimum to Kujo 1.0.0. | Fixed |
+| ID | Priority | Area | Finding/evidence | Action | Status |
+| -- | -- | -- | -- | -- | -- |
+| MZ-SEP-001 | P1 | Security | `tail -n 40` discarded distant BEGIN markers before redaction; 80-line key body leaked in JSON. | Stream redaction before selecting five lines; share the Kujo pattern catalog with awk; test all nine block formats, closed/unclosed. | Fixed |
+| MZ-SEP-002 | P1 | Performance | One external `ln` per sibling; baseline test fixture invoked 274 link processes. | Batch at most 64 sources / approximately 16 KiB per invocation; test <=10 calls for the same fixture. | Fixed |
+| MZ-SEP-003 | P1 | CI | The shell loop in `make lint` returned only its last check's status. | Propagate every failed Kujo check immediately; a stub failing `src/cli.kujo` proves the gate fails. | Fixed |
+| MZ-SEP-004 | P2 | State/contract | Repeated `loop start --json` returned prose; nested invalid entries passed validation; writes could expose partial JSON. | Return the existing JSON state, validate entry shapes/sequence and scalar types, replace state atomically. | Fixed; writer coordination remains separate |
+| MZ-SEP-005 | P2 | Discovery | Global suffix replacement renamed `build.sh.sh` to `build`; directories and escaping scripts appeared as workflows. | Remove only the final suffix; require valid names and confined regular files. | Fixed |
+| MZ-SEP-006 | P2 | Consistency/efficiency | Execution read the same manifest three times, allowing inconsistent metadata within one command. | Reuse the validated manifest for script resolution, policy, runner and integrity; preserve the existing resolver entrypoint. | Fixed |
+| MZ-SEP-007 | P2 | Failure handling | Unreadable manifests could escape as runtime failures. | Return structured `MANIFEST_READ`, tested using a directory at a manifest filename. | Fixed |
+| MZ-SEP-008 | P2 | Developer experience | Eval suite hardcoded one developer's checkout. | Use repository-relative commands/paths; document isolated module resolution for optional Eval runs. | Fixed |
+| MZ-SEP-009 | P1 | Concurrency | Eight simultaneous starts created eight active loop files. Atomic writes do not serialize the state machine. | Document caller serialization; preserve evidence and a SignalBox review item. | Open |
 
-## Changes Implemented
+## Changes implemented
 
-### Private workflow artifacts
+### Redaction and output bounds
 
-- Problem/root cause: Muzzle preserved potentially sensitive raw output in files created using the ambient umask.
-- Implementation: the execution helper privately pre-creates logs, restores the caller's umask before starting the workflow, and the report writer atomically creates verified mode-`0600` Markdown/JSON files.
-- Files: `src/muzzle_exec.sh`, `src/report.kujo`, `tests/muzzle_wrapper_regression.sh`, `README.md`, `docs/security.md`.
-- Compatibility: CLI output and workflow behavior are unchanged; workflow-created files retain the caller's original umask. The intended change is tighter permissions on Muzzle-owned artifacts.
+Root cause: the bounded log-tail optimization occurred before stateful multiline redaction. `src/redact_log.awk` now scans the complete log with patterns supplied by `src/redact.kujo`, retaining five redacted lines. Ordinary diagnostics remain available, including lines after closed blocks. Lines above 4,096 characters receive an explicit omission notice; original bytes remain in the log. Failed or truncated scanner results produce an explicit unavailable-excerpt notice. The scan keeps the existing five-second helper deadline.
 
-### Signed-policy byte binding
+Files: `src/redact_log.awk`, `src/redact.kujo`, `src/runner.kujo`, `muzzle.kujo`, installer, install regression and focused regression suite. All nine supported block formats have closed and unclosed long-block tests. One-megabyte lines test redaction, explicit bounds and exact raw-log preservation. Installed execution verifies that the scanner is shipped.
 
-- Problem/root cause: signature verification and authorization parsing reopened a mutable caller-controlled path.
-- Implementation: Muzzle reads the bundle once, writes a private verification snapshot, verifies that snapshot, deletes it, and parses the same original byte string.
-- Files: `src/policy.kujo`.
-- Tests: existing valid-signature and tamper-denial regressions exercise the revised path; the full wrapper suite passes.
-- Compatibility: accepted bundle schema and flags are unchanged. A new `POLICY_BUNDLE_READ` or `POLICY_SNAPSHOT_FAILED` denial provides a controlled fail-closed result for new failure boundaries.
+Compatibility: field names, result schemas and workflow exit codes are unchanged; excerpts change where the prior behavior leaked secrets or exposed oversized lines. Failure scanning now performs O(log bytes) work. The retained excerpt is bounded; awk's input record allocation can still grow with the longest physical line. Arbitrary raw logs remain sensitive and owner-only.
 
-### Workflow byte binding
+### Snapshot preparation
 
-- Problem/root cause: path confinement and checksum verification selected workflow bytes, but each interpreter later reopened the mutable source pathname.
-- Implementation: every run now passes the already-observed digest into the helper, creates an owner-only shadow snapshot, verifies the copied bytes, and executes only the verified snapshot. Mutations before the snapshot fail closed with exit 3; mutations after it cannot alter the selected program.
-- Files: `muzzle`, `muzzle.kujo`, `src/runner.kujo`, `src/muzzle_exec.sh`, `tests/muzzle_process_regression.sh`, `tests/muzzle_wrapper_regression.sh`, `README.md`, `docs/security.md`, `docs/workflows.md`.
-- Compatibility: Bash keeps `$0` and sibling `BASH_SOURCE` loading, Python keeps `__file__`, `sys.argv`, and sibling imports, and Node keeps `__filename`, `process.argv`, `require.main`, and sibling `require`. Kujo retains the project working directory and module resolution. Transient snapshots are cleaned after success, failure, timeout, cancellation, and wrapper-forwarded interruption.
+Root cause: `link_directory_except` spawned one process for each directory entry. It now constructs bounded arrays for portable BSD/GNU `ln`, keeping absolute source paths, hidden entries, whitespace/newline names, dangling symlinks and exclusion rules. Failures still abort preparation and clean the snapshot. Digest verification, byte-bound execution, runner identity and private modes are unchanged.
 
-### Installer and CI supply-chain hardening
+Files: `src/muzzle_exec.sh`, `scripts/benchmark-snapshot.py`, targeted tests and performance documentation. The benchmark uses two warmups plus ten alternating measured samples for each checkout/workload, verifies output and cleanup, and records all raw samples in [benchmark data](2026-09-snapshot-benchmark.json). Existing pre/post-snapshot mutation and process lifecycle regressions pass.
 
-- Problem/root cause: forced installation trusted existing managed directory types, and CI selected a mutable external revision.
-- Implementation: installer rejects symlinked or non-directory managed paths; CI pins Kujo to a full commit SHA.
-- Files: `scripts/install.sh`, `tests/muzzle_install_regression.sh`, `.github/workflows/quality.yml`.
-- Compatibility: normal fresh/repeated installation behavior is unchanged. Unsafe forced layouts now fail with exit 3.
+### State, discovery and quality gates
 
-### Versioned run-result contract
+Files: `src/loops.kujo`, `src/workflow.kujo`, `muzzle.kujo`, `Makefile`, `tests/muzzle_hardening_regression.py`, `tests/muzzle_eval.json`, contributor documentation and changelog.
 
-- Problem/root cause: the main automation response contradicted its versioned-contract documentation.
-- Implementation: successful and failed workflow reports now include `schema_version: muzzle.run/v1` and `command: run`; a JSON Schema and contract regression were added.
-- Files: `src/report.kujo`, `schemas/muzzle-run.schema.json`, `tests/muzzle_wrapper_regression.sh`, `README.md`, `docs/agent-usage.md`, `docs/howto.md`.
-- Compatibility: fields are additive; existing field names, types, paths, statuses, and exit codes are preserved. Representative output grew by 48 bytes (463 to 511 bytes).
+- Valid existing loop state remains accepted. Hand-edited malformed scalar/entry data now receives `LOOP_STATE_INVALID` without mutation; generated state uses atomic replacement.
+- Repeated JSON loop starts preserve the existing limit/current values and emit the normal `muzzle.loop/v1` start envelope. Text output is unchanged.
+- Discovery preserves names containing repeated extensions and excludes directories/escaping scripts that execution cannot safely run.
+- `cmd_run` manifest reads fall from three to one (source-supported count, not a measured wall-time claim); discovery/info also reuse already loaded metadata where applicable.
+- An early Kujo lint failure can no longer be masked by a later success. New tests join the existing quality target and require only Python's standard library.
 
-## Performance & Efficiency
+## Performance and efficiency
 
-> Follow-up: the statistically sampled, matched evaluation in [`evaluation/hardening-2026-08/`](../../evaluation/hardening-2026-08/) supersedes the five-iteration performance interpretation below. It confirms the security and reliability gains, but measures a material workflow-latency and system-CPU regression from private snapshot construction. The original figures remain here as contemporaneous audit evidence rather than being deleted.
+Matched helper timings, local medians in milliseconds (10 measured samples per row):
 
-The matching post-change benchmark reported:
+| Project root entries | Before | After |
+| --: | --: | --: |
+| 0 | 238.04 | 225.19 |
+| 100 | 1,113.81 | 314.42 |
+| 1,000 | 10,555.54 | 1,150.81 |
+
+These measure the snapshot helper, not complete end-to-end CLI startup. Filesystem/host noise remains; no portable percentage or SLA is claimed.
+
+Existing benchmark, same host/runtime, five startup and concurrent runs, 50,000 output lines:
 
 | Signal | Before | After | Interpretation |
 | -- | --: | --: | -- |
-| Startup average | 426 ms | 381 ms | Version-only startup variance; workflow snapshotting is not exercised by this signal |
-| Full log size | 4,000,000 bytes | 4,000,000 bytes | Complete evidence preserved |
-| JSON summary size | 482 bytes | 531 bytes | +49 bytes for stable schema/command discriminators |
-| Peak RSS | 34,648,064 bytes | 34,025,472 bytes | Lower in this sample, but no portable improvement claim |
-| Five concurrent runs | 2,614 ms | 3,245 ms | Includes private snapshot construction and verification; security cost is bounded per run |
+| Startup average | 188 ms | 170 ms | Small sample; no startup improvement claim |
+| Full log | 4,000,000 bytes | 4,000,000 bytes | Evidence unchanged |
+| JSON receipt | 531 bytes | 531 bytes | Contract/output footprint unchanged |
+| Peak RSS | 26,562,560 bytes | 25,395,200 bytes | Host-local observation; no memory improvement claim |
+| Five concurrent workflows | 2,241 ms | 1,593 ms | Supporting local signal, not an isolated causal benchmark |
 
-Large-output capture remains bounded and the complete four-megabyte log is preserved. No dependency was added. The run-result discriminator adds a small fixed payload that improves machine routing and compatibility checks. Snapshot construction mirrors only directory entries along the script path and symlinks siblings instead of copying the project, keeping work proportional to relevant directory entries plus the selected script size.
+No token count was measured and no token-saving claim is made. Receipt byte counts are not tokenizer counts. No package dependency was added. This interpreted CLI has no separate repository binary/build-size gate. Raw-log retention remains operator-controlled through `clean`; `--keep` ranking is quadratic by inspection and requires scale evidence before redesign.
 
-## Security
+## Compatibility and security boundaries
 
-Reviewed boundaries included CLI/workflow arguments, manifest parsing, workflow path confinement, runner selection, subprocess argv, timeout/cancellation handoff, raw output/logging, redaction, report/state writes, cleanup deletion, signed policy verification, installer paths, and executable CI dependencies.
+- Public APIs: existing exported functions retained; internal manifest resolver added.
+- CLI: commands, aliases, flags, normal exit propagation, JSON fields and artifact naming preserved. Previously invalid paths/state now fail earlier. Repeated JSON start now conforms to its intended contract.
+- Formats/schemas/config/environment: no serialized format or schema change; no production configuration/environment variable added. Optional Eval documentation uses the runtime's existing isolated-import setting.
+- Runtime requirements: no minimum-version bump. Awk was already used by the snapshot helper and is now explicitly documented. Python 3 is a development test dependency only.
+- External consumers: successful run receipts remain the same size/shape; consumers must not depend on leaked secret tails, malformed states, or unrunnable discovery entries.
+- Workflow scripts and sibling imports remain trusted local code. Same-user hostile mutation, raw-log secrets, arbitrary workflow networking and terminal output in verbose mode remain outside isolation guarantees.
 
-Fixed: permissive artifact files, signed-bundle verification/parsing race, workflow validation/execution race, forced-install symlink traversal, and mutable CI runtime execution. Regression coverage verifies private modes, pre-snapshot mutation denial, post-snapshot mutation isolation, runner identity/import compatibility, lifecycle cleanup, and installer confinement. Static traversal, ordinary symlink escape, argument injection, malformed manifest, secret redaction, timeout, cancellation, and process-tree controls continue to pass.
+## Cross-repository follow-ups
 
-## Compatibility
+No sibling change is required for the shipped fixes. A loop-lock design must account for the supported Kujo runtime: CI-pinned `b8a44653ad9c225e3d31d96c5c1a0d61f9c8d835` lacks newer `file_lock`/`file_unlock`. Adopting those APIs would require an explicit minimum-runtime and CI-pin migration, or an independently verified compatible lock implementation. Neither change was hidden in this pass.
 
-- Public APIs: no removals or incompatible field changes.
-- CLI behavior: existing commands, flags, output fields, exit codes, and artifact naming remain; unsafe forced installation layouts now fail closed.
-- File formats/schemas: run JSON gains two additive fields and a new `muzzle.run/v1` schema.
-- Config/environment variables: public configuration is unchanged; race hooks are accepted only when the test-mode environment is explicitly enabled.
-- Runtime dependency: documented minimum Kujo version is now 1.0.0.
-- External consumers: tolerant JSON consumers are unaffected; strict consumers must allow the two additive fields. CI now builds the pinned Kujo revision.
+The optional Eval invocation initially failed in both VM and interpreter modes because cwd-based `src.report` resolution selected Muzzle's module (`Symbol 'save_report' not found`). Kujo 1.4.0's `KUJO_ISOLATED_IMPORTS=1` resolves this without modifying Eval or Kujo; it is documented for this optional integration.
 
-## Cross-Repository Follow-Ups
+## Remaining work
 
-None required. The remaining workflow byte-binding issue was resolved within Muzzle without modifying sibling repositories.
+- P0: none established.
+- P1: MZ-SEP-009, serialize loop state transitions. Until then, use one loop writer per project. Reproduce by starting eight distinct workflows concurrently in a newly initialized project, then counting active `.muzzle/state/loops/*.json` files; this session observed eight. Snapshot/log execution remains independently concurrent.
+- P2 / needs more evidence: retention ranking at large artifact counts; external awk memory on exceptionally long single-line logs; matched Linux performance and pinned-runtime execution. No flaky timing gates added.
+- P3: no cosmetic rewrite pursued.
+- Not worth changing without evidence: historical evaluation artifacts, public helper exports, raw-log preservation, trusted workflow environment, or issuer/expiry policy owned by the operator.
 
-## Remaining Work
+SignalBox: Capture `cap_07e49865-0784-4f4f-9727-7bbf8b5b610b`, Signal `sig_649f835d-2ac5-4368-8c9c-a396a1d569e0`, both for loop writer coordination. Exact-ID and concept retrieval passed; no duplicates found. Completed fixes, routine verification and unsupported hypotheses were rejected from capture.
 
-- P0: none.
-- P1: none.
-- P2: none identified that is both high-confidence and currently worth changing.
-- P3: none pursued.
-- Needs more evidence: establish stable multi-platform benchmark distributions before adding latency/RSS/concurrency thresholds.
-- Not worth changing: arbitrary workflow behavior, inherited workflow environment, raw-log preservation, and external issuer/expiry policy are documented trusted-local or operator-owned contracts.
+## Verification receipt
 
-## Verification Receipt
+Commands ran from the Muzzle root unless noted. Initial log redirects used `.muzzle/audit-2026-09/`; those artifacts were subsequently moved under ignored state.
 
-| Command | Result |
+| Exact command / check | Result |
 | -- | -- |
-| `make quality` (baseline) | Passed |
-| `./muzzle --help`; `./muzzle --version`; `./muzzle list` | Passed |
-| `MUZZLE_BENCH_ITERATIONS=5 MUZZLE_BENCH_LINES=50000 bash scripts/benchmark.sh` (baseline) | Passed; measurements recorded above |
-| `kujo check src/report.kujo && kujo check muzzle.kujo` | Passed |
-| `kujo check src/policy.kujo` | Passed |
-| `bash -n src/muzzle_exec.sh tests/muzzle_wrapper_regression.sh scripts/install.sh tests/muzzle_install_regression.sh` | Passed |
-| `bash tests/muzzle_install_regression.sh` | Passed |
-| JSON parsing and schema-discriminator assertion for a real run | Passed |
-| Private artifact mode check for a real run | Passed: log, Markdown, and JSON were `0600` |
-| Deterministic pre-snapshot mutation regression | Passed: denied with exit 3; mutated bytes were not executed |
-| Deterministic post-snapshot mutation regression | Passed: validated bytes executed; later source mutation was ignored |
-| Bash/Python/Node identity and sibling-load regressions | Passed |
-| Snapshot cleanup after success, timeout, cancellation, and interruption | Passed |
-| `make quality` (completed implementation) | Passed |
-| `MUZZLE_BENCH_ITERATIONS=5 MUZZLE_BENCH_LINES=50000 bash scripts/benchmark.sh` (completed implementation) | Passed; measurements recorded above |
+| `make quality` before changes | Passed |
+| `KUJO_BIN=kujo MUZZLE_BENCH_ITERATIONS=5 MUZZLE_BENCH_LINES=50000 bash scripts/benchmark.sh` before and after | Passed; values above |
+| `MUZZLE_TEST_ROOT="$PWD/.muzzle/state/audit-2026-09/baseline-repo" KUJO_BIN=kujo python3 tests/muzzle_hardening_regression.py` | Failed as expected against original code: 22 subtest failures and one JSON parse error; proves new regression coverage |
+| Same baseline command with `HardeningTests.test_discovery_names_and_regular_file_boundary` | Failed as expected: `build.sh` missing from listing |
+| `kujo check src/runner.kujo`; `kujo check src/loops.kujo`; `kujo check src/workflow.kujo`; `kujo check muzzle.kujo` | Passed |
+| `KUJO_BIN=kujo python3 tests/muzzle_hardening_regression.py` | Passed; six test methods including 18 long-block subcases in final gate |
+| `bash tests/muzzle_process_regression.sh` | Passed, also rerun by final gate |
+| `python3 scripts/benchmark-snapshot.py --baseline .muzzle/state/audit-2026-09/baseline-repo --output docs/audits/2026-09-snapshot-benchmark.json` | Passed; 72 samples including warmups, output/cleanup assertions for all |
+| `make quality` after implementation | Passed: all Kujo checks, shell syntax, whitespace, wrapper/process/install suites, six new behavioral tests |
+| `kujo run ../eval/main.kujo -- lint tests/muzzle_eval.json` | Failed due to cwd module collision; not caused by suite contents |
+| `kujo run ../eval/main.kujo --interpreter -- lint tests/muzzle_eval.json` | Same module collision; interpreter warnings also retained locally |
+| `KUJO_ISOLATED_IMPORTS=1 kujo run ../eval/main.kujo -- lint tests/muzzle_eval.json` | Passed, zero warnings/errors |
+| `KUJO_ISOLATED_IMPORTS=1 kujo run ../eval/main.kujo -- run tests/muzzle_eval.json --output-dir .muzzle/state/audit-2026-09/eval --json` | Passed, 4/4 in 54,951 ms |
+| Eight parallel `muzzle loop start concurrent-N --json` commands | Confirmed open issue: eight active loop states |
+| `bash .github/scripts/check-kujo-tool-artifacts.sh` | Passed |
 | `git diff --check` | Passed |
 
-The canonical implementation and test suite were inspected with broad searches excluding `.dogfood/`, `.muzzle/`, and `.kujo_cache/`. Historical/generated paths were not treated as current product sources.
+The first streaming-redactor attempt failed on BSD awk because literal newlines in `-v` values are rejected. Using a delimiter in the shared pattern catalog fixed the cause; all subsequent redaction tests passed. No assertion, timeout, or safety check was weakened.
+
+Verbose evidence is retained locally in `.muzzle/state/audit-2026-09/logs/`; matched performance samples are committed alongside this report. Baseline extracted files and generated workflow logs are not committed.
