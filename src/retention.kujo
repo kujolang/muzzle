@@ -1,45 +1,37 @@
 # Muzzle artifact retention and guarded cleanup.
 
-from src.common import is_trueish, is_falseish, str_ends_with, path_is_within_muzzle
-
-func last_index_of(text, needle) {
-	mut found := -1
-	mut idx := 0
-	while idx < len(text) {
-		if substring(text, idx, idx + 1) == needle {
-			found = idx
-		}
-		idx = idx + 1
-	}
-	return found
-}
+from src.common import is_trueish, is_falseish, str_ends_with, path_is_within_muzzle, dict_has_key
+from src.workflow import validate_workflow_name
 
 func parse_artifact(entry_name, extension, directory) {
 	if is_falseish(str_ends_with(entry_name, extension)) {
 		return null
 	}
 	stem := substring(entry_name, 0, len(entry_name) - len(extension))
-	last_dash := last_index_of(stem, "-")
-	if last_dash < 1 {
+	parts := split(stem, "-")
+	if len(parts) < 3 {
 		return null
 	}
-	uuid_part := substring(stem, last_dash + 1, len(stem))
-	if len(uuid_part) != 32 {
+	uuid_part := parts[len(parts) - 1]
+	if is_falseish(regex_match(uuid_part, "^[A-Fa-f0-9]{32}$")) {
 		return null
 	}
-	prefix := substring(stem, 0, last_dash)
-	timestamp_dash := last_index_of(prefix, "-")
-	if timestamp_dash < 1 {
+	timestamp_text := parts[len(parts) - 2]
+	workflow := substring(stem, 0, len(stem) - len(uuid_part) - len(timestamp_text) - 2)
+	if is_falseish(regex_match(timestamp_text, "^[0-9]+$")) {
 		return null
 	}
-	workflow := substring(prefix, 0, timestamp_dash)
-	timestamp_text := substring(prefix, timestamp_dash + 1, len(prefix))
-	timestamp_value := parse_int(timestamp_text)
+	mut timestamp_value := null
+	try {
+		timestamp_value = parse_int(timestamp_text)
+	} except _err {
+		return null
+	}
 	if type(timestamp_value) == "Error" || workflow == "" {
 		return null
 	}
 	path := directory + "/" + entry_name
-	if is_falseish(path_is_within_muzzle(path)) {
+	if is_falseish(path_is_file(path)) || is_falseish(path_is_within_muzzle(path)) {
 		return null
 	}
 	return {"path": path, "name": entry_name, "workflow": workflow, "timestamp_ms": to_int(timestamp_value), "extension": extension}
@@ -51,6 +43,9 @@ func collect_from(directory, extensions) {
 		return result
 	}
 	entries := sort(list_dir(directory))
+	# Names are immutable strings during this collection. Validate each distinct
+	# workflow once; discard this operation-local memo when collection finishes.
+	mut valid_names := dict()
 	mut entry_idx := 0
 	while entry_idx < len(entries) {
 		entry_name := to_string(entries[entry_idx])
@@ -59,6 +54,15 @@ func collect_from(directory, extensions) {
 		while ext_idx < len(extensions) && parsed == null {
 			parsed = parse_artifact(entry_name, extensions[ext_idx], directory)
 			ext_idx = ext_idx + 1
+		}
+		if parsed != null {
+			name := parsed["workflow"]
+			if is_falseish(dict_has_key(valid_names, name)) {
+				valid_names[name] = validate_workflow_name(name)
+			}
+			if is_falseish(valid_names[name]) {
+				parsed = null
+			}
 		}
 		if parsed == null {
 			result["skipped"] = to_int(result["skipped"]) + 1
@@ -70,24 +74,41 @@ func collect_from(directory, extensions) {
 	return result
 }
 
-func protected_by_keep(candidate, artifacts, keep_count) {
+func protected_paths(artifacts, keep_count) {
+	mut protected := dict()
 	if keep_count <= 0 {
-		return false
+		return protected
 	}
-	mut newer := 0
+	# Sort once by numeric timestamp and filename, then rank each workflow/type.
+	# Padding nonnegative i64 timestamps preserves numeric order in string sort.
+	mut ordered_keys := array()
+	mut by_key := dict()
 	mut idx := 0
 	while idx < len(artifacts) {
-		other := artifacts[idx]
-		if to_string(other["workflow"]) == to_string(candidate["workflow"]) && to_string(other["extension"]) == to_string(candidate["extension"]) {
-			other_timestamp := to_int(other["timestamp_ms"])
-			candidate_timestamp := to_int(candidate["timestamp_ms"])
-			if other_timestamp > candidate_timestamp || (other_timestamp == candidate_timestamp && to_string(other["name"]) > to_string(candidate["name"])) {
-				newer = newer + 1
-			}
-		}
+		artifact := artifacts[idx]
+		stamp := pad_left(to_string(artifact["timestamp_ms"]), 19, "0")
+		key := stamp + to_string(artifact["name"])
+		ordered_keys = push(ordered_keys, key)
+		by_key[key] = artifact
 		idx = idx + 1
 	}
-	return newer < keep_count
+	ordered_keys = sort(ordered_keys)
+	mut counts := dict()
+	mut rank_idx := len(ordered_keys) - 1
+	while rank_idx >= 0 {
+		candidate := by_key[ordered_keys[rank_idx]]
+		group := to_json(array(candidate["workflow"], candidate["extension"]))
+		mut count := 0
+		if dict_has_key(counts, group) {
+			count = to_int(counts[group])
+		}
+		if count < keep_count {
+			protected[candidate["path"]] = true
+		}
+		counts[group] = count + 1
+		rank_idx = rank_idx - 1
+	}
+	return protected
 }
 
 export func clean_artifacts(workflow_filter, older_than_ms, keep_count, dry_run) {
@@ -104,12 +125,13 @@ export func clean_artifacts(workflow_filter, older_than_ms, keep_count, dry_run)
 		cutoff = current_timestamp() - older_than_ms
 	}
 	mut selected := array()
+	protected := protected_paths(artifacts, keep_count)
 	mut idx := 0
 	while idx < len(artifacts) {
 		candidate := artifacts[idx]
 		matches_workflow := workflow_filter == "" || to_string(candidate["workflow"]) == workflow_filter
 		matches_age := older_than_ms <= 0 || to_int(candidate["timestamp_ms"]) < cutoff
-		kept := protected_by_keep(candidate, artifacts, keep_count)
+		kept := dict_has_key(protected, candidate["path"])
 		if matches_workflow && matches_age && is_falseish(kept) {
 			selected = push(selected, candidate)
 		}

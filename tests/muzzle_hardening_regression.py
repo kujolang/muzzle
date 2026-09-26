@@ -169,6 +169,54 @@ printf 'snapshot-ok\\n'
         self.assertEqual(result.returncode, 74, result.stderr)
         self.assertFalse((self.project / 'workflow-ran').exists())
 
+    def test_retention_ranking_and_unrecognized_files(self):
+        artifacts = []
+        for workflow in ['job', 'job-other', 'release.md', 'déploy', 'job-\nodd']:
+            for extension in ['log', 'md', 'json']:
+                directory = 'logs' if extension == 'log' else 'reports'
+                for index, timestamp in enumerate([9, 10, 10, 100, 100]):
+                    path = self.project / f'.muzzle/{directory}/{workflow}-{timestamp}-{index:032x}.{extension}'
+                    path.write_text('evidence')
+                    artifacts.append((path, workflow, extension, timestamp))
+        for keep in [0, 1, 3, 20]:
+            for workflow_filter in ['', 'job', 'absent']:
+                with self.subTest(keep=keep, workflow=workflow_filter):
+                    args = ['clean', '--keep', str(keep), '--dry-run', '--json']
+                    if workflow_filter:
+                        args += ['--workflow', workflow_filter]
+                    receipt = json.loads(self.run_cli(*args))
+                    expected = []
+                    for path, workflow, extension, timestamp in artifacts:
+                        newer = sum((other_time, other.name) > (timestamp, path.name)
+                                    for other, wf, ext, other_time in artifacts
+                                    if wf == workflow and ext == extension)
+                        if (not workflow_filter or workflow_filter == workflow) and newer >= keep:
+                            expected.append(str(path.relative_to(self.project)))
+                    self.assertEqual({a['path'] for a in receipt['artifacts']}, set(expected))
+                    self.assertEqual([a['path'] for a in receipt['artifacts']], sorted(expected))
+                    self.assertEqual(receipt['removed'], 0)
+        # Keep ranks apply before age selection: a future artifact still protects
+        # the newest slot, leaving every older artifact eligible for removal.
+        future = self.project / ('.muzzle/logs/job-9223372036854775807-' + 'e' * 32 + '.log')
+        future.write_text('future')
+        aged = json.loads(self.run_cli('clean', '--workflow', 'job', '--keep', '1',
+                                       '--older-than', '1', '--dry-run', '--json'))
+        self.assertEqual(sum(a['extension'] == '.log' for a in aged['artifacts']), 5)
+        self.assertNotIn(str(future.relative_to(self.project)), [a['path'] for a in aged['artifacts']])
+        future.unlink()
+        invalid = self.project / ('.muzzle/logs/job-100-' + 'z' * 32 + '.log')
+        invalid.write_text('not a Muzzle artifact')
+        overflow = self.project / ('.muzzle/logs/job-99999999999999999999-' + 'a' * 32 + '.log')
+        overflow.write_text('not a timestamp')
+        directory = self.project / ('.muzzle/logs/job-100-' + 'f' * 32 + '.log')
+        directory.mkdir()
+        receipt = json.loads(self.run_cli('clean', '--json'))
+        self.assertEqual(receipt['removed'], len(artifacts))
+        self.assertEqual(receipt['skipped_unrecognized'], 3)
+        self.assertEqual(invalid.read_text(), 'not a Muzzle artifact')
+        self.assertTrue(directory.is_dir())
+        self.assertEqual(overflow.read_text(), 'not a timestamp')
+
     def test_helper_diagnostics_are_redacted_and_bounded(self):
         shim = self.project / 'shim'
         shim.mkdir()

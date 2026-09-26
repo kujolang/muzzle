@@ -25,3 +25,21 @@ This alternates baseline/current samples after two warmups, with ten measured ru
 for projects containing 0, 100, and 1,000 root entries. It verifies output and cleanup
 for every sample. Raw measurements are in the output JSON. Timing is informational;
 CI gates the bounded subprocess count and behavior instead of host-sensitive latency.
+
+Retention cleanup sorts artifact ranks once instead of comparing every artifact
+against every other artifact. `--keep` still counts independently per workflow and
+file type, by numeric timestamp and then filename; age and workflow filters do not
+change those ranks. Selection receipts retain their original deterministic order.
+Only confined regular files with a valid workflow name, decimal timestamp, and
+32-character hexadecimal identifier are eligible for cleanup.
+
+Measure matched retention selection with an independent expected-result check:
+
+```bash
+KUJO_BIN=kujo python3 scripts/benchmark-retention.py --baseline /path/to/baseline-checkout --output /tmp/retention-results.json
+```
+
+The benchmark uses one warmup and five alternating measured samples per checkout
+at 60, 300, and 900 artifacts. Every dry-run sample verifies the selected paths and
+that no evidence was deleted. Timing is informational; behavioral regression tests
+cover timestamp widths, ties, large keep counts, filters, and unrecognized files.
