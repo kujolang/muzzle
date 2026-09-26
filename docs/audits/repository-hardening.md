@@ -1,5 +1,7 @@
 # Repository Hardening Audit — September 2026
 
+Follow-up: [2026-09-25 artifact reliability and retention audit](repository-hardening-2026-09-25.md). The original audit below is retained as historical evidence.
+
 ## Repository and scope
 
 - Repository: `kujolang/muzzle`; branch: `main`.
