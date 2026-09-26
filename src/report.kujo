@@ -7,6 +7,11 @@ from src.redact import redact_text, error_excerpt
 REPORTS_DIR := ".muzzle/reports"
 LOGS_DIR := ".muzzle/logs"
 
+# Only replace the final suffix: workflow names may themselves contain .md.
+export func json_report_path(report_path) {
+	return substring(report_path, 0, len(report_path) - 3) + ".json"
+}
+
 func write_private_artifact(path, content) {
 	receipt := io_write_private_file(path, content, 384)
 	if type(receipt) == "Error" {
@@ -49,7 +54,7 @@ export func write_markdown_report(workflow_name, status, exit_code, started_at, 
 		"## Outputs",
 		"",
 		"- Log: " + log_path,
-		"- JSON summary: " + replace(report_path, ".md", ".json"),
+		"- JSON summary: " + json_report_path(report_path),
 		"",
 		"## Notes",
 		"",
@@ -87,7 +92,7 @@ export func write_json_report(workflow_name, status, exit_code, started_at, fini
 	}
 
 	json_str := to_json(report)
-	write_private_artifact(replace(report_path, ".md", ".json"), json_str)
+	write_private_artifact(json_report_path(report_path), json_str)
 }
 
 # Generate file paths for a workflow run.

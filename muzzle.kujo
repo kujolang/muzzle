@@ -13,7 +13,7 @@ from src.common import dict_has_key, has_muzzle_dir, format_duration_ms, path_is
 from src.common import timestamp_compact, timestamp_iso, ensure_dir
 from src.runner import resolve_runner, valid_runner, run_workflow, read_log_tail, runner_label
 from src.workflow import load_manifest, inspect_manifest, first_manifest_issue, verify_manifest_integrity, resolve_workflow_script, resolve_manifest_script, validate_script_path, validate_workflow_name, discover_workflows, get_workflow_info
-from src.report import write_markdown_report, write_json_report, make_paths
+from src.report import write_markdown_report, write_json_report, make_paths, json_report_path
 from src.redact import error_excerpt
 from src.loops import find_active_loop, find_invalid_loop_state, load_loop, create_loop, advance_loop, record_loop_done, current_iteration_recorded, list_all_loops
 from src.policy import valid_policy_mode, evaluate_safety_policy, validate_manifest_args, display_args, verify_signed_policy_bundle
@@ -772,6 +772,7 @@ func cmd_run(argv) {
 	start_ms := current_timestamp()
 	mut exit_code := 0
 	mut raw_output := ""
+	mut helper_error := ""
 	mut timed_out := false
 	mut cancelled := false
 	mut display_truncated := false
@@ -782,6 +783,10 @@ func cmd_run(argv) {
 		timed_out = is_trueish(process_result.timed_out)
 		cancelled = is_trueish(process_result.cancelled)
 		display_truncated = is_trueish(process_result.stdout_truncated) || is_trueish(process_result.stderr_truncated)
+		helper_error = to_string(process_result.stderr)
+		if is_trueish(process_result.stderr_truncated) || len(helper_error) > 4096 {
+			helper_error = "[Oversized helper diagnostic omitted; rerun with --verbose to investigate.]"
+		}
 		if verbose {
 			raw_output = to_string(process_result.stdout)
 			if to_string(process_result.stderr) != "" {
@@ -822,6 +827,9 @@ func cmd_run(argv) {
 		}
 		tail_output := read_log_tail(log_path, 5)
 		err_text = error_excerpt(tail_output, 5)
+		if helper_error != "" {
+			err_text = error_excerpt(err_text + "\n" + helper_error, 5)
+		}
 	}
 
 	# Write reports (with redaction)
@@ -834,9 +842,9 @@ func cmd_run(argv) {
 	# Output
 	if json_out {
 		# Print JSON report to stdout
-		json_report_path := replace(report_path, ".md", ".json")
-		if is_trueish(file_exists(json_report_path)) {
-			print(read_file(json_report_path))
+		json_path := json_report_path(report_path)
+		if is_trueish(file_exists(json_path)) {
+			print(read_file(json_path))
 		}
 	} else if verbose {
 		# Verbose: print full output

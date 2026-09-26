@@ -629,19 +629,17 @@ Muzzle cannot locate the Kujo binary.
 
 ### Parse errors or "Undefined Function" warnings
 
-If you see diagnostic noise before the Muzzle output, your Kujo runtime may have a cross-module import resolution issue with the type checker. This is a known Kujo core limitation and does not affect functionality. The workflows still execute correctly. See `.dogfood/muzzle/kujo-core-fixes-handoff.md` for technical details.
-
-**Workaround**: Redirect stderr to hide the diagnostics:
-
-```bash
-muzzle run hello 2>/dev/null
-```
-
-Or pipe through grep to filter:
+Preserve stderr when investigating runtime diagnostics. Check the selected runtime
+and project first:
 
 ```bash
-muzzle run hello 2>&1 | grep -v "^\[RUF"
+kujo --version
+muzzle doctor --json
 ```
+
+Set `KUJO_BIN` explicitly if multiple Kujo executables are installed. The launcher
+filters known optimizer statistics; other diagnostics may indicate a real failure.
+Keep those diagnostics with the command and runtime version when reporting an issue.
 
 ### "No .muzzle/ directory found"
 
@@ -669,11 +667,10 @@ muzzle run long-build --timeout 1800000   # 30 minutes
 
 ### "Permission denied" on a Bash script
 
-Make sure the script is executable:
-
-```bash
-chmod +x .muzzle/workflows/my-workflow.sh
-```
+Muzzle invokes Bash directly, so the workflow needs read permission, not an
+executable bit. Check that the script and any sourced helpers are readable and
+that `.muzzle/logs/` and `.muzzle/state/` are writable. A log-capture failure is
+reported as a failed run; inspect its error excerpt before rerunning.
 
 ---
 

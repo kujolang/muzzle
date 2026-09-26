@@ -118,7 +118,7 @@ For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](exam
 
 | Flag | Description |
 |---|---|
-| `--verbose`, `-v` | Stream full output to terminal |
+| `--verbose`, `-v` | Print bounded captured output after execution |
 | `--dry-run`, `-n` | Print what would execute without running |
 | `--json` | Output machine-readable JSON summary |
 | `--runner <name>` | Force runner: `kujo` (default), `bash`, `python`, `node` |

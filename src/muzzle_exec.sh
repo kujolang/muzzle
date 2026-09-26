@@ -97,7 +97,10 @@ caller_umask="$(umask)"
 umask 077
 # Create the Muzzle-owned log before snapshot preparation so a fail-closed
 # integrity denial still leaves the declared evidence artifact behind.
-: >"$log_path"
+if ! : >"$log_path"; then
+	echo "muzzle-exec: log capture failed; workflow was not started" >&2
+	exit 74
+fi
 if [[ -L .muzzle/state || -L .muzzle/state/executions ]]; then
 	echo "muzzle-exec: unsafe execution state directory" >&2
 	exit 2
@@ -200,7 +203,13 @@ esac
 if [[ "$verbose" == "true" ]]; then
 	set +e
 	"${command_argv[@]}" "$@" 2>&1 | tee "$log_path"
-	workflow_status="${PIPESTATUS[0]}"
+	pipeline_status=("${PIPESTATUS[@]}")
+	workflow_status="${pipeline_status[0]}"
+	if [[ "${pipeline_status[1]}" -ne 0 ]]; then
+		echo "muzzle-exec: log capture failed; full output may be incomplete" >&2
+		# Preserve an existing workflow failure; never turn sink failure into success.
+		[[ "$workflow_status" -ne 0 ]] || workflow_status=74
+	fi
 	set -e
 else
 	set +e

@@ -128,6 +128,76 @@ printf 'snapshot-ok\\n'
         result = subprocess.run(['make', 'lint', f'KUJO_BIN={stub}'], cwd=ROOT, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
 
+    def test_report_suffix_preserves_workflow_name(self):
+        name = 'release.md.notes.md'
+        (self.project / f'.muzzle/workflows/{name}.sh').write_text('echo report-ok\n')
+        summary = json.loads(self.run_cli('run', name, '--json'))
+        markdown = self.project / summary['report_path']
+        report = markdown.with_suffix('.json')
+        self.assertTrue(report.is_file(), list(report.parent.iterdir()))
+        self.assertEqual(json.loads(report.read_text()), summary)
+        self.assertIn(str(report.relative_to(self.project)), markdown.read_text())
+        receipt = json.loads(self.run_cli('clean', '--workflow', name, '--json'))
+        self.assertEqual(receipt['removed'], 3)
+        self.assertEqual(list(report.parent.iterdir()), [])
+
+    def test_log_capture_failure_is_not_success(self):
+        script = self.project / '.muzzle/workflows/log-failure.sh'
+        script.write_text('echo captured\ntouch workflow-ran\nexit "${1:-0}"\n')
+        shim = self.project / 'shim'
+        shim.mkdir()
+        # Consume all input so the producer can succeed; fail only the sink.
+        (shim / 'tee').write_text('#!/bin/bash\ncat >/dev/null\necho "sink failed" >&2\nexit 1\n')
+        (shim / 'tee').chmod(0o755)
+        env = dict(os.environ, PATH=str(shim) + os.pathsep + os.environ['PATH'])
+        for workflow_exit, expected in [(0, 74), (9, 9)]:
+            with self.subTest(workflow_exit=workflow_exit):
+                result = subprocess.run([str(ROOT / 'muzzle'), 'run', 'log-failure',
+                                         str(workflow_exit), '--verbose', '--json'],
+                                        cwd=self.project, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                summary = json.loads(result.stdout)
+                self.assertEqual(summary['status'], 'failed')
+                self.assertIn('log capture failed', summary['error_excerpt'])
+        (self.project / 'workflow-ran').unlink()
+        log_path = self.project / '.muzzle/logs/is-a-directory'
+        log_path.mkdir()
+        command = ['bash', str(ROOT / 'src/muzzle_exec.sh'), 'bash', str(script),
+                   hashlib.sha256(script.read_bytes()).hexdigest(),
+                   '.muzzle/state/executions/' + 'b' * 32, str(log_path), 'true', 'kujo', '--']
+        result = subprocess.run(command, cwd=self.project, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 74, result.stderr)
+        self.assertFalse((self.project / 'workflow-ran').exists())
+
+    def test_helper_diagnostics_are_redacted_and_bounded(self):
+        shim = self.project / 'shim'
+        shim.mkdir()
+        tool = shim / 'ln'
+        tool.write_text('#!/bin/bash\ncat diagnostic >&2\nexit 77\n')
+        tool.chmod(0o755)
+        env = dict(os.environ, PATH=str(shim) + os.pathsep + os.environ['PATH'])
+        diagnostics = [
+            'TOKEN=PRIVATE-BODY\nuseful helper failure\n',
+            '-----BEGIN PRIVATE KEY-----\n' + 'PRIVATE-BODY\n' * 80,
+            'PRIVATE-BODY' * 10000,
+        ]
+        for diagnostic in diagnostics:
+            with self.subTest(length=len(diagnostic)):
+                (self.project / 'diagnostic').write_text(diagnostic)
+                result = subprocess.run([str(ROOT / 'muzzle'), 'run', 'hello-bash', '--json'],
+                                        cwd=self.project, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, '')
+                excerpt = json.loads(result.stdout)['error_excerpt']
+                self.assertNotIn('PRIVATE-BODY', excerpt)
+                self.assertLess(len(excerpt), 4096)
+                if len(diagnostic) > 4096:
+                    self.assertIn('Oversized helper diagnostic omitted', excerpt)
+                else:
+                    self.assertIn('[REDACTED', excerpt)
+                if 'useful helper failure' in diagnostic:
+                    self.assertIn('useful helper failure', excerpt)
+
     def test_discovery_names_and_regular_file_boundary(self):
         workflows = self.project / '.muzzle/workflows'
         (workflows / 'build.sh.sh').write_text("echo suffix-ok\n")

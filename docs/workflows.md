@@ -171,6 +171,7 @@ examples.
 - Exit non-zero for failure (propagated by Muzzle)
 - Muzzle exits 1 if the workflow script is not found
 - Muzzle exits 124 on timeout, 130 on cancellation/interruption, 2 on usage/schema errors, and 3 on policy/integrity denial
+- Muzzle exits 74 if its log cannot be opened, or if verbose log capture fails after a successful workflow. An existing nonzero workflow exit takes precedence over a log-sink failure. The failure excerpt includes a bounded, redacted helper diagnostic; output may be incomplete when capture fails.
 
 ### Secrets
 - Never `echo` tokens, keys, or credentials

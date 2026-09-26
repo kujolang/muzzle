@@ -4,6 +4,8 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Preserve workflow names containing `.md` when deriving companion JSON report paths.
+- Fail log initialization before execution and report verbose log-sink failures instead of false success; retain existing nonzero workflow exits and bounded, redacted helper diagnostics.
 - Redact failure logs before selecting their excerpts so long and unterminated key blocks cannot leak their tails; retain complete logs and explicit oversized-line diagnostics.
 - Batch snapshot sibling links with bounded argv size while retaining digest validation, runner identity, and lifecycle cleanup.
 - Reuse validated manifests during execution and discovery; preserve repeated filename suffixes and exclude directories/escaping scripts from discovery.
