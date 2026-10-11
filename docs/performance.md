@@ -43,3 +43,15 @@ The benchmark uses one warmup and five alternating measured samples per checkout
 at 60, 300, and 900 artifacts. Every dry-run sample verifies the selected paths and
 that no evidence was deleted. Timing is informational; behavioral regression tests
 cover timestamp widths, ties, large keep counts, filters, and unrecognized files.
+
+Run argument parsing consumes the invocation once, so values resembling flags
+cannot change execution modes. Measure dry-run overhead with preserved arguments:
+
+```bash
+KUJO_BIN=kujo python3 scripts/benchmark-arguments.py --baseline /path/to/baseline-checkout --output /tmp/argument-results.json
+```
+
+This uses one warmup and five alternating samples per checkout at 0, 25, and 100
+arguments before the Muzzle options. Every sample checks exact arguments, runner,
+JSON output, and the absence of execution artifacts. Timing remains informational.
+The general benchmark checks every concurrent workflow exit before reporting results.
