@@ -1,6 +1,8 @@
 # Repository Hardening Audit — September 2026
 
-Latest: [2026-10-10 third-pass state-writer and argument-contract audit](repository-hardening-2026-10-10-pass3.md).
+Latest: [2026-10-10 fourth-pass initialization and local-state audit](repository-hardening-2026-10-10-pass4.md).
+
+Previous: [2026-10-10 third-pass state-writer and argument-contract audit](repository-hardening-2026-10-10-pass3.md).
 
 Previous: [2026-10-10 second-pass cleanup and loop-state audit](repository-hardening-2026-10-10-pass2.md).
 
