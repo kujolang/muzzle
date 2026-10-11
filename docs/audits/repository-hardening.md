@@ -1,5 +1,7 @@
 # Repository Hardening Audit — September 2026
 
+Latest: [2026-10-10 CLI and filesystem hardening audit](repository-hardening-2026-10-10.md).
+
 Follow-up: [2026-09-25 artifact reliability and retention audit](repository-hardening-2026-09-25.md). The original audit below is retained as historical evidence.
 
 ## Repository and scope
