@@ -25,6 +25,58 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(result.stderr, '')
         return result.stdout
 
+    def test_cleanup_missing_values_never_select_artifacts(self):
+        artifact = self.project / ('.muzzle/logs/true-1-' + 'a' * 32 + '.log')
+        artifact.write_text('evidence')
+        invalid = [('--workflow', '--json'), ('--workflow', '-n', '--json'),
+                   ('--workflow=', '--json'), ('--workflow', '', '--json'),
+                   ('--keep', '--json'), ('--older-than', '--json')]
+        for flags in invalid:
+            with self.subTest(flags=flags):
+                result = json.loads(self.run_cli('clean', *flags, code=2))
+                self.assertIn(result['code'], ['OPTION_VALUE_REQUIRED', 'WORKFLOW_NAME_INVALID'])
+                self.assertEqual(artifact.read_text(), 'evidence')
+        valid = json.loads(self.run_cli('clean', '--workflow=true', '--keep=0', '--older-than=0', '--json', '-n'))
+        self.assertEqual(valid['workflow'], 'true')
+        self.assertEqual(valid['selected'], 1)
+        self.assertEqual(valid['removed'], 0)
+        self.assertEqual(artifact.read_text(), 'evidence')
+
+    def test_json_inspection_flag_preserves_positionals(self):
+        for command in ['info', 'show', 'integrity', 'checksum', 'logs', 'log', 'report', 'reports']:
+            with self.subTest(command=command):
+                before = json.loads(self.run_cli(command, '--json', 'hello-bash'))
+                after = json.loads(self.run_cli(command, 'hello-bash', '--json'))
+                self.assertEqual(before, after)
+        started = json.loads(self.run_cli('loop', '--json', 'start', 'hello', '--limit', '2'))
+        self.assertEqual(started['current'], 0)
+        self.run_cli('loop', '--json', 'next')
+        self.run_cli('loop', '--json', 'done', '--note', 'literal note')
+        status = json.loads(self.run_cli('loop', '--json', 'status'))
+        self.assertEqual(status['loop']['entries'][0]['note'], 'literal note')
+
+    def test_loop_rejects_unreachable_state_without_mutation(self):
+        self.run_cli('loop', 'start', 'hello', '--limit', '3', '--json')
+        state = self.project / '.muzzle/state/loops/hello.json'
+        original = json.loads(state.read_text())
+        invalid = [dict(original, current=2), dict(original, status='completed'),
+                   dict(original, workflow='../escape'), dict(original, limit=1001)]
+        for value in invalid:
+            content = json.dumps(value)
+            for command in ['status', 'next', 'summary', 'done']:
+                with self.subTest(value=value, command=command):
+                    state.write_text(content)
+                    result = json.loads(self.run_cli('loop', command, '--json', code=1))
+                    self.assertEqual(result['code'], 'LOOP_STATE_INVALID')
+                    self.assertEqual(state.read_text(), content)
+        state.write_text(json.dumps(original))
+        for _ in range(3):
+            self.run_cli('loop', 'next', '--json')
+            self.run_cli('loop', 'done', '--json')
+        completed = json.loads(self.run_cli('loop', 'next', '--json'))
+        self.assertEqual(completed['status'], 'completed')
+        self.run_cli('loop', 'summary', '--json')
+
     def test_benchmark_rejects_failed_concurrent_workflows(self):
         real_kujo = subprocess.check_output(['which', os.environ.get('KUJO_BIN', 'kujo')], text=True).strip()
         stub = self.project / 'kujo-stub'

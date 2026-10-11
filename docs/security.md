@@ -171,7 +171,10 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 ## Loop state coordination
 
 Loop state is validated before use and replaced atomically, preventing readers from
-seeing a partially written JSON document. Loop commands currently require a single
+seeing a partially written JSON document. Validation requires a valid workflow name,
+a limit of 1–1,000, and completion entries for every prior iteration. Completed
+loops must include every iteration through the limit. Unreachable states return
+`LOOP_STATE_INVALID` without mutation. Loop commands currently require a single
 writer per project: serialize `start`, `next`, and `done` in the caller. Atomic file
 replacement does not serialize read/modify/write operations or simultaneous starts.
 Concurrent workflow runs use separate artifacts and are covered by the existing suite. Execution snapshot cleanup also rejects symlinked `.muzzle`, state, or execution-directory ancestors before scanning or deleting anything.

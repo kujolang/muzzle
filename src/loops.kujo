@@ -3,6 +3,8 @@
 
 from src.common import is_trueish, is_falseish, dict_has_key, str_ends_with, ensure_dir, timestamp_iso, path_is_within_muzzle
 
+from src.workflow import validate_workflow_name
+
 LOOPS_DIR := ".muzzle/state/loops"
 
 func valid_loop_data(loop_data) {
@@ -30,10 +32,23 @@ func valid_loop_data(loop_data) {
 	try {
 		limit := to_int(loop_data["limit"])
 		current := to_int(loop_data["current"])
-		if limit < 1 || current < 0 || current > limit {
+		if limit < 1 || limit > 1000 || current < 0 || current > limit {
 			return false
 		}
 	} except _err {
+		return false
+	}
+	if is_falseish(validate_workflow_name(loop_data["workflow"])) {
+		return false
+	}
+	# A writer may have completed the current iteration or have exactly one
+	# iteration open. Completed loops must account for every iteration.
+	entry_count := len(loop_data["entries"])
+	current_count := to_int(loop_data["current"])
+	if entry_count < current_count - 1 || entry_count > current_count {
+		return false
+	}
+	if status == "completed" && (current_count != loop_data["limit"] || entry_count != current_count) {
 		return false
 	}
 	mut entry_idx := 0

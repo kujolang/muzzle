@@ -7,6 +7,7 @@
 #   kujo run muzzle.kujo -- <command> [options]
 #   muzzle <command> [options]           (via Bash wrapper)
 
+from src.cli import parse_command_args
 from src.common import parse_subcommand, has_flag, flag_value, positional_args
 from src.common import is_trueish, is_falseish, str_starts_with, str_ends_with
 from src.common import dict_has_key, has_muzzle_dir, format_duration_ms, path_is_within_muzzle
@@ -1081,7 +1082,9 @@ func cmd_report(filter, json_out) {
 # CLEAN
 # =============================================================================
 func cmd_clean(argv) {
-	json_out := command_json(argv)
+	parsed := parse_command_args(argv)
+	flags := parsed["flags"]
+	json_out := dict_has_key(flags, "--json")
 	if is_falseish(has_muzzle_dir()) {
 		fail_command("clean", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
@@ -1089,25 +1092,35 @@ func cmd_clean(argv) {
 	if is_falseish(existing_muzzle_path_is_safe(".muzzle/logs")) || is_falseish(existing_muzzle_path_is_safe(".muzzle/reports")) {
 		fail_command("clean", "ARTIFACT_DIRECTORY_UNSAFE", "Muzzle artifact directories resolve outside .muzzle.", dict(), json_out, 1)
 	}
-	if is_trueish(option_missing_value(argv, "--workflow")) || is_trueish(option_missing_value(argv, "--older-than")) || is_trueish(option_missing_value(argv, "--keep")) {
+	if len(keys(parsed["missing"])) > 0 {
 		fail_command("clean", "OPTION_VALUE_REQUIRED", "--workflow, --older-than, and --keep require values when provided.", dict(), json_out, 2)
 	}
-	workflow_filter := to_string(flag_value(argv, "--workflow", ""))
+	mut workflow_filter := ""
+	if dict_has_key(flags, "--workflow") {
+		workflow_filter = to_string(flags["--workflow"])
+		if workflow_filter == "" {
+			fail_command("clean", "WORKFLOW_NAME_INVALID", "--workflow requires a non-empty workflow name.", {"workflow": workflow_filter}, json_out, 2)
+		}
+	}
 	if workflow_filter != "" && is_falseish(validate_workflow_name(workflow_filter)) {
 		fail_command("clean", "WORKFLOW_NAME_INVALID", "Invalid workflow name '" + workflow_filter + "'.", {"workflow": workflow_filter}, json_out, 1)
 	}
 	mut older_than_ms := 0
 	mut keep_count := 0
 	try {
-		older_than_ms = to_int(parse_int(to_string(flag_value(argv, "--older-than", "0"))))
-		keep_count = to_int(parse_int(to_string(flag_value(argv, "--keep", "0"))))
+		if dict_has_key(flags, "--older-than") {
+			older_than_ms = to_int(parse_int(to_string(flags["--older-than"])))
+		}
+		if dict_has_key(flags, "--keep") {
+			keep_count = to_int(parse_int(to_string(flags["--keep"])))
+		}
 	} except _err {
 		fail_command("clean", "OPTION_INTEGER_REQUIRED", "--older-than and --keep require integer values.", dict(), json_out, 2)
 	}
 	if older_than_ms < 0 || keep_count < 0 {
 		fail_command("clean", "OPTION_RANGE", "--older-than and --keep must be zero or greater.", dict(), json_out, 2)
 	}
-	dry_run := is_trueish(has_flag(argv, "--dry-run")) || is_trueish(has_flag(argv, "-n"))
+	dry_run := dict_has_key(flags, "--dry-run") || dict_has_key(flags, "-n")
 	result := clean_artifacts(workflow_filter, older_than_ms, keep_count, dry_run)
 	if json_out {
 		print_json(result)

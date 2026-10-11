@@ -4,6 +4,10 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Reject missing and empty cleanup values before selecting artifacts; share one parsed command result for cleanup.
+- Preserve inspection and loop positional arguments when `--json` appears before them.
+- Reject unreachable persisted loop states without mutation while preserving the documented single-writer model.
+
 - Parse run options once, treating consumed values as data rather than approval or execution flags; retain literal arguments and first-value precedence.
 - Honor cleanup preview `-n` in either order with `--json`, without deleting artifacts.
 - Confine policy-verification snapshots and execution cleanup before accessing symlinked state; exclude unsafe artifact entries from inspection and tolerate malformed timestamps.

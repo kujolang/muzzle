@@ -12,7 +12,7 @@ AI coding agents waste significant context window space on operational noise:
 
 Muzzle compresses this noise in the reviewed workflows. The agent often sees a short summary instead of hundreds of lines of raw output.
 
-Workflow discovery and artifact listings use sorted directory entries so agents receive stable, diff-friendly output across filesystems. Artifact inspection skips directories and paths that escape `.muzzle`. Preview retention with `muzzle clean --dry-run --json` (or `muzzle clean -n --json`) before deleting evidence.
+Workflow discovery and artifact listings use sorted directory entries so agents receive stable, diff-friendly output across filesystems. Artifact inspection skips directories and paths that escape `.muzzle`. Preview retention with `muzzle clean --dry-run --json` (or `muzzle clean -n --json`) before deleting evidence. Missing or empty cleanup filter values fail before deletion. Use `--workflow=-n` when a workflow name itself matches a cleanup flag.
 
 ## How to Use Muzzle as an Agent
 
