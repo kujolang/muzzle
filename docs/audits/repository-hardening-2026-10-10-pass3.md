@@ -78,10 +78,9 @@ Logs are local ignored evidence under `.muzzle/logs/audit-pass3/`; baseline chec
 | -- | -- |
 | `make quality` before changes | Pass: 20 methods plus existing gates |
 | `KUJO_BIN=kujo MUZZLE_TEST_ROOT="$PWD/.muzzle/state/audit-pass3/baseline" python3 tests/muzzle_hardening_regression.py HardeningTests.test_loop_missing_note_does_not_corrupt_state HardeningTests.test_manifest_no_declared_args_enforces_arity` | Expected baseline failures; `negative.log` |
-| Same baseline command with only `HardeningTests.test_loop_missing_note_does_not_corrupt_state` after adding direct-writer coverage | Expected boolean-writer failure; `negative-writer.log` |
+| `KUJO_BIN=kujo MUZZLE_TEST_ROOT="$PWD/.muzzle/state/audit-pass3/baseline" python3 tests/muzzle_hardening_regression.py HardeningTests.test_loop_missing_note_does_not_corrupt_state` | Expected boolean-writer failure; `negative-writer.log` |
 | `KUJO_BIN=kujo python3 tests/muzzle_hardening_regression.py HardeningTests.test_loop_missing_note_does_not_corrupt_state HardeningTests.test_manifest_no_declared_args_enforces_arity` | Pass: focused CLI cases |
 | `KUJO_BIN=kujo python3 tests/muzzle_hardening_regression.py HardeningTests.test_loop_missing_note_does_not_corrupt_state` | Pass: repaired direct-writer fixture and CLI cases |
-
 | `make quality` after the corrected test fixture | Pass: 22 methods in 46.663 s, wrapper/process/install suites, Kujo checks, shell syntax and whitespace |
 | `KUJO_BIN=kujo bash .muzzle/state/audit-pass3/baseline/scripts/benchmark.sh` | Pass; baseline signals above |
 | `KUJO_BIN=kujo bash scripts/benchmark.sh` | Pass; final signals above |
