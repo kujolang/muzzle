@@ -26,6 +26,53 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(result.stderr, '')
         return result.stdout
 
+    def test_init_ignores_local_state_but_preserves_workflow_tracking(self):
+        subprocess.run(['git', 'init', '-q'], cwd=self.project, check=True)
+        paths = ['.muzzle/state/loops/hello.json', '.muzzle/state/.policy-verify-fixture.json',
+                 '.muzzle/state/session.json', '.muzzle/state/session.lock',
+                 '.muzzle/state/executions/fixture/file', '.muzzle/logs/run.log',
+                 '.muzzle/reports/run.json']
+        for path in paths:
+            with self.subTest(path=path):
+                result = subprocess.run(['git', '-c', 'core.excludesFile=' + os.devnull, 'check-ignore', '-q', path], cwd=self.project)
+                self.assertEqual(result.returncode, 0)
+        for path in ['.muzzle/workflows/hello.kujo', '.muzzle/manifests/hello.json', '.muzzle/.gitignore']:
+            result = subprocess.run(['git', '-c', 'core.excludesFile=' + os.devnull, 'check-ignore', '-q', path], cwd=self.project)
+            self.assertEqual(result.returncode, 1, path)
+        ignore = self.project / '.muzzle/.gitignore'
+        ignore.write_text('# user-owned rules\n')
+        (self.project / '.muzzle/logs').rmdir()
+        self.run_cli('init')
+        self.assertEqual(ignore.read_text(), '# user-owned rules\n')
+
+    def test_init_never_follows_dangling_generated_file_links(self):
+        leaves = ['workflows/hello.kujo', 'workflows/hello-bash.sh',
+                  'manifests/hello.json', 'manifests/hello-bash.json',
+                  'state/session.json', '.gitignore']
+        for leaf in leaves:
+            with self.subTest(leaf=leaf), tempfile.TemporaryDirectory(prefix='muzzle-init-link-') as temp:
+                project = Path(temp)
+                target = project / 'outside'
+                link = project / '.muzzle' / leaf
+                link.parent.mkdir(parents=True)
+                link.symlink_to(target)
+                result = subprocess.run([str(ROOT / 'muzzle'), 'init'], cwd=project,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, '')
+                self.assertIn('Could not create', result.stdout)
+                self.assertFalse(target.exists())
+                self.assertTrue(link.is_symlink())
+                self.assertEqual(list((project / '.muzzle').rglob('*.kujo-atomic-*.tmp')), [])
+        # Partial initialization must preserve every existing user file.
+        for leaf in leaves:
+            (self.project / '.muzzle' / leaf).write_text('custom content')
+        (self.project / '.muzzle/logs').rmdir()
+        self.run_cli('init')
+        for leaf in leaves:
+            self.assertEqual((self.project / '.muzzle' / leaf).read_text(), 'custom content')
+        self.assertIn('already exists', self.run_cli('init'))
+
     def test_loop_missing_note_does_not_corrupt_state(self):
         self.run_cli('loop', 'start', 'hello', '--limit', '1', '--json')
         self.run_cli('loop', 'next', '--json')

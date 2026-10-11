@@ -279,6 +279,19 @@ func parse_run_invocation(argv) {
 # =============================================================================
 # INIT
 # =============================================================================
+# Create only absent initialization files. Atomic no-overwrite publication also
+# rejects dangling symlinks and files appearing after the existence check.
+func initialize_file(path, content) {
+	if is_trueish(file_exists(path)) {
+		return
+	}
+	try {
+		write_file_atomic(path, content, false)
+	} except _err {
+		fail_command("init", "INIT_WRITE_FAILED", "Could not create '" + path + "'. Check permissions and remove conflicting paths before retrying.", {"path": path}, false, 1)
+	}
+}
+
 func cmd_init() {
 	if is_trueish(file_exists(".muzzle")) && (is_falseish(path_is_dir(".muzzle")) || is_falseish(path_is_within_muzzle(".muzzle"))) {
 		print("Error: .muzzle is not a safe project-local directory. Refusing to initialize.")
@@ -313,9 +326,7 @@ func cmd_init() {
 		"print(\"Runner: Kujo (default)\")",
 		"print(\"This is a sample workflow. Replace with your own.\")"
 	), "\n") + "\n"
-	if is_falseish(file_exists(WORKFLOWS_DIR + "/hello.kujo")) {
-		write_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
-	}
+	initialize_file(WORKFLOWS_DIR + "/hello.kujo", hello_script)
 
 	# Create example Bash workflow as well
 	bash_script := join(array(
@@ -326,9 +337,7 @@ func cmd_init() {
 		"echo \"Date: $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\"",
 		"exit 0"
 	), "\n") + "\n"
-	if is_falseish(file_exists(WORKFLOWS_DIR + "/hello-bash.sh")) {
-		write_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
-	}
+	initialize_file(WORKFLOWS_DIR + "/hello-bash.sh", bash_script)
 
 	# Create manifests
 	hello_manifest := join(array(
@@ -348,9 +357,7 @@ func cmd_init() {
 		"  }",
 		"}"
 	), "\n") + "\n"
-	if is_falseish(file_exists(MANIFESTS_DIR + "/hello.json")) {
-		write_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
-	}
+	initialize_file(MANIFESTS_DIR + "/hello.json", hello_manifest)
 
 	bash_manifest := join(array(
 		"{",
@@ -369,9 +376,7 @@ func cmd_init() {
 		"  }",
 		"}"
 	), "\n") + "\n"
-	if is_falseish(file_exists(MANIFESTS_DIR + "/hello-bash.json")) {
-		write_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
-	}
+	initialize_file(MANIFESTS_DIR + "/hello-bash.json", bash_manifest)
 
 	# Create session state
 	session_json := join(array(
@@ -382,22 +387,16 @@ func cmd_init() {
 		"  \"total_runs\": 0",
 		"}"
 	), "\n") + "\n"
-	if is_falseish(file_exists(SESSION_FILE)) {
-		write_file(SESSION_FILE, session_json, true)
-	}
+	initialize_file(SESSION_FILE, session_json)
 
 	# Create .gitignore
 	gitignore := join(array(
 		"# Muzzle logs and reports — local workflow artifacts",
 		"logs/",
 		"reports/",
-		"state/session.json",
-		"state/session.lock",
-		"state/executions/"
+		"state/"
 	), "\n") + "\n"
-	if is_falseish(file_exists(".muzzle/.gitignore")) {
-		write_file(".muzzle/.gitignore", gitignore)
-	}
+	initialize_file(".muzzle/.gitignore", gitignore)
 
 	print_lines(array(
 		"OK Muzzle initialized in .muzzle/",

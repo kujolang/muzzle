@@ -174,7 +174,7 @@ project/
     state/             # Session and loop state
       session.json
       loops/
-  .gitignore           # Ignores .muzzle/logs/, .muzzle/reports/, .kujo_cache/
+    .gitignore         # Ignores logs/, reports/, and state/
 ```
 
 ## Defining Workflows

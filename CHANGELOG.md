@@ -4,6 +4,9 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Create initialization files atomically without following dangling destination symlinks or overwriting concurrently created files.
+- Ignore all local state in newly initialized projects, including loop notes and policy verification snapshots; preserve existing user ignore files.
+
 - Reject missing loop-note values before state mutation; guard persisted note/timestamp types.
 - Enforce `allow_extra_args: false` under `--validate-args` even when optional `args` metadata is omitted.
 

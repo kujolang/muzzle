@@ -183,6 +183,10 @@ This creates the `.muzzle/` directory with the following structure:
 └── .gitignore              # Ignores logs, reports, and state
 ```
 
+Initialization preserves existing files and creates new files atomically without overwriting an existing destination, including a dangling symlink. A creation failure exits nonzero; inspect the named path before retrying. Files already created during a partial initialization are preserved on retry.
+
+New `.muzzle/.gitignore` files ignore `logs/`, `reports/`, and all `state/`. Existing ignore files are never rewritten; add `state/` to an older `.muzzle/.gitignore` to exclude loop notes and transient policy state too. Ignore rules do not untrack files already committed; review any previously tracked state separately.
+
 Verify the initialization worked:
 
 ```bash

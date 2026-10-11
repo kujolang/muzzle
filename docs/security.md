@@ -155,7 +155,7 @@ Any git operations are performed by your workflow scripts, not by Muzzle.
 
 1. **Review workflow scripts** before adding them to `.muzzle/workflows/`
 2. **Use `safety.human_approval_recommended: true`** for dangerous workflows
-3. **Add `.muzzle/logs/` and `.muzzle/reports/` to `.gitignore`** (Muzzle does this on `init`)
+3. **Ignore `.muzzle/logs/`, `.muzzle/reports/`, and `.muzzle/state/`** (new projects get these rules on `init`; existing `.muzzle/.gitignore` files need a `state/` rule added manually)
 4. **Never echo secrets** in workflow scripts
 5. **Use `--dry-run`** to preview workflows before first execution
 6. **Keep Muzzle updated** as security improvements are released
