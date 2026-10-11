@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -24,6 +25,68 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         self.assertEqual(result.stderr, '')
         return result.stdout
+
+    def test_loop_missing_note_does_not_corrupt_state(self):
+        self.run_cli('loop', 'start', 'hello', '--limit', '1', '--json')
+        self.run_cli('loop', 'next', '--json')
+        state = self.project / '.muzzle/state/loops/hello.json'
+        original = state.read_bytes()
+        # Exported state writers also reject values that readers cannot load.
+        shutil.copytree(ROOT / 'src', self.project / 'src')
+        probe = self.project / 'probe.kujo'
+        probe.write_text('from src.loops import record_loop_done\n'
+                         'print(to_json(array(\n'
+                         'record_loop_done(".muzzle/state/loops/hello.json", true, "now"),\n'
+                         'record_loop_done(".muzzle/state/loops/hello.json", "note", false)\n'
+                         ')))\n')
+        result = subprocess.run([os.environ.get('KUJO_BIN', 'kujo'), 'run', str(probe)],
+                                cwd=self.project, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout), [False, False])
+        self.assertEqual(state.read_bytes(), original)
+        for flags in [('--note', '--json'), ('--json', '--note')]:
+            with self.subTest(flags=flags):
+                state.write_bytes(original)
+                result = json.loads(self.run_cli('loop', 'done', *flags, code=2))
+                self.assertEqual(result['code'], 'OPTION_VALUE_REQUIRED')
+                self.assertEqual(state.read_bytes(), original)
+                self.run_cli('loop', 'status', '--json')
+        state.write_bytes(original)
+        literal = json.loads(self.run_cli('loop', 'done', '--note=--json', '--json'))
+        self.assertEqual(literal['note'], '--json')
+        self.run_cli('loop', 'next', '--json')
+        self.run_cli('loop', 'summary', '--json')
+
+    def test_manifest_no_declared_args_enforces_arity(self):
+        manifest_path = self.project / '.muzzle/manifests/hello-bash.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest.pop('args', None)
+        manifest['allow_extra_args'] = False
+        for definitions in [None, []]:
+            if definitions is None:
+                manifest.pop('args', None)
+            else:
+                manifest['args'] = definitions
+            manifest_path.write_text(json.dumps(manifest))
+            for mode in [[], ['--dry-run']]:
+                with self.subTest(definitions=definitions, mode=mode):
+                    result = json.loads(self.run_cli('run', 'hello-bash', 'unexpected',
+                                                     *mode, '--validate-args', '--json', code=2))
+                    self.assertEqual(result['code'], 'ARG_ARITY')
+                    self.assertEqual(result['details'], {'maximum': 0, 'actual': 1})
+            self.run_cli('run', 'hello-bash', '--dry-run', '--validate-args', '--json')
+        self.assertEqual(list((self.project / '.muzzle/logs').iterdir()), [])
+        # Argument validation remains opt-in.
+        self.run_cli('run', 'hello-bash', 'legacy', '--dry-run', '--json')
+        manifest.pop('args')
+        for allow in [True, None]:
+            if allow is None:
+                manifest.pop('allow_extra_args', None)
+            else:
+                manifest['allow_extra_args'] = allow
+            manifest_path.write_text(json.dumps(manifest))
+            preview = json.loads(self.run_cli('run', 'hello-bash', 'supported', '--dry-run', '--validate-args', '--json'))
+            self.assertEqual(preview['args'], ['supported'])
 
     def test_cleanup_missing_values_never_select_artifacts(self):
         artifact = self.project / ('.muzzle/logs/true-1-' + 'a' * 32 + '.log')

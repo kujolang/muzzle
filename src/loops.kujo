@@ -218,6 +218,9 @@ export func advance_loop(loop_file) {
 
 # Record a completed loop iteration.
 export func record_loop_done(loop_file, note, ts) {
+	if type(note) != "string" || type(ts) != "string" {
+		return false
+	}
 	loop_data := load_loop(loop_file)
 	if loop_data == null {
 		return false

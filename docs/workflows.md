@@ -129,7 +129,7 @@ muzzle run deploy staging develop
 muzzle run lint -- --fix
 ```
 
-Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle run flags are interpreted by Muzzle. A value-taking option consumes its next argument as data: for example, `--cancel-file --approve` names a marker file and does not approve execution. Repeated value-taking run options retain their first value. Use `--validate-args` to activate manifest checks; this remains opt-in for 1.0 compatibility.
+Use `--` before workflow arguments that begin with `-`; otherwise known Muzzle run flags are interpreted by Muzzle. A value-taking option consumes its next argument as data: for example, `--cancel-file --approve` names a marker file and does not approve execution. Repeated value-taking run options retain their first value. Use `--validate-args` to activate manifest checks; this remains opt-in for 1.0 compatibility. With `allow_extra_args: false`, omitting `args` is equivalent to `args: []`: no positional workflow arguments are accepted.
 
 ## Output Conventions
 

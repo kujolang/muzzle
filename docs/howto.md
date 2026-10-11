@@ -535,6 +535,8 @@ Shows a table with iteration numbers, statuses, notes, and timestamps.
 
 ### Important notes
 
+`--note` requires a value when present. Omitting the option records an empty note; use `--note=--json` for a literal note that starts with an option name. Missing values fail before changing loop state.
+
 - Only one loop can be active at a time per project
 - Loop state persists across shell sessions in `.muzzle/state/loops/`
 - All `loop` commands must be run from the same project directory

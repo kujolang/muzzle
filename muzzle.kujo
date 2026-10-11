@@ -1339,6 +1339,9 @@ func cmd_loop(argv) {
 
 	} else if subcmd == "done" {
 		note := flag_value(argv, "--note", "")
+		if type(note) != "string" {
+			fail_command("loop", "OPTION_VALUE_REQUIRED", "--note requires a string value when provided.", {"option": "--note"}, json_out, 2)
+		}
 		loop_file := find_active_loop()
 		if loop_file == "" {
 			fail_command("loop", "LOOP_NOT_FOUND", "No active loop found.", dict(), json_out, 1)

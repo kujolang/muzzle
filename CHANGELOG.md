@@ -4,6 +4,9 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Reject missing loop-note values before state mutation; guard persisted note/timestamp types.
+- Enforce `allow_extra_args: false` under `--validate-args` even when optional `args` metadata is omitted.
+
 - Reject missing and empty cleanup values before selecting artifacts; share one parsed command result for cleanup.
 - Preserve inspection and loop positional arguments when `--json` appears before them.
 - Reject unreachable persisted loop states without mutation while preserving the documented single-writer model.

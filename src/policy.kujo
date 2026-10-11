@@ -113,10 +113,15 @@ export func evaluate_safety_policy(manifest, mode, approved) {
 }
 
 export func validate_manifest_args(manifest, workflow_args) {
-	if manifest == null || is_falseish(dict_has_key(manifest, "args")) {
+	if manifest == null {
 		return allow_result()
 	}
-	definitions := manifest["args"]
+	# Omitted argument metadata declares no positions, just like an empty array.
+	# The independent allow_extra_args contract still applies.
+	mut definitions := array()
+	if dict_has_key(manifest, "args") {
+		definitions = manifest["args"]
+	}
 	mut idx := 0
 	while idx < len(definitions) {
 		arg_def := definitions[idx]
