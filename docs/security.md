@@ -110,7 +110,7 @@ The default `--policy trusted` mode preserves the 1.0 trusted-local contract. `-
 
 Teams can checksum-pin scripts with `script_sha256`. Whether pinned or unpinned, Muzzle passes the digest observed during validation to its execution helper. The helper creates a private snapshot, verifies that exact digest again, and executes only the snapshot. A mutation before snapshot completion is denied with exit 3; a later mutation cannot change the bytes already selected for execution. Bash, Python, and Node wrappers preserve the original script identity and normal sibling loading; Kujo runs the snapshot while retaining the project working directory.
 
-Teams can also sign a `muzzle.policy/v1` JSON bundle using `scripts/sign-policy.sh` and pass its bundle, public key, and detached signature to `muzzle run`. A verified bundle authorizes only listed workflows and forces enforce mode. Key custody, issuer trust, rotation, and expiry policy belong to the operator.
+Teams can also sign a `muzzle.policy/v1` JSON bundle using `scripts/sign-policy.sh` and pass its bundle, public key, and detached signature to `muzzle run`. A verified bundle authorizes only listed workflows and forces enforce mode. Verification refuses missing or externally symlinked `.muzzle/state` with `POLICY_STATE_UNSAFE` before writing a snapshot or invoking OpenSSL, including during dry runs. Key custody, issuer trust, rotation, and expiry policy belong to the operator.
 
 The script digest covers the selected workflow file, not mutable helper modules, subprocesses, or other files it loads. Pin or otherwise control those dependencies separately when that distinction matters.
 
@@ -174,4 +174,4 @@ Loop state is validated before use and replaced atomically, preventing readers f
 seeing a partially written JSON document. Loop commands currently require a single
 writer per project: serialize `start`, `next`, and `done` in the caller. Atomic file
 replacement does not serialize read/modify/write operations or simultaneous starts.
-Concurrent workflow runs use separate artifacts and are covered by the existing suite.
+Concurrent workflow runs use separate artifacts and are covered by the existing suite. Execution snapshot cleanup also rejects symlinked `.muzzle`, state, or execution-directory ancestors before scanning or deleting anything.

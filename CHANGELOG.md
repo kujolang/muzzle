@@ -4,6 +4,12 @@ All notable changes to Muzzle are documented here.
 
 ## Unreleased
 
+- Parse run options once, treating consumed values as data rather than approval or execution flags; retain literal arguments and first-value precedence.
+- Honor cleanup preview `-n` in either order with `--json`, without deleting artifacts.
+- Confine policy-verification snapshots and execution cleanup before accessing symlinked state; exclude unsafe artifact entries from inspection and tolerate malformed timestamps.
+- Preserve newline-containing script paths through snapshot splitting and filename-independent hashing.
+- Preserve diagnostics after same-line secret blocks, and reject failed concurrent runs in benchmark receipts.
+
 - Rank retention artifacts once, preserving numeric timestamps, filename ties, per-workflow/type limits, and deterministic receipts; skip malformed artifact names and directories.
 - Preserve workflow names containing `.md` when deriving companion JSON report paths.
 - Fail log initialization before execution and report verbose log-sink failures instead of false success; retain existing nonzero workflow exits and bounded, redacted helper diagnostics.

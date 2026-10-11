@@ -1,6 +1,6 @@
 # Muzzle opt-in execution policy and manifest argument validation.
 
-from src.common import dict_has_key, is_trueish, is_falseish
+from src.common import dict_has_key, is_trueish, is_falseish, path_is_within_muzzle
 
 func allow_result() {
 	return {"allowed": true, "code": "", "message": "", "details": dict()}
@@ -31,6 +31,9 @@ export func verify_signed_policy_bundle(bundle_path, public_key_path, signature_
 	}
 	if is_falseish(file_exists(bundle_path)) || is_falseish(file_exists(public_key_path)) || is_falseish(file_exists(signature_path)) {
 		return deny_result("POLICY_BUNDLE_FILE_MISSING", "A signed policy bundle input is missing.", {"bundle": bundle_path, "public_key": public_key_path, "signature": signature_path})
+	}
+	if is_falseish(path_is_dir(".muzzle/state")) || is_falseish(path_is_within_muzzle(".muzzle/state")) {
+		return deny_result("POLICY_STATE_UNSAFE", "Policy verification requires a safe project-local state directory.", {"path": ".muzzle/state"})
 	}
 	mut bundle_raw := ""
 	try {

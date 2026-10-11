@@ -55,10 +55,21 @@ done
 startup_average_ms="$((startup_total_ms / iterations))"
 
 concurrent_start_ms="$(perl -MTime::HiRes=time -e 'printf "%d", time()*1000')"
+concurrent_pids=()
 for _idx in $(seq 1 "$iterations"); do
 	"$muzzle_bin" run hello-bash >/dev/null &
+	concurrent_pids+=("$!")
 done
-wait
+concurrent_failed=0
+for concurrent_pid in "${concurrent_pids[@]}"; do
+	if ! wait "$concurrent_pid"; then
+		concurrent_failed=1
+	fi
+done
+if [[ "$concurrent_failed" -ne 0 ]]; then
+	echo "Benchmark failed: a concurrent workflow failed." >&2
+	exit 1
+fi
 concurrent_end_ms="$(perl -MTime::HiRes=time -e 'printf "%d", time()*1000')"
 
 cat <<EOF

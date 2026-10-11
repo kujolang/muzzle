@@ -48,7 +48,7 @@ It is not a sandbox for untrusted code or an enterprise isolation boundary. Trea
 
 ```
 muzzle (Bash wrapper)
-  └─ kujo run muzzle.kujo --interpreter -- <command>
+  └─ kujo run muzzle.kujo -- <command>
        ├─ src/common.kujo      CLI parsing, timestamps, helpers
        ├─ src/runner.kujo      Modular dispatch (kujo/bash/python/node)
        ├─ src/workflow.kujo    Discovery, manifest loading, validation

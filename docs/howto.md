@@ -118,7 +118,7 @@ The installer places immutable runtime files under `lib/muzzle/1.1.0` and links 
 The `muzzle` script is a thin Bash wrapper. It:
 
 1. Locates the Kujo runtime via `$KUJO_BIN` or common paths
-2. Invokes `muzzle.kujo` in interpreter mode for cross-module support
+2. Invokes `kujo run muzzle.kujo --` with your command and arguments
 3. Passes all arguments through to the Kujo program
 
 You usually invoke the wrapper directly; it handles the runtime handoff for you.

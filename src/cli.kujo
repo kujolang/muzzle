@@ -9,6 +9,11 @@ func parse_cli(argv) {
 	mut idx := 1
 	while idx < len(argv) {
 		token := to_string(argv[idx])
+		if to_string(argv[0]) == "clean" && (token == "-n" || token == "--dry-run" || token == "--json") {
+			flags[token] = true
+			idx = idx + 1
+			continue
+		}
 		if starts_with(token, "--") {
 			equals_at := index_of(token, "=")
 			if equals_at >= 0 {

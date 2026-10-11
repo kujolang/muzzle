@@ -122,9 +122,12 @@ export func redact_text(text) {
 			# Check for multi-line block start
 			start_idx := line_starts_multiline_secret(line)
 			if start_idx >= 0 {
-				in_multiline = true
-				multiline_start_idx = start_idx
-				# Don't add this line, wait for end marker
+				if line_ends_multiline_secret(line, start_idx) {
+					result_lines = push(result_lines, REDACTED_MARKER)
+				} else {
+					in_multiline = true
+					multiline_start_idx = start_idx
+				}
 			} else {
 				# Check for single-line secret
 				if line_has_secret(line) {

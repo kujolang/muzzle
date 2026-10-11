@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Behavioral regression gates for the September hardening pass (stdlib only)."""
+"""Behavioral regression gates for repository hardening (stdlib only)."""
 import hashlib
 import json
 import os
@@ -24,6 +24,126 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         self.assertEqual(result.stderr, '')
         return result.stdout
+
+    def test_benchmark_rejects_failed_concurrent_workflows(self):
+        real_kujo = subprocess.check_output(['which', os.environ.get('KUJO_BIN', 'kujo')], text=True).strip()
+        stub = self.project / 'kujo-stub'
+        stub.write_text('#!/bin/bash\nfor arg in "$@"; do\n'
+                        '  [[ "$arg" != hello-bash ]] || exit 19\ndone\n'
+                        'exec "$REAL_KUJO" "$@"\n')
+        stub.chmod(0o755)
+        env = dict(os.environ, KUJO_BIN=str(stub), REAL_KUJO=real_kujo,
+                   MUZZLE_BENCH_ITERATIONS='2', MUZZLE_BENCH_LINES='1')
+        result = subprocess.run(['bash', str(ROOT / 'scripts/benchmark.sh')], cwd=self.project,
+                                env=env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('Muzzle local benchmark signal', result.stdout)
+
+    def test_short_cleanup_preview_never_deletes_artifacts(self):
+        summary = json.loads(self.run_cli('run', 'hello-bash', '--json'))
+        for flags in [('-n', '--json'), ('--json', '-n'), ('--json', '--dry-run')]:
+            with self.subTest(flags=flags):
+                preview = json.loads(self.run_cli('clean', *flags))
+                self.assertTrue(preview['dry_run'])
+                self.assertEqual(preview['removed'], 0)
+                self.assertEqual(preview['selected'], 3)
+                self.assertTrue((self.project / summary['log_path']).is_file())
+                self.assertTrue((self.project / summary['report_path']).is_file())
+
+    def test_run_option_values_never_activate_flags(self):
+        manifest_path = self.project / '.muzzle/manifests/hello-bash.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['safety']['human_approval_recommended'] = True
+        manifest_path.write_text(json.dumps(manifest))
+        denied = json.loads(self.run_cli('run', 'hello-bash', '--policy', 'enforce',
+                                        '--cancel-file', '--approve', '--json', code=3))
+        self.assertEqual(denied['code'], 'POLICY_APPROVAL_REQUIRED')
+        self.assertEqual(list((self.project / '.muzzle/logs').iterdir()), [])
+        for value in ['--dry-run', '--verbose', '--timeout', '--runner', '--json']:
+            with self.subTest(value=value):
+                result = json.loads(self.run_cli('run', 'hello-bash', '--cancel-file', value, '--json'))
+                self.assertEqual(result['status'], 'success')
+                self.assertNotIn('dry_run', result)
+        text = self.run_cli('run', 'hello-bash', '--cancel-file', '--json', '--dry-run')
+        self.assertIn('[DRY RUN]', text)
+        literal = ['--approve', '--json', '--', '', 'a b', '$(literal)']
+        preview = json.loads(self.run_cli('run', '--json', '--dry-run', 'hello-bash', '--', *literal))
+        self.assertEqual(preview['args'], literal)
+        first = json.loads(self.run_cli('execute', 'hello-bash', '--runner', 'bash',
+                                       '--runner', 'python', '--json', '--dry-run'))
+        self.assertEqual(first['runner'], 'bash')
+
+    def test_policy_snapshot_rejects_external_state(self):
+        state = self.project / '.muzzle/state'
+        state.rename(self.project / 'original-state')
+        outside = self.project / 'outside'
+        outside.mkdir()
+        state.symlink_to(outside, target_is_directory=True)
+        for name in ['bundle.json', 'public.pem', 'signature.bin']:
+            (self.project / name).write_text('fixture')
+        shim = self.project / 'shim'
+        shim.mkdir()
+        (shim / 'openssl').write_text('#!/bin/sh\ntouch verifier-called\nexit 1\n')
+        (shim / 'openssl').chmod(0o755)
+        env = dict(os.environ, PATH=str(shim) + os.pathsep + os.environ['PATH'])
+        result = subprocess.run([str(ROOT / 'muzzle'), 'run', 'hello-bash', '--dry-run', '--json',
+                                 '--policy-bundle', 'bundle.json', '--policy-public-key', 'public.pem',
+                                 '--policy-signature', 'signature.bin'], cwd=self.project,
+                                env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)['code'], 'POLICY_STATE_UNSAFE')
+        self.assertFalse((self.project / 'verifier-called').exists())
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_cleanup_rejects_symlinked_ancestors(self):
+        for ancestor in ['.muzzle', '.muzzle/state', '.muzzle/state/executions']:
+            for mode in ['--cleanup', '--cleanup-owner']:
+                with self.subTest(ancestor=ancestor, mode=mode):
+                    with tempfile.TemporaryDirectory(prefix='muzzle-cleanup-') as temp:
+                        project = Path(temp)
+                        external = project / 'outside'
+                        external.mkdir()
+                        link = project / ancestor
+                        link.parent.mkdir(parents=True, exist_ok=True)
+                        link.symlink_to(external, target_is_directory=True)
+                        root = project / '.muzzle/state/executions' / ('a' * 32)
+                        root.mkdir(parents=True)
+                        (root / '.owner').write_text('12345')
+                        (root / 'sentinel').write_text('preserve')
+                        arg = str(root.relative_to(project)) if mode == '--cleanup' else '12345'
+                        result = subprocess.run(['bash', str(ROOT / 'src/muzzle_exec.sh'), mode, arg],
+                                                cwd=project, capture_output=True, text=True)
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertEqual((root / 'sentinel').read_text(), 'preserve')
+
+    def test_artifact_inspection_skips_unsafe_and_malformed_entries(self):
+        external = self.project / 'outside'
+        external.write_text('private evidence')
+        for command, directory, extension in [('logs', 'logs', 'log'), ('report', 'reports', 'md')]:
+            folder = self.project / '.muzzle' / directory
+            safe_name = f'hello-10-{"a" * 32}.{extension}'
+            (folder / safe_name).write_text('safe')
+            (folder / f'hello-11-{"b" * 32}.{extension}').symlink_to(external)
+            (folder / f'hello-12-{"c" * 32}.{extension}').mkdir()
+            for timestamp in ['notanumber', '99999999999999999999999999999']:
+                (folder / f'hello-{timestamp}-{"d" * 32}.{extension}').write_text('unknown')
+            receipt = json.loads(self.run_cli(command, 'hello', '--json'))
+            self.assertEqual([a['path'] for a in receipt['artifacts']], [str((folder / safe_name).relative_to(self.project))])
+            all_receipt = json.loads(self.run_cli(command, '--json'))
+            self.assertNotIn(str((folder / f'hello-11-{"b" * 32}.{extension}').relative_to(self.project)),
+                             [a['path'] for a in all_receipt['artifacts']])
+            self.assertEqual(external.read_text(), 'private evidence')
+
+    def test_snapshot_preserves_newlines_in_script_path(self):
+        nested = self.project / '.muzzle/workflows/nested\nspace'
+        nested.mkdir()
+        script = nested / 'probe\nname.sh'
+        script.write_text("printf 'newline-ok\\n'\n")
+        (self.project / '.muzzle/manifests/newline.json').write_text(json.dumps({
+            'name': 'newline', 'script': 'workflows/nested\nspace/probe\nname.sh', 'runner': 'bash'}))
+        result = json.loads(self.run_cli('run', 'newline', '--json'))
+        self.assertEqual((self.project / result['log_path']).read_text(), 'newline-ok\n')
+        self.assertEqual(list((self.project / '.muzzle/state/executions').iterdir()), [])
 
     def test_redaction_before_tail_and_full_evidence(self):
         kinds = ['PRIVATE KEY', 'RSA PRIVATE KEY', 'OPENSSH PRIVATE KEY',
@@ -226,6 +346,7 @@ printf 'snapshot-ok\\n'
         env = dict(os.environ, PATH=str(shim) + os.pathsep + os.environ['PATH'])
         diagnostics = [
             'TOKEN=PRIVATE-BODY\nuseful helper failure\n',
+            '-----BEGIN PRIVATE KEY-----PRIVATE-BODY-----END PRIVATE KEY-----\nuseful helper failure\n',
             '-----BEGIN PRIVATE KEY-----\n' + 'PRIVATE-BODY\n' * 80,
             'PRIVATE-BODY' * 10000,
         ]

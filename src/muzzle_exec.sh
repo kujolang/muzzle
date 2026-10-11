@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -u
 
+safe_execution_ancestors() {
+	if [[ -L .muzzle || -L .muzzle/state || -L .muzzle/state/executions ]]; then
+		echo "muzzle-exec: unsafe execution state directory" >&2
+		return 2
+	fi
+}
+
 cleanup_execution_root() {
+	safe_execution_ancestors || return 2
 	local target="$1"
 	if [[ ! "$target" =~ ^\.muzzle/state/executions/[0-9a-f]{32}$ ]]; then
 		echo "muzzle-exec: refusing unsafe execution-root cleanup" >&2
@@ -18,6 +26,7 @@ fi
 
 if [[ "${1:-}" == "--cleanup-owner" ]]; then
 	[[ "$#" -eq 2 && "$2" =~ ^[0-9]+$ ]] || exit 2
+	safe_execution_ancestors || exit 2
 	for owned_root in .muzzle/state/executions/*; do
 		[[ -d "$owned_root" && ! -L "$owned_root" ]] || continue
 		[[ "$owned_root" =~ ^\.muzzle/state/executions/[0-9a-f]{32}$ ]] || continue
@@ -59,9 +68,9 @@ fi
 
 portable_sha256() {
 	if command -v shasum >/dev/null 2>&1; then
-		shasum -a 256 "$1" | awk '{print $1}'
+		shasum -a 256 <"$1" | awk '{print $1}'
 	elif command -v sha256sum >/dev/null 2>&1; then
-		sha256sum "$1" | awk '{print $1}'
+		sha256sum <"$1" | awk '{print $1}'
 	else
 		return 127
 	fi
@@ -101,10 +110,7 @@ if ! : >"$log_path"; then
 	echo "muzzle-exec: log capture failed; workflow was not started" >&2
 	exit 74
 fi
-if [[ -L .muzzle/state || -L .muzzle/state/executions ]]; then
-	echo "muzzle-exec: unsafe execution state directory" >&2
-	exit 2
-fi
+safe_execution_ancestors || exit 2
 mkdir -p .muzzle/state/executions || exit 2
 chmod 700 .muzzle/state .muzzle/state/executions || exit 2
 if [[ -e "$execution_root" || -L "$execution_root" ]]; then
@@ -139,7 +145,14 @@ mkdir -p "$shadow_workflows" || exit 2
 link_directory_except "$project_root" "$shadow_project" ".muzzle" || exit 2
 link_directory_except "$project_root/.muzzle" "$shadow_muzzle" "workflows" || exit 2
 
-IFS='/' read -r -a workflow_parts <<<"$workflow_relative"
+# read/IFS stops at a newline, but newlines are valid filename characters.
+workflow_parts=()
+remaining_path="$workflow_relative"
+while [[ "$remaining_path" == */* ]]; do
+	workflow_parts+=("${remaining_path%%/*}")
+	remaining_path="${remaining_path#*/}"
+done
+workflow_parts+=("$remaining_path")
 source_cursor="$workflows_root"
 shadow_cursor="$shadow_workflows"
 last_part_index=$((${#workflow_parts[@]} - 1))

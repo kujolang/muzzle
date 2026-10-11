@@ -170,42 +170,6 @@ func is_run_bool_flag(flag_name) {
 	return false
 }
 
-func has_run_option(argv, flag_name) {
-	mut idx := 1
-	while idx < len(argv) {
-		arg := to_string(argv[idx])
-		if arg == "--" {
-			return false
-		}
-		if arg == flag_name {
-			return true
-		}
-		idx = idx + 1
-	}
-	return false
-}
-
-func run_option_value(argv, flag_name, default_value) {
-	mut idx := 1
-	while idx < len(argv) {
-		arg := to_string(argv[idx])
-		if arg == "--" {
-			return default_value
-		}
-		if arg == flag_name {
-			if idx + 1 < len(argv) {
-				next := to_string(argv[idx + 1])
-				if next != "--" {
-					return next
-				}
-			}
-			return default_value
-		}
-		idx = idx + 1
-	}
-	return default_value
-}
-
 func option_missing_value(argv, flag_name) {
 	mut idx := 1
 	while idx < len(argv) {
@@ -269,43 +233,46 @@ func update_session_state(workflow_name, finished_at) {
 	} except _err {}
 }
 
+# Parse once, consuming option values as data even when they resemble flags.
+# Preserve first-value-wins and the literal-argument delimiter contract.
 func parse_run_invocation(argv) {
 	mut workflow_name := ""
 	mut workflow_args := array()
+	mut options := {"--runner": "", "--timeout": "300000", "--policy": "trusted", "--cancel-file": "", "--policy-bundle": "", "--policy-public-key": "", "--policy-signature": ""}
+	mut seen := dict()
+	mut missing := dict()
 	mut idx := 1
 	mut found_workflow := false
 	mut literal_args := false
 
 	while idx < len(argv) {
 		arg := to_string(argv[idx])
-		mut step := 1
-
-		if literal_args {
-			if is_falseish(found_workflow) {
-				workflow_name = arg
-				found_workflow = true
-			} else {
-				workflow_args = push(workflow_args, arg)
-			}
-		} else if arg == "--" {
+		if is_falseish(literal_args) && arg == "--" {
 			literal_args = true
-		} else if is_falseish(found_workflow) {
-			if is_run_value_flag(arg) {
-				step = 2
-			} else if is_falseish(is_run_bool_flag(arg)) {
-				workflow_name = arg
-				found_workflow = true
+		} else if is_falseish(literal_args) && is_run_value_flag(arg) {
+			missing_value := idx + 1 >= len(argv) || to_string(argv[idx + 1]) == "--"
+			if is_falseish(dict_has_key(seen, arg)) {
+				seen[arg] = true
+				if missing_value {
+					missing[arg] = true
+				} else {
+					options[arg] = to_string(argv[idx + 1])
+				}
 			}
-		} else if is_run_value_flag(arg) {
-			step = 2
-		} else if is_falseish(is_run_bool_flag(arg)) {
+			if is_falseish(missing_value) {
+				idx = idx + 1
+			}
+		} else if is_falseish(literal_args) && is_run_bool_flag(arg) {
+			options[arg] = true
+		} else if is_falseish(found_workflow) {
+			workflow_name = arg
+			found_workflow = true
+		} else {
 			workflow_args = push(workflow_args, arg)
 		}
-
-		idx = idx + step
+		idx = idx + 1
 	}
-
-	return {"workflow": workflow_name, "args": workflow_args}
+	return {"workflow": workflow_name, "args": workflow_args, "options": options, "missing": missing}
 }
 
 # =============================================================================
@@ -618,38 +585,41 @@ func cmd_info(name, json_out) {
 # RUN
 # =============================================================================
 func cmd_run(argv) {
-	json_out := has_run_option(argv, "--json")
+	run_args := parse_run_invocation(argv)
+	options := run_args["options"]
+	missing := run_args["missing"]
+	json_out := dict_has_key(options, "--json")
 	if is_falseish(has_muzzle_dir()) {
 		fail_command("run", "MUZZLE_NOT_INITIALIZED", "No .muzzle/ directory found. Run 'muzzle init' first.", dict(), json_out, 1)
 	}
 
 	# Parse flags
-	verbose := has_run_option(argv, "--verbose") || has_run_option(argv, "-v")
-	dry_run := has_run_option(argv, "--dry-run") || has_run_option(argv, "-n")
-	approved := has_run_option(argv, "--approve")
-	validate_args := has_run_option(argv, "--validate-args")
-	if is_trueish(option_missing_value(argv, "--runner")) {
+	verbose := dict_has_key(options, "--verbose") || dict_has_key(options, "-v")
+	dry_run := dict_has_key(options, "--dry-run") || dict_has_key(options, "-n")
+	approved := dict_has_key(options, "--approve")
+	validate_args := dict_has_key(options, "--validate-args")
+	if is_trueish(dict_has_key(missing, "--runner")) {
 		fail_command("run", "OPTION_VALUE_REQUIRED", "--runner requires a value: kujo, bash, python, or node.", {"option": "--runner"}, json_out, 2)
 	}
-	if is_trueish(option_missing_value(argv, "--timeout")) {
+	if is_trueish(dict_has_key(missing, "--timeout")) {
 		fail_command("run", "OPTION_VALUE_REQUIRED", "--timeout requires an integer value in milliseconds.", {"option": "--timeout"}, json_out, 2)
 	}
-	if is_trueish(option_missing_value(argv, "--policy")) {
+	if is_trueish(dict_has_key(missing, "--policy")) {
 		fail_command("run", "OPTION_VALUE_REQUIRED", "--policy requires a value: trusted or enforce.", {"option": "--policy"}, json_out, 2)
 	}
-	if is_trueish(option_missing_value(argv, "--cancel-file")) {
+	if is_trueish(dict_has_key(missing, "--cancel-file")) {
 		fail_command("run", "OPTION_VALUE_REQUIRED", "--cancel-file requires a project-local path.", {"option": "--cancel-file"}, json_out, 2)
 	}
-	if is_trueish(option_missing_value(argv, "--policy-bundle")) || is_trueish(option_missing_value(argv, "--policy-public-key")) || is_trueish(option_missing_value(argv, "--policy-signature")) {
+	if is_trueish(dict_has_key(missing, "--policy-bundle")) || is_trueish(dict_has_key(missing, "--policy-public-key")) || is_trueish(dict_has_key(missing, "--policy-signature")) {
 		fail_command("run", "OPTION_VALUE_REQUIRED", "Signed policy options each require a file path.", dict(), json_out, 2)
 	}
-	runner_override := run_option_value(argv, "--runner", "")
-	timeout_str := run_option_value(argv, "--timeout", "300000")
-	mut policy_mode := run_option_value(argv, "--policy", "trusted")
-	cancel_file := run_option_value(argv, "--cancel-file", "")
-	policy_bundle := run_option_value(argv, "--policy-bundle", "")
-	policy_public_key := run_option_value(argv, "--policy-public-key", "")
-	policy_signature := run_option_value(argv, "--policy-signature", "")
+	runner_override := options["--runner"]
+	timeout_str := options["--timeout"]
+	mut policy_mode := options["--policy"]
+	cancel_file := options["--cancel-file"]
+	policy_bundle := options["--policy-bundle"]
+	policy_public_key := options["--policy-public-key"]
+	policy_signature := options["--policy-signature"]
 	if cancel_file != "" && (is_trueish(starts_with(cancel_file, "/")) || is_trueish(contains(cancel_file, ".."))) {
 		fail_command("run", "CANCEL_FILE_UNSAFE", "--cancel-file must be a safe project-relative path.", {"path": cancel_file}, json_out, 2)
 	}
@@ -675,7 +645,6 @@ func cmd_run(argv) {
 	}
 
 	# Get workflow name and args while allowing literal workflow args after --.
-	run_args := parse_run_invocation(argv)
 	workflow_name := to_string(run_args["workflow"])
 	if workflow_name == "" {
 		fail_command("run", "USAGE", "Usage: muzzle run <workflow> [args...]", dict(), json_out, 2)
@@ -911,6 +880,10 @@ func cmd_run(argv) {
 	exit(exit_code)
 }
 
+func inspectable_artifact(path) {
+	return is_trueish(path_is_file(path)) && is_trueish(path_is_within_muzzle(path))
+}
+
 func artifact_matches_workflow(entry_name, workflow_name, extension) {
 	prefix := workflow_name + "-"
 	if is_falseish(str_starts_with(entry_name, prefix)) || is_falseish(str_ends_with(entry_name, extension)) {
@@ -922,8 +895,15 @@ func artifact_matches_workflow(entry_name, workflow_name, extension) {
 	if len(parts) != 2 || len(parts[1]) != 32 {
 		return false
 	}
-	timestamp_value := parse_int(parts[0])
-	return type(timestamp_value) != "Error"
+	if is_falseish(regex_match(parts[0], "^[0-9]+$")) {
+		return false
+	}
+	try {
+		timestamp_value := parse_int(parts[0])
+		return type(timestamp_value) != "Error"
+	} except _err {
+		return false
+	}
 }
 
 # =============================================================================
@@ -957,7 +937,7 @@ func cmd_logs(filter, json_out) {
 		mut log_filter_idx := 0
 		while log_filter_idx < len(entries) {
 			entry_name := to_string(entries[log_filter_idx])
-			if is_trueish(artifact_matches_workflow(entry_name, filter, ".log")) {
+			if is_trueish(artifact_matches_workflow(entry_name, filter, ".log")) && inspectable_artifact(".muzzle/logs/" + entry_name) {
 				path := ".muzzle/logs/" + entry_name
 				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
 				if is_falseish(json_out) {
@@ -986,7 +966,7 @@ func cmd_logs(filter, json_out) {
 			entry_name := to_string(entries[log_list_idx])
 			if is_trueish(str_ends_with(entry_name, ".log")) {
 				log_full := ".muzzle/logs/" + entry_name
-				if is_trueish(path_is_within_muzzle(log_full)) {
+				if inspectable_artifact(log_full) {
 					fsize := file_size(log_full)
 					artifacts = push(artifacts, {"path": log_full, "size_bytes": fsize})
 					if is_falseish(json_out) {
@@ -1043,7 +1023,7 @@ func cmd_report(filter, json_out) {
 		mut report_filter_idx := 0
 		while report_filter_idx < len(entries) {
 			entry_name := to_string(entries[report_filter_idx])
-			if is_trueish(artifact_matches_workflow(entry_name, filter, ".md")) {
+			if is_trueish(artifact_matches_workflow(entry_name, filter, ".md")) && inspectable_artifact(".muzzle/reports/" + entry_name) {
 				path := ".muzzle/reports/" + entry_name
 				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
 				if is_falseish(json_out) {
@@ -1070,7 +1050,7 @@ func cmd_report(filter, json_out) {
 		mut report_list_idx := 0
 		while report_list_idx < len(entries) {
 			entry_name := to_string(entries[report_list_idx])
-			if is_trueish(str_ends_with(entry_name, ".md")) {
+			if is_trueish(str_ends_with(entry_name, ".md")) && inspectable_artifact(".muzzle/reports/" + entry_name) {
 				path := ".muzzle/reports/" + entry_name
 				artifacts = push(artifacts, {"path": path, "size_bytes": file_size(path)})
 				if is_falseish(json_out) {
