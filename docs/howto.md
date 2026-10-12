@@ -111,7 +111,7 @@ bash scripts/install.sh --prefix "$HOME/.local"
 source completions/muzzle.bash   # Bash; copy completions/_muzzle into a Zsh fpath for Zsh
 ```
 
-The installer places immutable runtime files under `lib/muzzle/1.1.0` and links `bin/muzzle`. Use `--dry-run` to preview and `--force` only when intentionally replacing the launcher.
+The installer places immutable runtime files under `lib/muzzle/1.1.1` and links `bin/muzzle`. Use `--dry-run` to preview and `--force` only when intentionally replacing the launcher.
 
 ### How the wrapper works
 
@@ -136,7 +136,7 @@ muzzle --help
 Expected output (version number should match the installed release):
 
 ```
-Muzzle v1.1.0 — Quiet Workflow Runner for AI-Assisted Development
+Muzzle v1.1.1 — Quiet Workflow Runner for AI-Assisted Development
 
 Usage:
   kujo run muzzle.kujo -- <command> [options]
@@ -691,4 +691,4 @@ reported as a failed run; inspect its error excerpt before rerunning.
 
 ---
 
-*Muzzle v1.1.0 — Part of the [Kujo](https://github.com/kujolang/kujo) ecosystem.*
+*Muzzle v1.1.1 — Part of the [Kujo](https://github.com/kujolang/kujo) ecosystem.*

@@ -1,71 +1,30 @@
 # Muzzle
 
-[![Version](https://img.shields.io/badge/version-1.1.0-black)](https://github.com/kujolang/muzzle)
+[![Version](https://img.shields.io/badge/version-1.1.1-black)](https://github.com/kujolang/muzzle/releases/tag/v1.1.1)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
-**Quiet workflow runner for AI-assisted development - built in Kujo.**
+Run local workflows without filling your terminal or an AI agent's context with logs. Muzzle saves complete output to disk and returns the result, exit code, duration, and evidence paths.
 
-Muzzle is a **workflow compression layer** that keeps noisy, repeated command output out of AI agent context. It runs known local workflows with quieter terminal output, captures full logs to disk, and returns compact, agent-friendly summaries.
+Use it for builds, tests, checks, and other commands you run often. Inspect the full log when you need it. Use `--json` when another tool needs the result.
 
-```
-$ muzzle run deploy website-name
+Muzzle runs trusted local code. It is not a sandbox. Review workflow scripts before running them, and keep logs, reports, and state out of version control.
 
-Muzzle: deploy website-name
+## What's new in 1.1.1
 
-Status:     success
-Exit code:  0
-Duration:   18420ms
+- Safer initialization, cleanup, option parsing, and loop-state writes.
+- Redacted failure excerpts that retain useful diagnostics without exposing distant secret blocks.
+- Less repeated work in argument parsing, retention selection, and workflow snapshot preparation.
+- Regression tests for failures, filesystem boundaries, and output contracts.
 
-Report:     .muzzle/reports/deploy-1780000000.md
-Log:        .muzzle/logs/deploy-1780000000.log
-
-Use --verbose for full output or --json for machine-readable format.
-```
-
-The full build log, deploy JSON, and terminal output stay on disk. In the reviewed flows, your agent often sees just a short summary instead of hundreds of lines.
-
-## Why Muzzle Exists
-
-AI-assisted development wastes expensive model context on predictable operational noise:
-
-| Waste Source | Without Muzzle | With Muzzle |
-|---|---|---|
-| Build output (200 lines) | ~200 lines in context | 6-line summary |
-| Deploy JSON response | ~50 lines | 6-line summary |
-| Test suite (500 lines) | ~500 lines | 6–12 lines |
-| 10-iteration loop instructions | Repeated prompts | Loop state tracking |
-
-Muzzle is designed to keep the signal in context and leave the full run on disk for later review. Commands return deterministic exit codes, while `muzzle run --json` emits a machine-readable summary and every executed run writes structured reports for downstream tools.
-
-## Readiness
-
-Muzzle is production-ready for trusted local workflow compression in real projects: it spools complete logs with bounded in-process capture, binds validated workflow bytes to execution, terminates Unix process trees on timeout/cancellation, validates manifests strictly, supports opt-in execution policy, and emits versioned machine-readable results for automation.
-
-It is not a sandbox for untrusted code or an enterprise isolation boundary. Treat workflow scripts like any other local automation: review them, document risk in manifests, use `--dry-run` for sensitive flows, and keep logs/reports out of version control. The 1.0 CLI, JSON summary, and manifest contracts are stable within that trusted-local scope.
-
-## Architecture
-
-```
-muzzle (Bash wrapper)
-  └─ kujo run muzzle.kujo -- <command>
-       ├─ src/common.kujo      CLI parsing, timestamps, helpers
-       ├─ src/runner.kujo      Modular dispatch (kujo/bash/python/node)
-       ├─ src/workflow.kujo    Discovery, manifest loading, validation
-       ├─ src/policy.kujo      Safety, argument, and signed-bundle policy
-       ├─ src/doctor.kujo      Runtime and project diagnostics
-       ├─ src/retention.kujo   Bounded artifact cleanup
-       ├─ src/report.kujo      Markdown + JSON report generation
-       ├─ src/redact.kujo      Multi-line secret redaction
-       └─ src/loops.kujo       Stateful agent loop management
-```
-
-Muzzle is a **Kujo-native** CLI with a thin Bash wrapper for PATH convenience. The wrapper auto-discovers the Kujo runtime via `KUJO_BIN` or common paths and filters known debug-only Kujo optimizer stats so Muzzle's own output stays quiet. The root-level `muzzle` wrapper and `muzzle.kujo` entrypoint are both intentional: the rest of the implementation lives in `src/`.
+The CLI and versioned JSON contracts remain compatible. Existing projects should add `state/` to `.muzzle/.gitignore`; Muzzle preserves user-owned ignore files. Loop commands still require one writer per project. See the [changelog](CHANGELOG.md) and [audit reports](docs/audits/repository-hardening.md) for details and measurements.
 
 ## Quick Start
 
+Install the [Kujo language runtime](https://docs.kujolang.ai/install/) first. Then use the released source:
+
 ```bash
-git clone https://github.com/kujolang/muzzle.git
+git clone --branch v1.1.1 https://github.com/kujolang/muzzle.git
 cd muzzle
 export PATH="$PWD:$PATH"
 
@@ -89,7 +48,7 @@ muzzle doctor --json
 muzzle run lint -- --fix              # pass a literal leading-dash arg to the workflow
 ```
 
-Agents and contributors should also read [`AGENTS.md`](AGENTS.md) for canonical examples, search exclusions, and copyable example style.
+Read [`AGENTS.md`](AGENTS.md) before changing the repository. It lists the source reading order, examples, and search exclusions.
 
 For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](examples/build-check/). Contributors can run the complete local gate with `make quality`.
 
@@ -132,7 +91,7 @@ For a copyable manifest-backed Bash workflow, see [`examples/build-check/`](exam
 
 ## Runners
 
-Muzzle supports multiple workflow runners. Kujo is the default.
+Kujo is the default runner. Use a manifest or `--runner` to choose another.
 
 | Runner | Extension | Execution | Use Case |
 |---|---|---|---|
@@ -208,7 +167,7 @@ chmod +x .muzzle/workflows/deploy.sh
 muzzle run deploy production
 ```
 
-### Better: Add a manifest for metadata
+### Add a manifest
 
 Create `.muzzle/manifests/<name>.json`:
 
@@ -232,7 +191,7 @@ Create `.muzzle/manifests/<name>.json`:
 }
 ```
 
-Manifests power `muzzle info`, strict argument validation, opt-in policy enforcement, stable aliases, and checksum verification. Unknown fields and invalid types are rejected. The `script` path is relative to `.muzzle/`, must resolve under `.muzzle/workflows/`, and may point to a differently named implementation script.
+Manifests describe the workflow for `muzzle info` and support argument validation, policy enforcement, aliases, and checksum verification. Use `--validate-args` to enforce the argument contract. Unknown fields and invalid types are rejected. The `script` path is relative to `.muzzle/`, must resolve under `.muzzle/workflows/`, and may point to a differently named implementation script.
 
 ## Loop Mode
 
@@ -271,7 +230,7 @@ muzzle loop summary       # Full table of all iterations
 
 ## Ecosystem
 
-Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a showcase for Kujo as a tool-building language:
+Related Kujo tools:
 
 | Tool | Role |
 |---|---|
@@ -286,7 +245,9 @@ Muzzle is part of the [Kujo](https://github.com/kujolang/kujo) ecosystem and a s
 
 ## Status
 
-**Stable 1.0** — The reviewed CLI surface is stable for trusted local workflow capture, report generation, manifest-backed aliases, loop tracking, and agent-facing summaries. Muzzle remains local automation rather than a security sandbox. See the [issue tracker](https://github.com/kujolang/muzzle/issues) for future enhancements.
+**Stable v1.1.1.** The CLI, manifests, and versioned JSON contracts support trusted local workflows. The [issue tracker](https://github.com/kujolang/muzzle/issues) lists proposed changes.
+
+The Bash launcher delegates to `muzzle.kujo`; implementation modules live in `src/`. Keep both root entrypoints when installing from source.
 
 Linux and macOS are supported and exercised in CI. Native Windows launch is not supported; use WSL. For a versioned installation, run `bash scripts/install.sh --prefix /absolute/prefix`; Bash and Zsh completions are in [`completions/`](completions/).
 

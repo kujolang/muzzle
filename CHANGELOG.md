@@ -2,7 +2,7 @@
 
 All notable changes to Muzzle are documented here.
 
-## Unreleased
+## [1.1.1] - 2026-10-12
 
 - Create initialization files atomically without following dangling destination symlinks or overwriting concurrently created files.
 - Ignore all local state in newly initialized projects, including loop notes and policy verification snapshots; preserve existing user ignore files.
