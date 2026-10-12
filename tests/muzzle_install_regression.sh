@@ -11,13 +11,13 @@ cleanup() {
 trap cleanup EXIT
 
 preview="$(bash "$repo_root/scripts/install.sh" --prefix "$install_root" --dry-run)"
-[[ "$preview" == *"lib/muzzle/1.1.1"* ]] || { echo "Expected install dry-run to show the versioned destination." >&2; exit 1; }
+[[ "$preview" == *"lib/muzzle/1.1.2"* ]] || { echo "Expected install dry-run to show the versioned destination." >&2; exit 1; }
 
 bash "$repo_root/scripts/install.sh" --prefix "$install_root" >/dev/null
-[[ -L "$install_root/bin/muzzle" && -f "$install_root/lib/muzzle/1.1.1/muzzle.kujo" ]] || { echo "Expected versioned files and launcher symlink." >&2; exit 1; }
+[[ -L "$install_root/bin/muzzle" && -f "$install_root/lib/muzzle/1.1.2/muzzle.kujo" ]] || { echo "Expected versioned files and launcher symlink." >&2; exit 1; }
 
 version_output="$(KUJO_BIN="${KUJO_BIN:-kujo}" "$install_root/bin/muzzle" --version)"
-[[ "$version_output" == *"Muzzle v1.1.1"* ]] || { echo "Expected installed launcher to resolve its versioned runtime." >&2; exit 1; }
+[[ "$version_output" == *"Muzzle v1.1.2"* ]] || { echo "Expected installed launcher to resolve its versioned runtime." >&2; exit 1; }
 
 # Installed failures must include the streaming scanner, not just launch help.
 mkdir "$install_root/project"
@@ -39,7 +39,7 @@ set -e
 [[ "$repeat_code" -eq 3 ]] || { echo "Expected installer to refuse replacement without --force." >&2; exit 1; }
 
 mkdir -p "$symlink_root/prefix/lib/muzzle" "$symlink_root/outside"
-ln -s "$symlink_root/outside" "$symlink_root/prefix/lib/muzzle/1.1.1"
+ln -s "$symlink_root/outside" "$symlink_root/prefix/lib/muzzle/1.1.2"
 set +e
 bash "$repo_root/scripts/install.sh" --prefix "$symlink_root/prefix" --force >/dev/null 2>&1
 symlink_code=$?

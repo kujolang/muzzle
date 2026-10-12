@@ -26,6 +26,29 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual(result.stderr, '')
         return result.stdout
 
+    def test_package_command_uses_wrapper_outside_package(self):
+        package = self.project / 'package'
+        package.mkdir()
+        for name in ['muzzle', 'muzzle.kujo', 'kennel.toml']:
+            shutil.copy2(ROOT / name, package / name)
+        shutil.copytree(ROOT / 'src', package / 'src')
+        probe = self.project / 'manifest.kujo'
+        probe.write_text('manifest := parse_toml(read_file("package/kennel.toml"))\n'
+                         'print(to_json(manifest["bin"]))\n')
+        result = subprocess.run([os.environ.get('KUJO_BIN', 'kujo'), 'run', str(probe)],
+                                cwd=self.project, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        commands = json.loads(result.stdout)
+        self.assertEqual(commands, {'muzzle': 'muzzle'})
+        env = dict(os.environ, KUJO_ISOLATED_IMPORTS='1')
+        env.pop('MUZZLE_ROOT', None)
+        result = subprocess.run([str(package / commands['muzzle']), 'run', 'hello-bash', '--json'],
+                                cwd=self.project, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertEqual(receipt['status'], 'success')
+        self.assertIn('Hello from Muzzle', (self.project / receipt['log_path']).read_text())
+
     def test_init_ignores_local_state_but_preserves_workflow_tracking(self):
         subprocess.run(['git', 'init', '-q'], cwd=self.project, check=True)
         paths = ['.muzzle/state/loops/hello.json', '.muzzle/state/.policy-verify-fixture.json',

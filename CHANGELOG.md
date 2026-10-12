@@ -2,6 +2,11 @@
 
 All notable changes to Muzzle are documented here.
 
+## [1.1.2] - 2026-10-12
+
+- Declare the Bash wrapper as the Kennel command entrypoint so global installations locate execution helpers correctly outside the package directory.
+- Add an installed-package regression that executes a workflow from a separate project.
+
 ## [1.1.1] - 2026-10-12
 
 - Create initialization files atomically without following dangling destination symlinks or overwriting concurrently created files.

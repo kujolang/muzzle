@@ -1,6 +1,6 @@
 # Muzzle
 
-[![Version](https://img.shields.io/badge/version-1.1.1-black)](https://github.com/kujolang/muzzle/releases/tag/v1.1.1)
+[![Version](https://img.shields.io/badge/version-1.1.2-black)](https://github.com/kujolang/muzzle/releases/tag/v1.1.2)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
@@ -10,7 +10,9 @@ Use it for builds, tests, checks, and other commands you run often. Inspect the 
 
 Muzzle runs trusted local code. It is not a sandbox. Review workflow scripts before running them, and keep logs, reports, and state out of version control.
 
-## What's new in 1.1.1
+## What's new in 1.1.2
+
+This release includes the 1.1.1 hardening fixes and corrects Kennel's global command entrypoint. Upgrade global installations to 1.1.2.
 
 - Safer initialization, cleanup, option parsing, and loop-state writes.
 - Redacted failure excerpts that retain useful diagnostics without exposing distant secret blocks.
@@ -24,7 +26,7 @@ The CLI and versioned JSON contracts remain compatible. Existing projects should
 Install the [Kujo language runtime](https://docs.kujolang.ai/install/) first. Then use the released source:
 
 ```bash
-git clone --branch v1.1.1 https://github.com/kujolang/muzzle.git
+git clone --branch v1.1.2 https://github.com/kujolang/muzzle.git
 cd muzzle
 export PATH="$PWD:$PATH"
 
@@ -245,7 +247,7 @@ Related Kujo tools:
 
 ## Status
 
-**Stable v1.1.1.** The CLI, manifests, and versioned JSON contracts support trusted local workflows. The [issue tracker](https://github.com/kujolang/muzzle/issues) lists proposed changes.
+**Stable v1.1.2.** The CLI, manifests, and versioned JSON contracts support trusted local workflows. The [issue tracker](https://github.com/kujolang/muzzle/issues) lists proposed changes.
 
 The Bash launcher delegates to `muzzle.kujo`; implementation modules live in `src/`. Keep both root entrypoints when installing from source.
 
