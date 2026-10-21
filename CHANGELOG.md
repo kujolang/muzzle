@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 — 2026-10-21
+
+- Update supported Node.js versions for workflow-runner regression tests and tooling.
+- Preserve local execution, policy, redaction, versioned installation and JSON contracts.
+
 All notable changes to Muzzle are documented here.
 
 ## [1.1.2] - 2026-10-12
